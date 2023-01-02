@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AkariDroid"
 include(":app")
+include(":akari-core")

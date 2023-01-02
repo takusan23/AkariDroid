@@ -47,6 +47,13 @@ android {
 }
 
 dependencies {
+    // エンコーダー
+    implementation(project(":akari-core"))
+
+    // Gradle Version Catalog でライブラリのバージョンを一元管理しています。
+
+    implementation(libs.kotlinx.coroutine)
+
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.activity)
@@ -59,6 +66,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    implementation(libs.exoplayer.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.junit)
