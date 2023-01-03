@@ -1,18 +1,19 @@
 package io.github.takusan23.akaricore.gl
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.SurfaceTexture
+import android.graphics.*
 import android.opengl.*
-import android.opengl.EGL14.eglGetError
-import androidx.core.graphics.applyCanvas
+import android.opengl.Matrix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-/** OpenGLで 映像 と Canvas を合成する */
-class TextureRenderer() {
+/**
+ * OpenGL関連
+ * 映像にCanvasを重ねてエンコーダーに渡す
+ *
+ * @param videoWidth 映像の幅。Canvasの作成に利用
+ * @param videoHeight 映像の高さ。Canvasの作成に利用
+ */
+class TextureRenderer(videoWidth: Int, videoHeight: Int) {
 
     private var mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).run {
         order(ByteOrder.nativeOrder())
@@ -24,13 +25,26 @@ class TextureRenderer() {
 
     private val mMVPMatrix = FloatArray(16)
     private val mSTMatrix = FloatArray(16)
+    private val rotationAngle = 0
+
+    private val paint = Paint().apply {
+        color = Color.BLACK
+        textSize = 20f
+    }
+
+    /** Canvasで書いたBitmap。Canvasの内容をOpenGLのテクスチャとして利用 */
+    private val canvasBitmap by lazy { Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888) }
+
+    /** Canvas。これがエンコーダーに行く */
+    private val canvas by lazy { Canvas(canvasBitmap) }
+
+    // ハンドルたち
     private var mProgram = 0
     private var muMVPMatrixHandle = 0
     private var muSTMatrixHandle = 0
     private var maPositionHandle = 0
     private var maTextureHandle = 0
     private var uCanvasTextureHandle = 0
-    private val rotationAngle = 0
 
     /** デコード結果が流れてくるOpenGLのテクスチャID */
     var videoTextureID = -1
@@ -44,6 +58,7 @@ class TextureRenderer() {
         Matrix.setIdentityM(mSTMatrix, 0)
     }
 
+    /** フレームを描画して、フラグメントシェーダーでCanvasと合成する */
     fun drawFrame(surfaceTexture: SurfaceTexture) {
         checkGlError("onDrawFrame start")
         surfaceTexture.getTransformMatrix(mSTMatrix)
@@ -68,7 +83,8 @@ class TextureRenderer() {
         GLES20.glFinish()
     }
 
-    fun drawCanvas(width: Int = 480, height: Int = 270) {
+    /** Canvasを更新して、 */
+    fun drawCanvas(positionMs: Long) {
         checkGlError("drawCanvas start")
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
@@ -78,20 +94,22 @@ class TextureRenderer() {
         // 縮小拡大時の補間設定
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+
         // Canvasで書く
-        val canvasBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).applyCanvas {
-            val paint = Paint().apply {
-                color = Color.BLACK
-                textSize = 20f
-            }
+        canvas.apply {
+            // 前回のを消す
+            drawColor(0, PorterDuff.Mode.CLEAR)
+            // 適当に描画
             drawColor(Color.parseColor("#40FFFFFF"))
-            drawText("Hello World", 50f, 50f, paint)
+            drawText("再生時間 = $positionMs ms", 50f, 50f, paint)
         }
         // glActiveTexture したテクスチャへCanvasで書いた画像を転送する
+        // 更新なので texSubImage2D
         GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, canvasBitmap)
         checkGlError("GLUtils.texSubImage2D canvasTextureID")
+
         // Uniform 変数へテクスチャを設定
-        // 第二引数の 1 って何、、、
+        // 第二引数の 1 って何、、、（GLES20.GL_TEXTURE1 だから？）
         GLES20.glUniform1i(uCanvasTextureHandle, 1)
         checkGlError("glUniform1i uCanvasTextureHandle")
     }
@@ -151,9 +169,8 @@ class TextureRenderer() {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
 
         // テクスチャを初期化
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888), 0)
-
-        drawCanvas()
+        // 更新の際はコンテキストを切り替えた上で texSubImage2D を使う
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, canvasBitmap, 0)
 
         checkGlError("glTexParameter canvasTextureID")
 

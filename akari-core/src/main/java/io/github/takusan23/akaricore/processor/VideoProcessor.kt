@@ -2,7 +2,6 @@ package io.github.takusan23.akaricore.processor
 
 import android.media.*
 import io.github.takusan23.akaricore.gl.CodecInputSurface
-import io.github.takusan23.akaricore.gl.FragmentShaderTypes
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +19,6 @@ import java.io.File
  * @param frameRate フレームレート。何故か取れなかった
  * @param videoCodec エンコード後の動画コーデック [MediaFormat.MIMETYPE_VIDEO_AVC] など
  * @param containerFormat コンテナフォーマット [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
- * @param fragmentShaderTypes エフェクトをかけるための フラグメントシェーダー
  * @param videoHeight 動画の高さを変える場合は変えられます。16の倍数であることが必須です
  * @param videoWidth 動画の幅を変える場合は変えられます。16の倍数であることが必須です
  * */
@@ -29,7 +27,6 @@ class VideoProcessor(
     private val resultFile: File,
     private val videoCodec: String? = null,
     private val containerFormat: Int? = null,
-    private val fragmentShaderTypes: FragmentShaderTypes? = null,
     private val bitRate: Int? = null,
     private val frameRate: Int? = null,
     private val videoWidth: Int? = null,
@@ -85,8 +82,8 @@ class VideoProcessor(
             configure(videoMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
         }
 
-        // エンコーダーのSurfaceを取得して、OpenGLで加工します
-        codecInputSurface = CodecInputSurface(encodeMediaCodec!!.createInputSurface(), TextureRenderer())
+        // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
+        codecInputSurface = CodecInputSurface(encodeMediaCodec!!.createInputSurface(), TextureRenderer(videoWidth = width, videoHeight = height))
         codecInputSurface?.makeCurrent()
         encodeMediaCodec!!.start()
 
@@ -170,7 +167,7 @@ class VideoProcessor(
                             errorWait = true
                         }
                         if (!errorWait) {
-                            codecInputSurface?.drawImage()
+                            codecInputSurface?.drawImage(bufferInfo.presentationTimeUs / 1000L)
                             codecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
                             codecInputSurface?.swapBuffers()
                         }

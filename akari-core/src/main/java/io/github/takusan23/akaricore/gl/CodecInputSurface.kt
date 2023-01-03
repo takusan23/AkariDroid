@@ -128,9 +128,9 @@ class CodecInputSurface(
         surfaceTexture?.updateTexImage()
     }
 
-    fun drawImage() {
+    fun drawImage(positionMs: Long) {
         val surfaceTexture = surfaceTexture ?: return
-        // textureRenderer.drawCanvas() // 毎回Canvasを書く場合はこれ？
+        textureRenderer.drawCanvas(positionMs) // 毎回Canvasを書く場合はこれ？
         textureRenderer.drawFrame(surfaceTexture)
     }
 

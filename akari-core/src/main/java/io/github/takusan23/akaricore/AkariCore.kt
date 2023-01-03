@@ -43,7 +43,6 @@ class AkariCore(
             resultFile = videoFileData.encodedVideoFile,
             videoCodec = videoEncoderData.codecName,
             containerFormat = videoFileData.containerFormat,
-            fragmentShaderTypes = videoEncoderData.fragmentShaderTypes,
             bitRate = videoEncoderData.bitRate,
             frameRate = videoEncoderData.frameRate,
             videoWidth = videoEncoderData.width,

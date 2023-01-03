@@ -1,7 +1,5 @@
 package io.github.takusan23.akaricore.data
 
-import io.github.takusan23.akaricore.gl.FragmentShaderTypes
-
 /**
  * 動画エンコーダーに必要な情報
  *
@@ -12,7 +10,6 @@ import io.github.takusan23.akaricore.gl.FragmentShaderTypes
  * @param width 動画の幅
  * @param bitRate ビットレート
  * @param frameRate フレームレート
- * @param fragmentShaderTypes 動画にエフェクトをかける場合はフラグメントシェーダーを入れる
  */
 data class VideoEncoderData(
     val codecName: String,
@@ -20,5 +17,4 @@ data class VideoEncoderData(
     val width: Int? = null,
     val bitRate: Int? = null,
     val frameRate: Int? = null,
-    val fragmentShaderTypes: FragmentShaderTypes? = null,
 )
