@@ -1,5 +1,7 @@
 package io.github.takusan23.akaridroid
 
+import android.graphics.Color
+import android.graphics.Paint
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.os.Bundle
@@ -24,12 +26,16 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainActivity : ComponentActivity() {
+
+    private val paint = Paint().apply {
+        color = Color.BLACK
+        textSize = 20f
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val _state = MutableStateFlow(EncoderStatus.PREPARE)
-
-
 
         lifecycleScope.launch {
             val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/demo.mp4")
@@ -46,7 +52,13 @@ class MainActivity : ComponentActivity() {
             val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
             _state.value = EncoderStatus.RUNNING
             withContext(Dispatchers.Default) {
-                akariCore.start()
+                // エンコーダーを開始する
+                akariCore.start { positionMs ->
+                    // this は Canvas
+                    // 動画の上に重ねるCanvasを描画する
+                    drawColor(Color.parseColor("#40FFFFFF"))
+                    drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 50f, paint)
+                }
             }
             _state.value = EncoderStatus.FINISH
         }

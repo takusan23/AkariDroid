@@ -1,7 +1,12 @@
 package io.github.takusan23.akaricore.gl
 
-import android.graphics.*
-import android.opengl.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.PorterDuff
+import android.graphics.SurfaceTexture
+import android.opengl.GLES11Ext
+import android.opengl.GLES20
+import android.opengl.GLUtils
 import android.opengl.Matrix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -26,11 +31,6 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
     private val mMVPMatrix = FloatArray(16)
     private val mSTMatrix = FloatArray(16)
     private val rotationAngle = 0
-
-    private val paint = Paint().apply {
-        color = Color.BLACK
-        textSize = 20f
-    }
 
     /** Canvasで書いたBitmap。Canvasの内容をOpenGLのテクスチャとして利用 */
     private val canvasBitmap by lazy { Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888) }
@@ -83,8 +83,12 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         GLES20.glFinish()
     }
 
-    /** Canvasを更新して、 */
-    fun drawCanvas(positionMs: Long) {
+    /**
+     * Canvasを更新して、OpenGLのテクスチャを再セットする
+     *
+     * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
+     */
+    fun drawCanvas(onCanvasDrawRequest: (Canvas) -> Unit) {
         checkGlError("drawCanvas start")
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
@@ -95,14 +99,10 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
 
+        // 前回のを消す
+        canvas.drawColor(0, PorterDuff.Mode.CLEAR)
         // Canvasで書く
-        canvas.apply {
-            // 前回のを消す
-            drawColor(0, PorterDuff.Mode.CLEAR)
-            // 適当に描画
-            drawColor(Color.parseColor("#40FFFFFF"))
-            drawText("再生時間 = $positionMs ms", 50f, 50f, paint)
-        }
+        onCanvasDrawRequest(canvas)
         // glActiveTexture したテクスチャへCanvasで書いた画像を転送する
         // 更新なので texSubImage2D
         GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, canvasBitmap)

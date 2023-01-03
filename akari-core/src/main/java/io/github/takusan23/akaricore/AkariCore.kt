@@ -1,5 +1,6 @@
 package io.github.takusan23.akaricore
 
+import android.graphics.Canvas
 import android.media.MediaMuxer
 import io.github.takusan23.akaricore.data.AudioEncoderData
 import io.github.takusan23.akaricore.data.VideoEncoderData
@@ -13,7 +14,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 
 /**
- * OpenGLで映像を加工する
+ * OpenGLで映像の上にCanvasを重ねて合成する
  *
  * @param videoFileData 動画ファイルについて
  * @param videoEncoderData 映像エンコーダーについて
@@ -50,10 +51,16 @@ class AkariCore(
         )
     }
 
-    /** 処理を始める */
-    suspend fun start() = withContext(Dispatchers.Default) {
+    /**
+     * 処理を始める
+     *
+     * @param onCanvasDrawRequest Canvasへ描画リクエストが来た際に呼ばれる。Canvasと再生時間（ミリ秒）が渡されます
+     */
+    suspend fun start(
+        onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
+    ) = withContext(Dispatchers.Default) {
         videoFileData.prepare()
-        val videoTask = async { videoProcessor.start() }
+        val videoTask = async { videoProcessor.start(onCanvasDrawRequest) }
         val audioTask = async { audioProcessor.start() }
         // 終わるまで待つ
         videoTask.await()

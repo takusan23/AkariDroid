@@ -1,5 +1,6 @@
 package io.github.takusan23.akaricore.gl
 
+import android.graphics.Canvas
 import android.graphics.SurfaceTexture
 import android.opengl.EGL14
 import android.opengl.EGLConfig
@@ -128,9 +129,14 @@ class CodecInputSurface(
         surfaceTexture?.updateTexImage()
     }
 
-    fun drawImage(positionMs: Long) {
+    /**
+     * フレームが来たら描画する
+     *
+     * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
+     */
+    fun drawImage(onCanvasDrawRequest: (Canvas) -> Unit) {
         val surfaceTexture = surfaceTexture ?: return
-        textureRenderer.drawCanvas(positionMs) // 毎回Canvasを書く場合はこれ？
+        textureRenderer.drawCanvas(onCanvasDrawRequest)
         textureRenderer.drawFrame(surfaceTexture)
     }
 

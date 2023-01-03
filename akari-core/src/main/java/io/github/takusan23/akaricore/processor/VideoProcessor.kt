@@ -1,5 +1,6 @@
 package io.github.takusan23.akaricore.processor
 
+import android.graphics.Canvas
 import android.media.*
 import io.github.takusan23.akaricore.gl.CodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
@@ -9,9 +10,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * OpenGLを利用して動画へエフェクトをかける
- *
- * 動画の解像度とかを変えられます...
+ * OpenGLを利用して動画にCanvasを重ねる
  *
  * @param videoFile フィルターをかけたい動画ファイル
  * @param resultFile エンコードしたファイルの保存先
@@ -47,9 +46,15 @@ class VideoProcessor(
     /** OpenGL */
     private var codecInputSurface: CodecInputSurface? = null
 
-    /** 処理を始める、終わるまで一時停止します */
+    /**
+     * 処理を始める、終わるまで一時停止します
+     *
+     * @param onCanvasDrawRequest Canvasへ描画リクエストが来た際に呼ばれる。Canvasと再生時間（ミリ秒）が渡されます
+     */
     @Suppress("BlockingMethodInNonBlockingContext")
-    suspend fun start() = withContext(Dispatchers.Default) {
+    suspend fun start(
+        onCanvasDrawRequest: (canvas: Canvas, positionMs: Long) -> Unit,
+    ) = withContext(Dispatchers.Default) {
 
         // 動画の情報を読み出す
         val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) ?: return@withContext
@@ -167,7 +172,10 @@ class VideoProcessor(
                             errorWait = true
                         }
                         if (!errorWait) {
-                            codecInputSurface?.drawImage(bufferInfo.presentationTimeUs / 1000L)
+                            // 映像とCanvasを合成する
+                            codecInputSurface?.drawImage { canvas ->
+                                onCanvasDrawRequest(canvas, bufferInfo.presentationTimeUs / 1000L)
+                            }
                             codecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
                             codecInputSurface?.swapBuffers()
                         }
