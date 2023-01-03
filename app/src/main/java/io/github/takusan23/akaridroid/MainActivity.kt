@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
             val audioEncoder = AudioEncoderData(codecName = MediaFormat.MIMETYPE_AUDIO_AAC)
             val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, outputFile = resultFile)
 
+            return@launch
+
             val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
             _state.value = EncoderStatus.RUNNING
             withContext(Dispatchers.Default) {
