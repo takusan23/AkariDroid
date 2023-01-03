@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":akari-core"))
 
     // Gradle Version Catalog でライブラリのバージョンを一元管理しています。
+    // libs.versions.toml ファイルを参照してください
 
     implementation(libs.kotlinx.coroutine)
 
@@ -63,6 +64,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.compose.material3)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

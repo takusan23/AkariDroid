@@ -7,10 +7,12 @@ import android.media.MediaMuxer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
@@ -28,8 +30,8 @@ import java.io.File
 class MainActivity : ComponentActivity() {
 
     private val paint = Paint().apply {
-        color = Color.BLACK
-        textSize = 20f
+        color = Color.WHITE
+        textSize = 80f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +40,7 @@ class MainActivity : ComponentActivity() {
         val _state = MutableStateFlow(EncoderStatus.PREPARE)
 
         lifecycleScope.launch {
-            val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/demo.mp4")
+            val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/sample.mp4")
             val resultFile = File(getExternalFilesDir(null), "result.mp4").apply {
                 delete()
                 createNewFile()
@@ -49,8 +51,6 @@ class MainActivity : ComponentActivity() {
             val audioEncoder = AudioEncoderData(codecName = MediaFormat.MIMETYPE_AUDIO_AAC)
             val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, outputFile = resultFile)
 
-            return@launch
-
             val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
             _state.value = EncoderStatus.RUNNING
             withContext(Dispatchers.Default) {
@@ -58,8 +58,8 @@ class MainActivity : ComponentActivity() {
                 akariCore.start { positionMs ->
                     // this は Canvas
                     // 動画の上に重ねるCanvasを描画する
-                    drawColor(Color.parseColor("#40FFFFFF"))
-                    drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 50f, paint)
+                    // drawColor(Color.parseColor("#40FFFFFF"))
+                    drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
                 }
             }
             _state.value = EncoderStatus.FINISH
@@ -68,9 +68,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             AkariDroidTheme {
                 // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
-                    val currentState = _state.collectAsState()
-                    Text(text = currentState.value.name)
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Column {
+                        val currentState = _state.collectAsState()
+                        Text(text = currentState.value.name)
+                        Button(onClick = { /*TODO*/ }) {
+                            Text(text = "はじめる")
+                        }
+                        OutlinedButton(onClick = { /*TODO*/ }) {
+                            Text(text = "outlined")
+                        }
+                    }
                 }
             }
         }
