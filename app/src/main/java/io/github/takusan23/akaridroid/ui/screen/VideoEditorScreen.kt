@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.viewmodel.MutableCreationExtras
@@ -17,6 +19,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
 import io.github.takusan23.akaridroid.ui.component.Timeline
+import io.github.takusan23.akaridroid.ui.component.VideoPlayer
+import io.github.takusan23.akaridroid.ui.component.VideoPlayerController
+import io.github.takusan23.akaridroid.ui.tool.VideoPlayerState
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
 /** 編集画面 */
@@ -31,6 +36,11 @@ fun VideoEditorScreen(
     )
 ) {
     val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current
+    val playerState = remember { VideoPlayerState(context, lifecycle.lifecycle) }
+
+    val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
+    val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
     val canvasElementList = viewModel.canvasElementList.collectAsState()
 
     Scaffold {
@@ -45,7 +55,21 @@ fun VideoEditorScreen(
                     .padding(10.dp)
                     .aspectRatio(1.7f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-            ) { }
+            ) {
+                VideoPlayer(
+                    modifier = Modifier.fillMaxSize(),
+                    playerState = playerState
+                )
+            }
+
+            VideoPlayerController(
+                modifier = Modifier.padding(bottom = 10.dp),
+                isPlaying = isPlayingFlow.value,
+                currentPosMs = currentPositionFlow.value.currentPositionMs,
+                durationMs = currentPositionFlow.value.durationMs,
+                onPlay = { isPlay -> playerState.playWhenReady = isPlay },
+                onSeek = { posMs -> playerState.currentPositionMs = posMs }
+            )
 
             Timeline(
                 modifier = Modifier
