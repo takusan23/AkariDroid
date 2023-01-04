@@ -2,30 +2,11 @@ package io.github.takusan23.akaridroid
 
 import android.graphics.Color
 import android.graphics.Paint
-import android.media.MediaFormat
-import android.media.MediaMuxer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.lifecycleScope
-import io.github.takusan23.akaricore.AkariCore
-import io.github.takusan23.akaricore.data.AudioEncoderData
-import io.github.takusan23.akaricore.data.VideoEncoderData
-import io.github.takusan23.akaricore.data.VideoFileData
-import io.github.takusan23.akaridroid.ui.theme.AkariDroidTheme
-import kotlinx.coroutines.Dispatchers
+import io.github.takusan23.akaridroid.ui.component.AkariDroidMainScreen
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -39,6 +20,7 @@ class MainActivity : ComponentActivity() {
 
         val _state = MutableStateFlow(EncoderStatus.PREPARE)
 
+/*
         lifecycleScope.launch {
             val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/sample.mp4")
             val resultFile = File(getExternalFilesDir(null), "result.mp4").apply {
@@ -64,23 +46,10 @@ class MainActivity : ComponentActivity() {
             }
             _state.value = EncoderStatus.FINISH
         }
+*/
 
         setContent {
-            AkariDroidTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Column {
-                        val currentState = _state.collectAsState()
-                        Text(text = currentState.value.name)
-                        Button(onClick = { /*TODO*/ }) {
-                            Text(text = "はじめる")
-                        }
-                        OutlinedButton(onClick = { /*TODO*/ }) {
-                            Text(text = "outlined")
-                        }
-                    }
-                }
-            }
+            AkariDroidMainScreen()
         }
     }
 
