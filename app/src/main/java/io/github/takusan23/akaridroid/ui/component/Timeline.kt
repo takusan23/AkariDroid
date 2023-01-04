@@ -37,7 +37,8 @@ fun Timeline(
                             .fillMaxWidth()
                             .height(50.dp),
                         color = MaterialTheme.colorScheme.secondaryContainer,
-                        text = "テキスト : ${elementType.text}",
+                        type = TimelineElementType.Text,
+                        text = elementType.text,
                         onClick = { onElementClick(element) }
                     )
                 }
@@ -49,7 +50,8 @@ fun Timeline(
                     .fillMaxWidth()
                     .height(50.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                text = "動画",
+                type = TimelineElementType.Video,
+                text = "sample.mp4",
                 onClick = {  /* TODO */ }
             )
         }

@@ -8,4 +8,6 @@ sealed class BottomSheetInitData {
     /** 要素の編集画面を開く */
     data class CanvasElementInitData(val canvasElementData: CanvasElementData) : BottomSheetInitData()
 
+    /** メニュー画面 */
+    object VideoEditMenuInitData : BottomSheetInitData()
 }

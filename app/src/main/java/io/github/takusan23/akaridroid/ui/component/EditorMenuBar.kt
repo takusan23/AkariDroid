@@ -22,6 +22,7 @@ private val EditorMenuBarTonalElevation = 3.dp
 @Composable
 fun EditorMenuBar(
     modifier: Modifier = Modifier,
+    onMenuClick: () -> Unit,
     onVideoClick: () -> Unit,
     onTextClick: () -> Unit,
 ) {
@@ -30,6 +31,13 @@ fun EditorMenuBar(
         tonalElevation = EditorMenuBarTonalElevation
     ) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            item {
+                EditorMenuBarItem(
+                    icon = painterResource(id = R.drawable.ic_outline_menu_24),
+                    text = "メニュー",
+                    onClick = onMenuClick
+                )
+            }
             item {
                 EditorMenuBarItem(
                     icon = painterResource(id = R.drawable.ic_outline_video_file_24),
@@ -56,7 +64,7 @@ fun EditorMenuBar(
  */
 @ExperimentalMaterial3Api
 @Composable
-fun EditorMenuBarItem(
+private fun EditorMenuBarItem(
     modifier: Modifier = Modifier,
     icon: Painter,
     text: String,

@@ -1,18 +1,17 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 
 /**
  * タイムラインの各要素
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 fun TimelineElement(
     modifier: Modifier = Modifier,
     color: Color,
+    type: TimelineElementType,
     text: String,
     onClick: () -> Unit
 ) {
@@ -37,14 +37,30 @@ fun TimelineElement(
         contentColor = contentColorFor(color),
         onClick = onClick
     ) {
-        Box(
+        Row(
             modifier = Modifier.fillMaxHeight(),
-            contentAlignment = Alignment.CenterStart
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                modifier = Modifier.padding(start = 10.dp),
-                text = text
+            Icon(
+                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                contentDescription = null,
+                painter = painterResource(
+                    id = when (type) {
+                        TimelineElementType.Text -> R.drawable.ic_outline_text_fields_24
+                        TimelineElementType.Video -> R.drawable.ic_outline_video_file_24
+                    }
+                )
             )
+            Text(text = text)
         }
     }
+}
+
+/** タイムラインの要素の種類 */
+enum class TimelineElementType {
+    /** テキスト */
+    Text,
+
+    /** 動画 */
+    Video
 }

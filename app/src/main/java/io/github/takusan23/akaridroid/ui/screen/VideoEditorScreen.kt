@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.ui.bottomsheet.BottomSheetNavigation
+import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditMenuBottomSheetMenu
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetInitData
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetResultData
 import io.github.takusan23.akaridroid.ui.bottomsheet.rememberBottomSheetState
@@ -41,8 +42,17 @@ fun VideoEditorScreen(
     val bottomSheetState = rememberBottomSheetState(onResult = { resultData ->
         // ボトムシートの結果
         when (resultData) {
+            // Canvas要素の更新
             is BottomSheetResultData.CanvasElementResult -> {
                 viewModel.updateElement(resultData.canvasElementData)
+            }
+            // メニューのコールバック
+            is BottomSheetResultData.VideoEditMenuResult -> {
+                when (resultData.menu) {
+                    VideoEditMenuBottomSheetMenu.EncodeMenu -> {
+                        //
+                    }
+                }
             }
         }
     })
@@ -55,6 +65,7 @@ fun VideoEditorScreen(
         modifier = Modifier,
         modalBottomSheetState = bottomSheetState.modalBottomSheetState,
         bottomSheetContent = {
+            // ボトムシート
             BottomSheetNavigation(
                 canvasElementData = bottomSheetState,
                 onClose = { bottomSheetState.close() }
@@ -77,7 +88,7 @@ fun VideoEditorScreen(
                     modifier = Modifier.fillMaxSize(),
                     playerState = playerState
                 )
-                AkariCanvas(
+                AkariCanvasCompose(
                     modifier = Modifier.fillMaxSize(),
                     elementList = canvasElementList.value,
                 )
@@ -106,6 +117,7 @@ fun VideoEditorScreen(
             // 下のバー
             EditorMenuBar(
                 modifier = Modifier.fillMaxWidth(),
+                onMenuClick = { bottomSheetState.open(BottomSheetInitData.VideoEditMenuInitData) },
                 onVideoClick = {},
                 onTextClick = {}
             )
