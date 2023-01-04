@@ -2,6 +2,8 @@ package io.github.takusan23.akaridroid.ui.tool
 
 import android.content.Context
 import android.view.SurfaceView
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.core.net.toUri
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
@@ -14,6 +16,13 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
+
+@Composable
+fun rememberVideoPlayerState(context: Context, lifecycle: Lifecycle): VideoPlayerState {
+    return remember {
+        VideoPlayerState(context, lifecycle)
+    }
+}
 
 /**
  * プレイヤーのロジック

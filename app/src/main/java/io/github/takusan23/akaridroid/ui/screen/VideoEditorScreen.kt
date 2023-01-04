@@ -1,13 +1,13 @@
 package io.github.takusan23.akaridroid.ui.screen
 
-import android.graphics.Color
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -16,17 +16,16 @@ import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.takusan23.akaridroid.data.CanvasElementData
-import io.github.takusan23.akaridroid.data.CanvasElementType
-import io.github.takusan23.akaridroid.ui.component.AkariCanvas
-import io.github.takusan23.akaridroid.ui.component.Timeline
-import io.github.takusan23.akaridroid.ui.component.VideoPlayer
-import io.github.takusan23.akaridroid.ui.component.VideoPlayerController
-import io.github.takusan23.akaridroid.ui.tool.VideoPlayerState
+import io.github.takusan23.akaridroid.ui.bottomsheet.BottomSheetNavigation
+import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetInitData
+import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetResultData
+import io.github.takusan23.akaridroid.ui.bottomsheet.rememberBottomSheetState
+import io.github.takusan23.akaridroid.ui.component.*
+import io.github.takusan23.akaridroid.ui.tool.rememberVideoPlayerState
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
 /** 編集画面 */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun VideoEditorScreen(
     viewModel: VideoEditorViewModel = viewModel(
@@ -38,22 +37,36 @@ fun VideoEditorScreen(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
-    val playerState = remember { VideoPlayerState(context, lifecycle.lifecycle) }
+    val playerState = rememberVideoPlayerState(context = context, lifecycle = lifecycle.lifecycle)
+    val bottomSheetState = rememberBottomSheetState(onResult = { resultData ->
+        // ボトムシートの結果
+        when (resultData) {
+            is BottomSheetResultData.CanvasElementResult -> {
+                viewModel.updateElement(resultData.canvasElementData)
+            }
+        }
+    })
 
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
-    val canvasElementList =
-        /*viewModel.canvasElementList.collectAsState()*/
-        listOf("文字を動画の上に書く", "Hello World", "あたまいたい")
-            .mapIndexed { index, text -> CanvasElementData(100f, 100f * (index + 1), 0, 100, CanvasElementType.TextElement(text, Color.RED, 80f)) }
+    val canvasElementList = viewModel.canvasElementList.collectAsState()
 
-    Scaffold {
+    ModalSheetScaffold(
+        modifier = Modifier,
+        modalBottomSheetState = bottomSheetState.modalBottomSheetState,
+        bottomSheetContent = {
+            BottomSheetNavigation(
+                canvasElementData = bottomSheetState,
+                onClose = { bottomSheetState.close() }
+            )
+        }
+    ) {
         Column(
             modifier = Modifier
                 .padding(it)
                 .fillMaxSize()
         ) {
-
+            // 動画プレイヤー
             Surface(
                 modifier = Modifier
                     .padding(start = 10.dp, end = 10.dp)
@@ -66,10 +79,10 @@ fun VideoEditorScreen(
                 )
                 AkariCanvas(
                     modifier = Modifier.fillMaxSize(),
-                    elementList = canvasElementList,
+                    elementList = canvasElementList.value,
                 )
             }
-
+            // シークバー
             VideoPlayerController(
                 modifier = Modifier.padding(bottom = 10.dp),
                 isPlaying = isPlayingFlow.value,
@@ -78,17 +91,24 @@ fun VideoEditorScreen(
                 onPlay = { isPlay -> playerState.playWhenReady = isPlay },
                 onSeek = { posMs -> playerState.currentPositionMs = posMs }
             )
-
+            // タイムライン
             Timeline(
                 modifier = Modifier
+                    .weight(1f)
                     .padding(start = 10.dp, end = 10.dp)
                     .fillMaxWidth(),
-                elementList = canvasElementList,
+                elementList = canvasElementList.value,
                 onElementClick = { element ->
-                    Toast.makeText(context, "${element}", Toast.LENGTH_SHORT).show()
+                    // 編集ボトムシートを開く
+                    bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(element))
                 }
             )
-
+            // 下のバー
+            EditorMenuBar(
+                modifier = Modifier.fillMaxWidth(),
+                onVideoClick = {},
+                onTextClick = {}
+            )
         }
     }
 }

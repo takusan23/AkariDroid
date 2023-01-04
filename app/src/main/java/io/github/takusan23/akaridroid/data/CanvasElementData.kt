@@ -3,6 +3,7 @@ package io.github.takusan23.akaridroid.data
 /**
  * キャンバスに描画する要素のデータ
  *
+ * @param id 識別するために使われる
  * @param xPos X座標
  * @param yPos Y座標
  * @param startMs 描画開始時間（ミリ秒）
@@ -10,6 +11,7 @@ package io.github.takusan23.akaridroid.data
  * @param elementType 描画する種類
  */
 data class CanvasElementData(
+    val id: Long = System.currentTimeMillis(),
     val xPos: Float,
     val yPos: Float,
     val startMs: Long,
