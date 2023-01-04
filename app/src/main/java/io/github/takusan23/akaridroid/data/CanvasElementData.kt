@@ -10,8 +10,8 @@ package io.github.takusan23.akaridroid.data
  * @param elementType 描画する種類
  */
 data class CanvasElementData(
-    val xPos: Int,
-    val yPos: Int,
+    val xPos: Float,
+    val yPos: Float,
     val startMs: Long,
     val endMs: Long,
     val elementType: CanvasElementType

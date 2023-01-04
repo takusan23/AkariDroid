@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
+import io.github.takusan23.akaridroid.ui.component.AkariCanvas
 import io.github.takusan23.akaridroid.ui.component.Timeline
 import io.github.takusan23.akaridroid.ui.component.VideoPlayer
 import io.github.takusan23.akaridroid.ui.component.VideoPlayerController
@@ -41,7 +42,10 @@ fun VideoEditorScreen(
 
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
-    val canvasElementList = viewModel.canvasElementList.collectAsState()
+    val canvasElementList =
+        /*viewModel.canvasElementList.collectAsState()*/
+        listOf("文字を動画の上に書く", "Hello World", "あたまいたい")
+            .mapIndexed { index, text -> CanvasElementData(100f, 100f * (index + 1), 0, 100, CanvasElementType.TextElement(text, Color.RED, 80f)) }
 
     Scaffold {
         Column(
@@ -52,13 +56,17 @@ fun VideoEditorScreen(
 
             Surface(
                 modifier = Modifier
-                    .padding(10.dp)
+                    .padding(start = 10.dp, end = 10.dp)
                     .aspectRatio(1.7f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
             ) {
                 VideoPlayer(
                     modifier = Modifier.fillMaxSize(),
                     playerState = playerState
+                )
+                AkariCanvas(
+                    modifier = Modifier.fillMaxSize(),
+                    elementList = canvasElementList,
                 )
             }
 
@@ -75,8 +83,7 @@ fun VideoEditorScreen(
                 modifier = Modifier
                     .padding(start = 10.dp, end = 10.dp)
                     .fillMaxWidth(),
-                elementList = listOf("文字を動画の上に書く", "Hello World", "あたまいたい")
-                    .mapIndexed { index, text -> CanvasElementData(100, 100 * index, 0, 100, CanvasElementType.TextElement(text, Color.RED, 100f)) },
+                elementList = canvasElementList,
                 onElementClick = { element ->
                     Toast.makeText(context, "${element}", Toast.LENGTH_SHORT).show()
                 }

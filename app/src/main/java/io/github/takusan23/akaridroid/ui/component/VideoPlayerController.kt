@@ -1,8 +1,8 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,7 +57,7 @@ fun VideoPlayerController(
             )
         }
         // 一時停止ボタン
-        OutlinedIconToggleButton(
+        FilledIconToggleButton(
             modifier = Modifier.size(50.dp),
             checked = isPlaying,
             onCheckedChange = { onPlay(it) }
