@@ -10,6 +10,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,7 +32,7 @@ fun TextEditForm(
     onUpdate: (CanvasElementType.TextElement) -> Unit
 ) {
     // Int を カラーコード
-    val colorCode = remember(textElement.color) { "#%06X".format((0xFFFFFF and textElement.color)) }
+    val colorCode = remember { mutableStateOf("#%06X".format((0xFFFFFF and textElement.color))) }
 
     Column(modifier = modifier) {
 
@@ -49,8 +50,13 @@ fun TextEditForm(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
-                value = colorCode,
-                onValueChange = { onUpdate(textElement.copy(color = Color.parseColor(it))) },
+                value = colorCode.value,
+                onValueChange = {
+                    colorCode.value = it
+                    runCatching {
+                        Color.parseColor(it)
+                    }.onSuccess { color -> onUpdate(textElement.copy(color = color)) }
+                },
                 label = { Text(text = "色") }
             )
             OutlinedTextField(

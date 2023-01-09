@@ -1,5 +1,7 @@
 package io.github.takusan23.akaridroid.data
 
+import kotlinx.serialization.Serializable
+
 /**
  * キャンバスに描画する要素のデータ
  *
@@ -10,6 +12,7 @@ package io.github.takusan23.akaridroid.data
  * @param endMs 描画終了時間（ミリ秒）
  * @param elementType 描画する種類
  */
+@Serializable
 data class CanvasElementData(
     val id: Long = System.currentTimeMillis(),
     val xPos: Float,

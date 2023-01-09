@@ -50,7 +50,7 @@ fun VideoEditorScreen(
             is BottomSheetResultData.VideoEditMenuResult -> {
                 when (resultData.menu) {
                     VideoEditMenuBottomSheetMenu.EncodeMenu -> {
-                        //
+                        viewModel.saveEncodeData()
                     }
                 }
             }

@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    kotlin("plugin.serialization").version(libs.versions.kotlin.get())
 }
 
 android {
@@ -54,6 +55,7 @@ dependencies {
     // libs.versions.toml ファイルを参照してください
 
     implementation(libs.kotlinx.coroutine)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime)
