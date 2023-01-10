@@ -8,14 +8,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.takusan23.akaridroid.service.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.BottomSheetNavigation
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditMenuBottomSheetMenu
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetInitData
@@ -24,6 +27,7 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.rememberBottomSheetState
 import io.github.takusan23.akaridroid.ui.component.*
 import io.github.takusan23.akaridroid.ui.tool.rememberVideoPlayerState
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
+import kotlinx.coroutines.launch
 
 /** 編集画面 */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
@@ -36,6 +40,7 @@ fun VideoEditorScreen(
         }
     )
 ) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     val playerState = rememberVideoPlayerState(context = context, lifecycle = lifecycle.lifecycle)
@@ -50,7 +55,11 @@ fun VideoEditorScreen(
             is BottomSheetResultData.VideoEditMenuResult -> {
                 when (resultData.menu) {
                     VideoEditMenuBottomSheetMenu.EncodeMenu -> {
-                        viewModel.saveEncodeData()
+                        scope.launch {
+                            // ファイルに保存して、エンコーダーサービス起動
+                            val projectData = viewModel.saveEncodeData()
+                            ContextCompat.startForegroundService(context, EncoderService.createIntent(context, projectData.projectId))
+                        }
                     }
                 }
             }

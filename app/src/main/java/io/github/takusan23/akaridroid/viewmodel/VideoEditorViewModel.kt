@@ -61,15 +61,13 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
      * エンコーダーに渡すためのデータを作成して保存する
      * 多分 Bundle に入れると多分サイズオーバーしてしまうので、一旦ストレージに保存する
      */
-    fun saveEncodeData() {
-        viewModelScope.launch {
-            // 保存する
-            videoEditProjectManager.saveProjectData(
-                akariProjectData = AkariProjectData(
-                    canvasElementList = canvasElementList.value
-                )
-            )
-        }
+    suspend fun saveEncodeData(): AkariProjectData {
+        // 保存する
+        val akariProjectData = AkariProjectData(
+            canvasElementList = canvasElementList.value
+        )
+        videoEditProjectManager.saveProjectData(akariProjectData)
+        return akariProjectData
     }
 
     companion object {

@@ -30,6 +30,7 @@ androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidxCore
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-activity = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "androidxLifecycle" }
 androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDataStore" }
 
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidxCompose" }

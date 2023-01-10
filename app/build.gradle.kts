@@ -59,6 +59,7 @@ dependencies {
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.datastore)
 

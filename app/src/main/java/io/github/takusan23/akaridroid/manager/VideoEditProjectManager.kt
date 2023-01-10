@@ -29,16 +29,10 @@ class VideoEditProjectManager(private val context: Context) {
      * @param akariProjectData
      */
     suspend fun saveProjectData(akariProjectData: AkariProjectData) = withContext(Dispatchers.IO) {
-        val projectFolder = File(videoEditFolder, akariProjectData.projectId).apply {
-            if (!exists()) {
-                mkdir()
-            }
-        }
+        val projectFolder = getProjectFolder(akariProjectData.projectId)
         // JSON で保存
-        File(projectFolder, PROJECT_JSON_FILE_NAME).apply {
-            val jsonText = JsonTool.encode(akariProjectData)
-            writeText(jsonText)
-        }
+        val jsonText = JsonTool.encode(akariProjectData)
+        File(projectFolder, PROJECT_JSON_FILE_NAME).writeText(jsonText)
     }
 
     /**
@@ -46,14 +40,25 @@ class VideoEditProjectManager(private val context: Context) {
      *
      * @return [AkariProjectData]
      */
-    suspend fun loadProjectData(projectId: String) = withContext(Dispatchers.IO) {
-        val projectFolder = File(videoEditFolder, projectId).apply {
+    suspend fun loadProjectData(projectId: String): AkariProjectData = withContext(Dispatchers.IO) {
+        val projectFolder = getProjectFolder(projectId)
+        // JSON から データクラスへ
+        val jsonText = File(projectFolder, PROJECT_JSON_FILE_NAME).readText()
+        return@withContext JsonTool.parse<AkariProjectData>(jsonText)
+    }
+
+    /**
+     * プロジェクトのフォルダの[File]を取得する
+     *
+     * @param projectId プロジェクトID
+     * @return [File]
+     */
+    private suspend fun getProjectFolder(projectId: String): File = withContext(Dispatchers.IO) {
+        return@withContext File(videoEditFolder, projectId).apply {
             if (!exists()) {
                 mkdir()
             }
         }
-        val jsonText = File(projectFolder, PROJECT_JSON_FILE_NAME).readText()
-        return@withContext JsonTool.parse<AkariProjectData>(jsonText)
     }
 
     companion object {
