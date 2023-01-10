@@ -277,8 +277,12 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
                 vec4 videoTexture = texture2D(sTexture, vTextureCoord);
                 vec4 canvasTexture = texture2D(uCanvasTexture, vTextureCoord);
                 
-                // 色を合成する
-                gl_FragColor = canvasTexture + videoTexture;
+                // Canvas の透明な部分は 動画のテクスチャ からピクセルを取得する
+                if (canvasTexture.a == 0.0) {
+                    gl_FragColor = videoTexture;                
+                } else {
+                    gl_FragColor = canvasTexture;
+                }
             }
         """
     }
