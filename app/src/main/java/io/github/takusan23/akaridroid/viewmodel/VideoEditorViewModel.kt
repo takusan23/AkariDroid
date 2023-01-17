@@ -57,10 +57,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
         }
     }
 
-    /**
-     * エンコーダーに渡すためのデータを作成して保存する
-     * 多分 Bundle に入れると多分サイズオーバーしてしまうので、一旦ストレージに保存する
-     */
+    /** エンコーダーに渡すためのデータを作成して保存する */
     suspend fun saveEncodeData(): AkariProjectData {
         // 保存する
         val akariProjectData = AkariProjectData(

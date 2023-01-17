@@ -1,71 +1,92 @@
 package io.github.takusan23.akaridroid.service
 
 import android.app.PendingIntent
+import android.app.Service
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Binder
 import android.os.Build
+import android.os.IBinder
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
+import androidx.core.app.ServiceCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import io.github.takusan23.akaricore.AkariCore
 import io.github.takusan23.akaricore.data.AudioEncoderData
 import io.github.takusan23.akaricore.data.VideoEncoderData
 import io.github.takusan23.akaricore.data.VideoFileData
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.data.AkariProjectData
-import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
+import io.github.takusan23.akaridroid.service.tool.ServiceBroadcastReceiver
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.ui.tool.AkariCanvas
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.*
 import java.io.File
+import java.lang.ref.WeakReference
 
 /** エンコーダーサービス */
-class EncoderService : LifecycleService() {
-
+class EncoderService : Service() {
+    private val scope = CoroutineScope(Job() + Dispatchers.Main)
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
-    private val videoEditProjectManager by lazy { VideoEditProjectManager(this) }
+    private val localBinder = LocalBinder(this)
+
+    private val _isRunningEncode = MutableStateFlow(false)
+
+    /** エンコード中かどうか */
+    val isRunningEncode = _isRunningEncode.asStateFlow()
 
     override fun onCreate() {
         super.onCreate()
-        // フォアグラウンドサービスに昇格させる
-        createNotification()
         // ブロードキャスト
-        ServiceBroadcastReceiver(
-            context = this,
-            lifecycleOwner = this,
-            actionList = EncoderServiceBroadcastAction.values().map { it.action }
-        ) {
-            when (EncoderServiceBroadcastAction.resolve(it)) {
-                EncoderServiceBroadcastAction.SERVICE_STOP -> stopSelf()
-            }
-        }
+        ServiceBroadcastReceiver
+            .collectReceivedBroadcast(this, EncoderServiceBroadcastAction.values().map { it.action })
+            .onEach { action ->
+                when (EncoderServiceBroadcastAction.resolve(action)) {
+                    EncoderServiceBroadcastAction.SERVICE_STOP -> stop()
+                }
+            }.launchIn(scope)
     }
+
+    override fun onBind(intent: Intent?): IBinder = localBinder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        lifecycleScope.launch {
-            // プロジェクトをロードしてエンコードする
-            val akariProjectData = videoEditProjectManager.loadProjectData(intent?.getStringExtra(INTENT_PROJECT_ID_KEY)!!)
-            akariCoreEncode(akariProjectData)
-            // 終了する
-            stopSelf()
-        }
         return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stop()
+    }
+
+    /** [AkariProjectData]をもとにエンコードを行う */
+    fun encodeAkariProject(akariProjectData: AkariProjectData) {
+        scope.launch {
+            // プロジェクトをロードしてエンコードする
+            encodeAkariCore(akariProjectData)
+        }
+    }
+
+    /** 処理を止める */
+    fun stop() {
+        scope.coroutineContext.cancelChildren()
     }
 
     /**
      * エンコードを行う。
-     * [io.github.takusan23.akaricore.AkariCore]は別モジュールに実装してあります。
+     * [AkariCore]は別モジュールに実装してあります。
      *
      * @param akariProjectData [AkariProjectData]
      */
-    private suspend fun akariCoreEncode(akariProjectData: AkariProjectData) {
+    private suspend fun encodeAkariCore(akariProjectData: AkariProjectData) {
         val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/sample.mp4")
         val resultFile = File(getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
             delete()
@@ -78,20 +99,38 @@ class EncoderService : LifecycleService() {
         val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, outputFile = resultFile)
         val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
 
-        withContext(Dispatchers.Default) {
+        // エンコードを開始する。フォアグラウンドサービスにしてバインドが解除されても動くようにする。
+        _isRunningEncode.value = true
+        createOrUpdateForegroundNotification(title = "エンコード中です", text = "しばらくお待ちください、がんばってます。", isEncoding = true)
+
+        try {
             // エンコーダーを開始する
-            akariCore.start { positionMs ->
-                // this は Canvas
-                // 動画の上に重ねるCanvasを描画する
-                AkariCanvas.render(this, akariProjectData.canvasElementList)
+            withContext(Dispatchers.Default) {
+                akariCore.start { positionMs ->
+                    // this は Canvas
+                    // 動画の上に重ねるCanvasを描画する
+                    AkariCanvas.render(this, akariProjectData.canvasElementList)
+                }
             }
+
+            // 動画フォルダへコピーする
+            MediaStoreTool.copyToVideoFolder(this@EncoderService, resultFile)
+        } catch (e: Exception) {
+            // TODO キャンセル時
+        } finally {
+            // 終了。フォアグラウンドを解除する
+            _isRunningEncode.value = false
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         }
-        // 動画フォルダへコピーする
-        MediaStoreTool.copyToVideoFolder(this@EncoderService, resultFile)
     }
 
-    /** 通知を作る */
-    private fun createNotification() {
+    /**
+     * サービスをフォアグラウンドに昇格させる。そのための通知を作成する。
+     *
+     * @param title タイトル
+     * @param text 通知本文
+     */
+    private fun createOrUpdateForegroundNotification(title: String = "サービス起動中", text: String = "あかりどろいど より", isEncoding: Boolean = false) {
         val channelId = "service_encoder_running"
         if (notificationManager.getNotificationChannel(channelId) == null) {
             val notificationChannel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW).apply {
@@ -100,11 +139,13 @@ class EncoderService : LifecycleService() {
             notificationManager.createNotificationChannel(notificationChannel)
         }
         val notification = NotificationCompat.Builder(this, channelId).apply {
-            setContentTitle("動画のエンコード中です")
-            setContentText("しばらくお待ち下さい。")
+            setContentTitle(title)
+            setContentText(text)
             setSmallIcon(R.drawable.akari_droid_icon)
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
-            addAction(R.drawable.ic_outline_close_24, "強制終了", PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
+            if (isEncoding) {
+                addAction(R.drawable.ic_outline_close_24, "エンコード終了", PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
+            }
         }.build()
         startForeground(NOTIFICATION_ID, notification)
     }
@@ -126,25 +167,53 @@ class EncoderService : LifecycleService() {
         }
     }
 
+    private class LocalBinder(service: EncoderService) : Binder() {
+        val serviceRef = WeakReference(service)
+        val service: EncoderService
+            get() = serviceRef.get()!!
+    }
+
     companion object {
 
         /** 通知ID */
         private const val NOTIFICATION_ID = 4545
 
-        /** プロジェクトID */
-        private const val INTENT_PROJECT_ID_KEY = "project_id"
+        /** サービスをフォアグラウンド化するか。エンコード中の場合はフォアグラウンド化して処理を継続させる */
 
         /**
-         * サービスを起動するインテントを作成
-         * IntentにJSONを入れるともれなく上限に引っかかると思うので、ファイルに保存してから行う
+         * サービスとバインドしてサービスのインスタンスを取得する
          *
          * @param context [Context]
-         * @param projectId プロジェクトID
+         * @param lifecycleOwner ライフサイクルオーナー
          */
-        fun createIntent(context: Context, projectId: String): Intent {
-            return Intent(context, EncoderService::class.java).apply {
-                putExtra(INTENT_PROJECT_ID_KEY, projectId)
+        fun bindEncoderService(context: Context, lifecycleOwner: LifecycleOwner) = callbackFlow {
+            var encoderService: EncoderService? = null
+            val serviceConnection = object : ServiceConnection {
+                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                    encoderService = (service as LocalBinder).service
+                    trySend(encoderService)
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    trySend(null)
+                }
             }
+            // ライフサイクルを監視してバインド、バインド解除する
+            val lifecycleObserver = object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    super.onStart(owner)
+                    val intent = Intent(context, EncoderService::class.java)
+                    context.startService(intent)
+                    context.bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+                }
+
+                override fun onStop(owner: LifecycleOwner) {
+                    super.onStop(owner)
+                    context.unbindService(serviceConnection)
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+            awaitClose { lifecycleOwner.lifecycle.removeObserver(lifecycleObserver) }
         }
     }
 }

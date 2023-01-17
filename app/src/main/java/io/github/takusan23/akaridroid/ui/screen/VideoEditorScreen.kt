@@ -8,12 +8,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
@@ -43,6 +43,9 @@ fun VideoEditorScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
+
+    // エンコーダーサービスとバインドする
+    val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsState(initial = null)
     val playerState = rememberVideoPlayerState(context = context, lifecycle = lifecycle.lifecycle)
     val bottomSheetState = rememberBottomSheetState(onResult = { resultData ->
         // ボトムシートの結果
@@ -56,9 +59,9 @@ fun VideoEditorScreen(
                 when (resultData.menu) {
                     VideoEditMenuBottomSheetMenu.EncodeMenu -> {
                         scope.launch {
-                            // ファイルに保存して、エンコーダーサービス起動
+                            // ファイルに保存して、エンコーダーサービスにエンコードを依頼する
                             val projectData = viewModel.saveEncodeData()
-                            ContextCompat.startForegroundService(context, EncoderService.createIntent(context, projectData.projectId))
+                            encoderService.value?.encodeAkariProject(projectData)
                         }
                     }
                 }
@@ -66,6 +69,7 @@ fun VideoEditorScreen(
         }
     })
 
+    val isRunningEncode = encoderService.value?.isRunningEncode?.collectAsState()
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
     val canvasElementList = viewModel.canvasElementList.collectAsState()
@@ -86,6 +90,17 @@ fun VideoEditorScreen(
                 .padding(it)
                 .fillMaxSize()
         ) {
+
+            // エンコード中用表示。かり
+            if (isRunningEncode?.value == true) {
+                TempEncodingMessage(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .fillMaxWidth()
+                )
+                return@Column
+            }
+
             // 動画プレイヤー
             Surface(
                 modifier = Modifier

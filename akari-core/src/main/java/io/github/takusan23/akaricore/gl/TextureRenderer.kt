@@ -45,6 +45,7 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
     private var maPositionHandle = 0
     private var maTextureHandle = 0
     private var uCanvasTextureHandle = 0
+    private var uVideoTextureHandle = 0
 
     /** デコード結果が流れてくるOpenGLのテクスチャID */
     var videoTextureID = -1
@@ -66,6 +67,8 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         checkGlError("glUseProgram")
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, videoTextureID)
+        // GLES20.GL_TEXTURE0 なので 0
+        GLES20.glUniform1i(uVideoTextureHandle, 0)
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
         checkGlError("glVertexAttribPointer maPosition")
@@ -140,6 +143,7 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
             throw RuntimeException("Could not get attrib location for uSTMatrix")
         }
         uCanvasTextureHandle = GLES20.glGetUniformLocation(mProgram, "uCanvasTexture")
+        uVideoTextureHandle = GLES20.glGetUniformLocation(mProgram, "uVideoTexture")
 
         // 映像が入ってくるテクスチャ、Canvasのテクスチャを登録する
         // テクスチャ2つ作る
@@ -270,18 +274,18 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
 
             precision mediump float;
             varying vec2 vTextureCoord;
-            uniform samplerExternalOES sTexture;        
+            uniform samplerExternalOES uVideoTexture;        
             uniform sampler2D uCanvasTexture;
         
             void main() {
-                vec4 videoTexture = texture2D(sTexture, vTextureCoord);
+                vec4 videoTexture = texture2D(uVideoTexture, vTextureCoord);
                 vec4 canvasTexture = texture2D(uCanvasTexture, vTextureCoord);
                 
                 // Canvas の透明な部分は 動画のテクスチャ からピクセルを取得する
-                if (canvasTexture.a == 0.0) {
-                    gl_FragColor = videoTexture;                
-                } else {
+                if (canvasTexture.a > 0.0) {
                     gl_FragColor = canvasTexture;
+                } else {
+                    gl_FragColor = videoTexture;                
                 }
             }
         """
