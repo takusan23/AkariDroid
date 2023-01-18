@@ -15,7 +15,7 @@ import com.google.android.exoplayer2.Player
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
+import kotlin.math.max
 
 @Composable
 fun rememberVideoPlayerState(context: Context, lifecycle: Lifecycle): VideoPlayerState {
@@ -53,12 +53,12 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
 
     /** 再生時間 ms */
     var currentPositionMs: Long
-        get() = exoPlayer.currentPosition
+        get() = max(0, exoPlayer.currentPosition)
         set(value) = exoPlayer.seekTo(value)
 
     /** 動画時間 */
     val durationMs: Long
-        get() = exoPlayer.duration
+        get() = max(0, exoPlayer.duration)
 
     /** 再生状態 */
     var playWhenReady: Boolean
@@ -68,10 +68,6 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
         }
 
     init {
-        // 動画セットすr
-        val videoFile = File("${context.getExternalFilesDir(null)!!.path}/videos/sample.mp4")
-        setMediaItem(videoFile.path)
-
         lifecycle.addObserver(this)
 
         scope.launch {

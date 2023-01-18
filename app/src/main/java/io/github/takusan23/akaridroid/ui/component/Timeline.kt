@@ -23,6 +23,7 @@ import io.github.takusan23.akaridroid.data.CanvasElementType
 fun Timeline(
     modifier: Modifier = Modifier,
     elementList: List<CanvasElementData>,
+    videoFilePath: String? = null,
     onElementClick: (CanvasElementData) -> Unit
 ) {
     LazyColumn(
@@ -44,16 +45,18 @@ fun Timeline(
                 }
             }
         }
-        item {
-            TimelineElement(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                type = TimelineElementType.Video,
-                text = "sample.mp4",
-                onClick = {  /* TODO */ }
-            )
+        if (videoFilePath != null) {
+            item {
+                TimelineElement(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    type = TimelineElementType.Video,
+                    text = videoFilePath,
+                    onClick = {  /* TODO */ }
+                )
+            }
         }
     }
 }

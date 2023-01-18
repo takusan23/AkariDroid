@@ -30,7 +30,7 @@ fun EditorMenuBar(
         modifier = modifier,
         tonalElevation = EditorMenuBarTonalElevation
     ) {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        LazyRow {
             item {
                 EditorMenuBarItem(
                     icon = painterResource(id = R.drawable.ic_outline_menu_24),

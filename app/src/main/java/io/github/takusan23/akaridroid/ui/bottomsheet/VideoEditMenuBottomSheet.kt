@@ -39,7 +39,7 @@ fun VideoEditMenuBottomSheet(
             VideoEditMenuBottomSheetItem(
                 text = "プロジェクトを保存する",
                 icon = painterResource(id = R.drawable.ic_outline_save_24),
-                onClick = { }
+                onClick = { onClick(VideoEditMenuBottomSheetMenu.SaveMenu) }
             )
         }
     }
@@ -48,7 +48,10 @@ fun VideoEditMenuBottomSheet(
 /** メニュー */
 enum class VideoEditMenuBottomSheetMenu {
     /** エンコード */
-    EncodeMenu
+    EncodeMenu,
+
+    /** 保存する */
+    SaveMenu
 }
 
 /**

@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.manager
 
 import android.content.Context
+import android.net.Uri
 import io.github.takusan23.akaridroid.data.AkariProjectData
 import io.github.takusan23.akaridroid.tool.JsonTool
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +46,24 @@ class VideoEditProjectManager(private val context: Context) {
         // JSON から データクラスへ
         val jsonText = File(projectFolder, PROJECT_JSON_FILE_NAME).readText()
         return@withContext JsonTool.parse<AkariProjectData>(jsonText)
+    }
+
+    /**
+     * プロジェクトにファイルを追加する
+     *
+     * @param projectId プロジェクトID
+     * @param uri Uri
+     * @return [File]
+     */
+    suspend fun addFileToProject(projectId: String, uri: Uri, fileName: String) = withContext(Dispatchers.IO) {
+        val projectFolder = getProjectFolder(projectId)
+        val addFile = File(projectFolder, fileName).apply {
+            createNewFile()
+        }
+        context.contentResolver.openInputStream(uri)?.use {
+            addFile.writeBytes(it.readBytes())
+        }
+        return@withContext addFile
     }
 
     /**

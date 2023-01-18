@@ -1,15 +1,15 @@
 package io.github.takusan23.akaridroid.ui.screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -36,7 +36,7 @@ fun VideoEditorScreen(
     viewModel: VideoEditorViewModel = viewModel(
         factory = VideoEditorViewModel.Factory,
         extras = MutableCreationExtras((LocalViewModelStoreOwner.current as HasDefaultViewModelProviderFactory).defaultViewModelCreationExtras).apply {
-            set(VideoEditorViewModel.PROJECT_ID, "xxxx")
+            set(VideoEditorViewModel.PROJECT_ID, "project-2022-01-10")
         }
     )
 ) {
@@ -46,8 +46,9 @@ fun VideoEditorScreen(
 
     // エンコーダーサービスとバインドする
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsState(initial = null)
+    val filePicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri -> viewModel.setVideoFile(uri) }
     val playerState = rememberVideoPlayerState(context = context, lifecycle = lifecycle.lifecycle)
-    val bottomSheetState = rememberBottomSheetState(onResult = { resultData ->
+    val bottomSheetState = rememberBottomSheetState { resultData ->
         // ボトムシートの結果
         when (resultData) {
             // Canvas要素の更新
@@ -64,15 +65,24 @@ fun VideoEditorScreen(
                             encoderService.value?.encodeAkariProject(projectData)
                         }
                     }
+                    VideoEditMenuBottomSheetMenu.SaveMenu -> {
+                        scope.launch { viewModel.saveEncodeData() }
+                    }
                 }
             }
         }
-    })
+    }
 
     val isRunningEncode = encoderService.value?.isRunningEncode?.collectAsState()
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
     val canvasElementList = viewModel.canvasElementList.collectAsState()
+    val videoFilePath = viewModel.videoFilePath.collectAsState()
+
+    // 動画をセット
+    LaunchedEffect(key1 = videoFilePath.value) {
+        videoFilePath.value?.also { path -> playerState.setMediaItem(path) }
+    }
 
     ModalSheetScaffold(
         modifier = Modifier,
@@ -133,6 +143,7 @@ fun VideoEditorScreen(
                     .padding(start = 10.dp, end = 10.dp)
                     .fillMaxWidth(),
                 elementList = canvasElementList.value,
+                videoFilePath = videoFilePath.value,
                 onElementClick = { element ->
                     // 編集ボトムシートを開く
                     bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(element))
@@ -142,7 +153,7 @@ fun VideoEditorScreen(
             EditorMenuBar(
                 modifier = Modifier.fillMaxWidth(),
                 onMenuClick = { bottomSheetState.open(BottomSheetInitData.VideoEditMenuInitData) },
-                onVideoClick = {},
+                onVideoClick = { filePicker.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.VideoOnly)) },
                 onTextClick = {}
             )
         }

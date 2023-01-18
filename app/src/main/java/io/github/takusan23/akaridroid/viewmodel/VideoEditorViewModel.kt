@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.viewmodel
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -20,8 +21,10 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     private val videoEditProjectManager by lazy { VideoEditProjectManager(context) }
 
     private val _canvasElementList = MutableStateFlow<List<CanvasElementData>>(listOf())
+    private val _videoFilePath = MutableStateFlow<String?>(null)
 
     val canvasElementList = _canvasElementList.asStateFlow()
+    val videoFilePath = _videoFilePath.asStateFlow()
 
     init {
 /*
@@ -39,8 +42,9 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 */
         // ロードする
         viewModelScope.launch {
-            val akariProjectData = videoEditProjectManager.loadProjectData("project-2022-01-10")
+            val akariProjectData = videoEditProjectManager.loadProjectData(projectId)
             _canvasElementList.value = akariProjectData.canvasElementList
+            _videoFilePath.value = akariProjectData.videoFilePath
         }
     }
 
@@ -57,11 +61,27 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
         }
     }
 
+    /**
+     * 動画ファイルをセットする。Uriをプロジェクトフォルダへコピーする。
+     *
+     * @param uri ファイルピッカーで選んだUri
+     */
+    fun setVideoFile(uri: Uri?) {
+        uri ?: return
+        viewModelScope.launch {
+            _videoFilePath.value = null
+            val videoFile = videoEditProjectManager.addFileToProject(projectId, uri, "videofile")
+            _videoFilePath.value = videoFile.path
+        }
+    }
+
     /** エンコーダーに渡すためのデータを作成して保存する */
     suspend fun saveEncodeData(): AkariProjectData {
         // 保存する
         val akariProjectData = AkariProjectData(
-            canvasElementList = canvasElementList.value
+            projectId = projectId,
+            canvasElementList = canvasElementList.value,
+            videoFilePath = videoFilePath.value
         )
         videoEditProjectManager.saveProjectData(akariProjectData)
         return akariProjectData

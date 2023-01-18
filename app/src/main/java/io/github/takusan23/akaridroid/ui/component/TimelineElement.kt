@@ -51,7 +51,10 @@ fun TimelineElement(
                     }
                 )
             )
-            Text(text = text)
+            Text(
+                text = text,
+                maxLines = 1
+            )
         }
     }
 }
