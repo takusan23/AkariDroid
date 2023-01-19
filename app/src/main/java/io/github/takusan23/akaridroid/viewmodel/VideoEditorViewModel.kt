@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.viewmodel
 
 import android.app.Application
+import android.graphics.Color
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.takusan23.akaridroid.data.AkariProjectData
 import io.github.takusan23.akaridroid.data.CanvasElementData
+import io.github.takusan23.akaridroid.data.CanvasElementType
 import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -82,6 +84,27 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
             val videoFile = videoEditProjectManager.addFileToProject(projectId, uri, "videofile")
             _videoFilePath.value = videoFile.path
         }
+    }
+
+    /**
+     * テキスト要素を作成する
+     *
+     * @return 新規作成された [CanvasElementData]
+     */
+    fun addTextElement(): CanvasElementData {
+        val canvasElementData = CanvasElementData(
+            xPos = 100f,
+            yPos = 100f,
+            startMs = 0,
+            endMs = 100,
+            elementType = CanvasElementType.TextElement(
+                text = "",
+                color = Color.WHITE,
+                fontSize = 100f
+            )
+        )
+        _canvasElementList.value = canvasElementList.value + canvasElementData
+        return canvasElementData
     }
 
     /** エンコーダーに渡すためのデータを作成して保存する */

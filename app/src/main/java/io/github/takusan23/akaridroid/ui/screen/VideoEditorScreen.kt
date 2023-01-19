@@ -158,7 +158,7 @@ fun VideoEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 onMenuClick = { bottomSheetState.open(BottomSheetInitData.VideoEditMenuInitData) },
                 onVideoClick = { filePicker.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.VideoOnly)) },
-                onTextClick = {}
+                onTextClick = { viewModel.addTextElement().also { addTextElement -> bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(addTextElement)) } }
             )
         }
     }

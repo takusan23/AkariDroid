@@ -29,12 +29,12 @@ fun BottomSheetNavigation(
             is BottomSheetInitData.CanvasElementInitData -> {
                 TextEditBottomSheet(
                     initCanvasElementData = initData.canvasElementData,
+                    onClose = onClose,
                     onUpdate = { bottomSheetState.sendResult(BottomSheetResultData.CanvasElementResult(it)) },
                     onDelete = {
                         bottomSheetState.sendResult(BottomSheetResultData.CanvasElementDeleteResult(it))
                         bottomSheetState.close()
-                    },
-                    onClose = onClose
+                    }
                 )
             }
             is BottomSheetInitData.VideoEditMenuInitData -> {
