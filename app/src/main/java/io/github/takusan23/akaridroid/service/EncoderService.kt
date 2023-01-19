@@ -87,7 +87,7 @@ class EncoderService : Service() {
      * @param akariProjectData [AkariProjectData]
      */
     private suspend fun encodeAkariCore(akariProjectData: AkariProjectData) {
-        val videoFile = File("${getExternalFilesDir(null)!!.path}/videos/sample.mp4")
+        val videoFile = File(akariProjectData.videoFilePath!!)
         val resultFile = File(getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
             delete()
             createNewFile()

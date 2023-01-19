@@ -44,9 +44,15 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 */
         // ロードする
         viewModelScope.launch {
-            val akariProjectData = videoEditProjectManager.loadProjectData(projectId)
-            _canvasElementList.value = akariProjectData.canvasElementList
-            _videoFilePath.value = akariProjectData.videoFilePath
+            try {
+                // まだプロジェクト作成機能がないので、とりあえずハードコートしたファイルパスでロードする
+                // 初回時は絶対落ちるので try-catch
+                val akariProjectData = videoEditProjectManager.loadProjectData(projectId)
+                _canvasElementList.value = akariProjectData.canvasElementList
+                _videoFilePath.value = akariProjectData.videoFilePath
+            }catch (e:Exception){
+                e.printStackTrace()
+            }
         }
     }
 

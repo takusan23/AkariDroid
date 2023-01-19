@@ -30,9 +30,10 @@ fun EditorMenuBar(
         modifier = modifier,
         tonalElevation = EditorMenuBarTonalElevation
     ) {
-        LazyRow {
+        LazyRow(verticalAlignment = Alignment.CenterVertically) {
             item {
-                EditorMenuBarItem(
+                ExtendedEditorMenuBarItem(
+                    modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 5.dp, bottom = 5.dp),
                     icon = painterResource(id = R.drawable.ic_outline_menu_24),
                     text = "メニュー",
                     onClick = onMenuClick
@@ -60,6 +61,8 @@ fun EditorMenuBar(
  * 編集画面の一番下のバーの各ボタン
  *
  * @param modifier [Modifier]
+ * @param icon アイコン
+ * @param text テキスト
  * @param onClick 押したら呼ばれる
  */
 @ExperimentalMaterial3Api
@@ -81,6 +84,39 @@ private fun EditorMenuBarItem(
         ) {
             Icon(painter = icon, contentDescription = null)
             Spacer(modifier = Modifier.height(ButtonDefaults.IconSpacing))
+            Text(text = text)
+        }
+    }
+}
+
+/**
+ * はじっこのメニューボタン
+ *
+ * @param modifier [Modifier]
+ * @param icon アイコン
+ * @param text テキスト
+ * @param onClick 押したら呼ばれる
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExtendedEditorMenuBarItem(
+    modifier: Modifier = Modifier,
+    icon: Painter,
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(5.dp),
+        color = MaterialTheme.colorScheme.primary,
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier.padding(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(painter = icon, contentDescription = null)
+            Spacer(modifier = Modifier.height(5.dp))
             Text(text = text)
         }
     }
