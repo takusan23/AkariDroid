@@ -12,16 +12,16 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetResultData
 /**
  * 動画編集画面のボトムシート
  *
- * @param canvasElementData 状態管理
+ * @param bottomSheetState 状態管理
  * @param onClose 閉じる際に呼ぶ
  */
 @Composable
 fun BottomSheetNavigation(
-    canvasElementData: BottomSheetState,
+    bottomSheetState: BottomSheetState,
     onClose: () -> Unit,
 ) {
     // ボトムシートで表示させる内容
-    val bottomSheetStateInitData = canvasElementData.bottomSheetInitData.collectAsState()
+    val bottomSheetStateInitData = bottomSheetState.bottomSheetInitData.collectAsState()
 
     Surface {
         when (val initData = bottomSheetStateInitData.value) {
@@ -29,13 +29,17 @@ fun BottomSheetNavigation(
             is BottomSheetInitData.CanvasElementInitData -> {
                 TextEditBottomSheet(
                     initCanvasElementData = initData.canvasElementData,
-                    onUpdate = { canvasElementData.sendResult(BottomSheetResultData.CanvasElementResult(it)) },
+                    onUpdate = { bottomSheetState.sendResult(BottomSheetResultData.CanvasElementResult(it)) },
+                    onDelete = {
+                        bottomSheetState.sendResult(BottomSheetResultData.CanvasElementDeleteResult(it))
+                        bottomSheetState.close()
+                    },
                     onClose = onClose
                 )
             }
             is BottomSheetInitData.VideoEditMenuInitData -> {
                 VideoEditMenuBottomSheet(
-                    onClick = { canvasElementData.sendResult(BottomSheetResultData.VideoEditMenuResult(it)) }
+                    onClick = { bottomSheetState.sendResult(BottomSheetResultData.VideoEditMenuResult(it)) }
                 )
             }
             null -> {

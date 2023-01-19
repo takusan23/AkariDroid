@@ -62,6 +62,15 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     }
 
     /**
+     * 要素を削除する
+     *
+     * @param delete 削除する要素
+     */
+    fun deleteElement(delete: CanvasElementData) {
+        _canvasElementList.value = canvasElementList.value.filter { it.id != delete.id }
+    }
+
+    /**
      * 動画ファイルをセットする。Uriをプロジェクトフォルダへコピーする。
      *
      * @param uri ファイルピッカーで選んだUri

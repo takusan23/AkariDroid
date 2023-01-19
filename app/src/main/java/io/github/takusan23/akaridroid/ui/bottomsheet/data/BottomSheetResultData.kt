@@ -9,6 +9,9 @@ sealed class BottomSheetResultData {
     /** 要素の編集画面から戻ってきた際に呼ばれる */
     data class CanvasElementResult(val canvasElementData: CanvasElementData) : BottomSheetResultData()
 
+    /** 要素を削除してほしい際に呼ばれる */
+    data class CanvasElementDeleteResult(val deleteElementData: CanvasElementData) : BottomSheetResultData()
+
     /** 動画編集画面のメニュー選択時 */
     data class VideoEditMenuResult(val menu: VideoEditMenuBottomSheetMenu) : BottomSheetResultData()
 }

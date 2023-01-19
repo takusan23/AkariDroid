@@ -55,6 +55,10 @@ fun VideoEditorScreen(
             is BottomSheetResultData.CanvasElementResult -> {
                 viewModel.updateElement(resultData.canvasElementData)
             }
+            // Canvas要素の削除
+            is BottomSheetResultData.CanvasElementDeleteResult -> {
+                viewModel.deleteElement(resultData.deleteElementData)
+            }
             // メニューのコールバック
             is BottomSheetResultData.VideoEditMenuResult -> {
                 when (resultData.menu) {
@@ -90,7 +94,7 @@ fun VideoEditorScreen(
         bottomSheetContent = {
             // ボトムシート
             BottomSheetNavigation(
-                canvasElementData = bottomSheetState,
+                bottomSheetState = bottomSheetState,
                 onClose = { bottomSheetState.close() }
             )
         }

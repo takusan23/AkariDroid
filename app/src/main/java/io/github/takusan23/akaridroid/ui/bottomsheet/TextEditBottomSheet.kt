@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -17,12 +18,14 @@ import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
 import io.github.takusan23.akaridroid.ui.component.edit.CanvasElementForm
 import io.github.takusan23.akaridroid.ui.component.edit.TextEditForm
+import kotlinx.coroutines.launch
 
 /**
  * テキスト編集ボトムシート
  *
  * @param initCanvasElementData [CanvasElementData]
  * @param onUpdate 更新時に呼ばれる
+ * @param onDelete 削除押したときに呼ばれる
  * @param onClose 閉じる際に呼ぶ
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,11 +33,15 @@ import io.github.takusan23.akaridroid.ui.component.edit.TextEditForm
 fun TextEditBottomSheet(
     initCanvasElementData: CanvasElementData,
     onUpdate: (CanvasElementData) -> Unit,
+    onDelete: (CanvasElementData) -> Unit,
     onClose: () -> Unit,
 ) {
     val canvasElementData = remember { mutableStateOf(initCanvasElementData) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "テキストの編集") },
@@ -76,7 +83,15 @@ fun TextEditBottomSheet(
             item {
                 CanvasElementForm(
                     canvasElementData = canvasElementData.value,
-                    onUpdate = { elementData -> canvasElementData.value = elementData }
+                    onUpdate = { elementData -> canvasElementData.value = elementData },
+                    onDelete = { elementData ->
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar("本当に削除しますか？", "削除")
+                            if (result == SnackbarResult.ActionPerformed) {
+                                onDelete(elementData)
+                            }
+                        }
+                    }
                 )
             }
         }
