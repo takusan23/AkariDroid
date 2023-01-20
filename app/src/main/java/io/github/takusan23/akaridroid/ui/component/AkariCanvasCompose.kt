@@ -16,12 +16,14 @@ import io.github.takusan23.akaridroid.ui.tool.AkariCanvas
  *
  * @param modifier [Modifier]
  * @param elementList 描画する要素
+ * @param videoHeight 動画の高さ
+ * @param videoWidth 動画の幅
  */
 @Composable
 fun AkariCanvasCompose(
     modifier: Modifier = Modifier,
-    videoWidth: Int = 1280,
-    videoHeight: Int = 720,
+    videoWidth: Int,
+    videoHeight: Int,
     elementList: List<CanvasElementData>,
 ) {
 

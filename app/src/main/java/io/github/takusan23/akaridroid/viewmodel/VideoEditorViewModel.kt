@@ -12,6 +12,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.takusan23.akaridroid.data.AkariProjectData
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
+import io.github.takusan23.akaridroid.data.VideoOutputFormat
 import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,11 +23,19 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     private val context = application.applicationContext
     private val videoEditProjectManager by lazy { VideoEditProjectManager(context) }
 
+    private var akariProjectData: AkariProjectData? = null
     private val _canvasElementList = MutableStateFlow<List<CanvasElementData>>(listOf())
     private val _videoFilePath = MutableStateFlow<String?>(null)
+    private val _videoOutputFormat = MutableStateFlow(VideoOutputFormat())
 
+    /** Canvasに描画する要素 */
     val canvasElementList = _canvasElementList.asStateFlow()
+
+    /** 動画パス */
     val videoFilePath = _videoFilePath.asStateFlow()
+
+    /** エンコードする際の動画情報（フレームレートとか） */
+    val videoOutputFormat = _videoOutputFormat.asStateFlow()
 
     init {
 /*
@@ -44,15 +53,16 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 */
         // ロードする
         viewModelScope.launch {
-            try {
-                // まだプロジェクト作成機能がないので、とりあえずハードコートしたファイルパスでロードする
-                // 初回時は絶対落ちるので try-catch
-                val akariProjectData = videoEditProjectManager.loadProjectData(projectId)
-                _canvasElementList.value = akariProjectData.canvasElementList
-                _videoFilePath.value = akariProjectData.videoFilePath
-            }catch (e:Exception){
-                e.printStackTrace()
-            }
+            // まだプロジェクト作成機能がないので、とりあえずハードコートしたファイルパスでロードする
+            // 初回時は絶対落ちるので runCatching
+            val loadAkariProjectData = runCatching {
+                videoEditProjectManager.loadProjectData(projectId)
+            }.getOrNull() ?: AkariProjectData()
+
+            akariProjectData = loadAkariProjectData
+            _canvasElementList.value = loadAkariProjectData.canvasElementList
+            _videoFilePath.value = loadAkariProjectData.videoFilePath
+            _videoOutputFormat.value = loadAkariProjectData.videoOutputFormat
         }
     }
 
@@ -115,14 +125,15 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 
     /** エンコーダーに渡すためのデータを作成して保存する */
     suspend fun saveEncodeData(): AkariProjectData {
-        // 保存する
-        val akariProjectData = AkariProjectData(
+        // 保存する。
+        val newProjectData = (akariProjectData ?: AkariProjectData()).copy(
             projectId = projectId,
             canvasElementList = canvasElementList.value,
-            videoFilePath = videoFilePath.value
+            videoFilePath = videoFilePath.value,
+            videoOutputFormat = videoOutputFormat.value
         )
-        videoEditProjectManager.saveProjectData(akariProjectData)
-        return akariProjectData
+        videoEditProjectManager.saveProjectData(newProjectData)
+        return newProjectData
     }
 
     companion object {

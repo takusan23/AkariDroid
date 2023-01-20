@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AkariProjectData(
     val projectId: String = "project-2022-01-10", // TODO ハードコートしない
-    val videoFilePath: String?,
-    val canvasElementList: List<CanvasElementData>
+    val videoFilePath: String? = null,
+    val videoOutputFormat: VideoOutputFormat = VideoOutputFormat(),
+    val canvasElementList: List<CanvasElementData> = emptyList()
 )

@@ -82,6 +82,7 @@ fun VideoEditorScreen(
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
     val canvasElementList = viewModel.canvasElementList.collectAsState()
     val videoFilePath = viewModel.videoFilePath.collectAsState()
+    val videoOutputFormat = viewModel.videoOutputFormat.collectAsState()
 
     // 動画をセット
     LaunchedEffect(key1 = videoFilePath.value) {
@@ -129,6 +130,8 @@ fun VideoEditorScreen(
                 AkariCanvasCompose(
                     modifier = Modifier.fillMaxSize(),
                     elementList = canvasElementList.value,
+                    videoWidth = videoOutputFormat.value.videoWidth,
+                    videoHeight = videoOutputFormat.value.videoHeight
                 )
             }
             // シークバー

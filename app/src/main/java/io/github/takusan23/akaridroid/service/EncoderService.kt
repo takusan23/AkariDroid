@@ -6,8 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.MediaFormat
-import android.media.MediaMuxer
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -94,9 +92,18 @@ class EncoderService : Service() {
         }
         val tempFolder = File(getExternalFilesDir(null), "temp").apply { mkdir() }
 
-        val videoEncoder = VideoEncoderData(codecName = MediaFormat.MIMETYPE_VIDEO_AVC)
-        val audioEncoder = AudioEncoderData(codecName = MediaFormat.MIMETYPE_AUDIO_AAC)
-        val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, outputFile = resultFile)
+        // エンコーダーの値をそれぞれセットする
+        val outputFormat = akariProjectData.videoOutputFormat
+        val codec = outputFormat.videoCodec
+        val videoEncoder = VideoEncoderData(
+            codecName = codec.videoMediaCodecMimeType,
+            height = outputFormat.videoHeight,
+            width = outputFormat.videoWidth,
+            bitRate = outputFormat.bitRate,
+            frameRate = outputFormat.frameRate,
+        )
+        val audioEncoder = AudioEncoderData(codecName = codec.audioMediaCodecMimeType)
+        val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = codec.containerFormat.mediaMuxerVal, outputFile = resultFile)
         val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
 
         // エンコードを開始する。フォアグラウンドサービスにしてバインドが解除されても動くようにする。
