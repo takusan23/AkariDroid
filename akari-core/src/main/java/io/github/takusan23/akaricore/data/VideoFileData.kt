@@ -12,6 +12,7 @@ import java.io.File
  */
 class VideoFileData(
     override val videoFile: File,
+    override val audioAssetFileList: List<File> = emptyList(),
     override val tempWorkFolder: File,
     override val containerFormat: Int,
     override val outputFile: File,

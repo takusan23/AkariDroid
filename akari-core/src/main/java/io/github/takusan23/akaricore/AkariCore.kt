@@ -5,7 +5,7 @@ import android.media.MediaMuxer
 import io.github.takusan23.akaricore.data.AudioEncoderData
 import io.github.takusan23.akaricore.data.VideoEncoderData
 import io.github.takusan23.akaricore.data.VideoFileInterface
-import io.github.takusan23.akaricore.processor.AudioProcessor
+import io.github.takusan23.akaricore.processor.AudioMixingProcessor
 import io.github.takusan23.akaricore.processor.QtFastStart
 import io.github.takusan23.akaricore.processor.VideoProcessor
 import io.github.takusan23.akaricore.tool.MediaMuxerTool
@@ -26,14 +26,15 @@ class AkariCore(
     audioEncoderData: AudioEncoderData,
 ) {
 
-    /** 音声エンコーダー */
+    /** 合成機能がついた 音声エンコーダー */
     private val audioProcessor by lazy {
-        AudioProcessor(
-            videoFile = videoFileData.videoFile,
+        AudioMixingProcessor(
+            audioFileList = listOf(videoFileData.videoFile) + videoFileData.audioAssetFileList,
             resultFile = videoFileData.encodedAudioFile,
+            tempWorkFolder = videoFileData.tempWorkFolder,
             audioCodec = audioEncoderData.codecName,
-            containerFormat = videoFileData.containerFormat,
-            bitRate = audioEncoderData.bitRate
+            bitRate = audioEncoderData.bitRate,
+            mixingVolume = audioEncoderData.mixingVolume
         )
     }
 
@@ -88,12 +89,6 @@ class AkariCore(
             )
         }
         // 一時ファイルを消して完成
-        videoFileData.destroy()
-    }
-
-    suspend fun stop() {
-        audioProcessor.stop()
-        videoProcessor.stop()
         videoFileData.destroy()
     }
 

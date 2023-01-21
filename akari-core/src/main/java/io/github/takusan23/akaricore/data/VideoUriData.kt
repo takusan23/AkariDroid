@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * 動画ファイル関連、コンテナフォーマットとか。Uri版
+ * 動画ファイル関連、コンテナフォーマットとか。今回は多分使わない。
  * 作成後は MediaStore を通して端末の動画フォルダへ保存されます
  *
  * @param context [Context]
@@ -35,6 +35,9 @@ class VideoUriData(
 
     override val outputFile: File
         get() = File(tempWorkFolder, resultName).apply { createNewFile() }
+
+    override val audioAssetFileList: List<File>
+        get() = emptyList()
 
     override suspend fun prepare() {
         super.prepare()
@@ -65,7 +68,6 @@ class VideoUriData(
      * @param uri コピーするファイルの[Uri]
      * @param targetFile コピー先の[File]
      */
-    @Suppress("BlockingMethodInNonBlockingContext")
     private suspend fun copyFileFromUri(uri: Uri, targetFile: File) = withContext(Dispatchers.IO) {
         val contentResolver = context.contentResolver
         val inputStream = contentResolver.openInputStream(uri)!!

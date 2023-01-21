@@ -10,6 +10,9 @@ interface VideoFileInterface {
     /** 動画の元データ */
     val videoFile: File
 
+    /** 音声素材。つまりBGM */
+    val audioAssetFileList: List<File>
+
     /** 一時保存先 */
     val tempWorkFolder: File
 
@@ -39,14 +42,10 @@ interface VideoFileInterface {
     }
 
     /** エンコーダー開始前に呼ばれる */
-    suspend fun prepare() {
-        // do nothing
-    }
+    suspend fun prepare() {}
 
     /** 終了時に呼ばれる */
-    suspend fun destroy() {
-        // do nothing
-    }
+    suspend fun destroy() {}
 
     companion object {
         /** 一時映像ファイル保存先 */

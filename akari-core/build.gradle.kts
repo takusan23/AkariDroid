@@ -34,7 +34,9 @@ dependencies {
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.appcompat)
+    implementation(libs.kotlinx.coroutine)
     testImplementation(libs.junit)
+    androidTestImplementation(libs.kotlinx.coroutine.test)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
