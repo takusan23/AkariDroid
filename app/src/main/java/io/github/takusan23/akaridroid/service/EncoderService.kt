@@ -121,7 +121,9 @@ class EncoderService : Service() {
             }
 
             // 動画フォルダへコピーする
-            MediaStoreTool.copyToVideoFolder(this@EncoderService, resultFile)
+            MediaStoreTool.copyToVideoFolder(this, resultFile)
+            // コピー後のファイルを消す
+            resultFile.delete()
         } catch (e: Exception) {
             // TODO キャンセル時
         } finally {
@@ -194,10 +196,9 @@ class EncoderService : Service() {
          * @param lifecycleOwner ライフサイクルオーナー
          */
         fun bindEncoderService(context: Context, lifecycleOwner: LifecycleOwner) = callbackFlow {
-            var encoderService: EncoderService? = null
             val serviceConnection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                    encoderService = (service as LocalBinder).service
+                    val encoderService = (service as LocalBinder).service
                     trySend(encoderService)
                 }
 

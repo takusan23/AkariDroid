@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +69,10 @@ fun VideoEditorScreen(
                             val projectData = viewModel.saveEncodeData()
                             encoderService.value?.encodeAkariProject(projectData)
                         }
+                    }
+                    VideoEditMenuBottomSheetMenu.EncoderFormatSetting -> {
+                        // エンコーダー設定。まだ
+                        Toast.makeText(context, "未実装", Toast.LENGTH_SHORT).show()
                     }
                     VideoEditMenuBottomSheetMenu.SaveMenu -> {
                         scope.launch { viewModel.saveEncodeData() }

@@ -30,16 +30,24 @@ fun VideoEditMenuBottomSheet(
     ) {
         item {
             VideoEditMenuBottomSheetItem(
-                text = "動画を出力する",
+                text = "プロジェクトを保存する",
                 icon = painterResource(id = R.drawable.ic_outline_save_24),
-                onClick = { onClick(VideoEditMenuBottomSheetMenu.EncodeMenu) }
+                onClick = { onClick(VideoEditMenuBottomSheetMenu.SaveMenu) }
             )
         }
         item {
             VideoEditMenuBottomSheetItem(
-                text = "プロジェクトを保存する",
+                text = "出力動画形式（エンコーダー）の設定",
+                icon = painterResource(id = R.drawable.ic_outline_movie_edit_24),
+                onClick = { onClick(VideoEditMenuBottomSheetMenu.EncoderFormatSetting) }
+            )
+        }
+        item { Divider(modifier = Modifier.padding(5.dp)) }
+        item {
+            VideoEditMenuBottomSheetItem(
+                text = "動画を出力する",
                 icon = painterResource(id = R.drawable.ic_outline_save_24),
-                onClick = { onClick(VideoEditMenuBottomSheetMenu.SaveMenu) }
+                onClick = { onClick(VideoEditMenuBottomSheetMenu.EncodeMenu) }
             )
         }
     }
@@ -49,6 +57,9 @@ fun VideoEditMenuBottomSheet(
 enum class VideoEditMenuBottomSheetMenu {
     /** エンコード */
     EncodeMenu,
+
+    /** エンコーダーの設定。高さとか */
+    EncoderFormatSetting,
 
     /** 保存する */
     SaveMenu

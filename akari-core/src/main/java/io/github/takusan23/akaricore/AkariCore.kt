@@ -37,7 +37,7 @@ class AkariCore(
         )
     }
 
-    /** フィルターをかけられる 映像エンコーダー */
+    /** Canvasと映像を合成できる 映像エンコーダー */
     private val videoProcessor by lazy {
         VideoProcessor(
             videoFile = videoFileData.videoFile,
