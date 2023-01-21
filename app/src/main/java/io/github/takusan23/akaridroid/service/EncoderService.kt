@@ -102,8 +102,19 @@ class EncoderService : Service() {
             bitRate = outputFormat.bitRate,
             frameRate = outputFormat.frameRate,
         )
-        val audioEncoder = AudioEncoderData(codecName = codec.audioMediaCodecMimeType)
-        val videoFileData = VideoFileData(videoFile = videoFile, tempWorkFolder = tempFolder, containerFormat = codec.containerFormat.mediaMuxerVal, outputFile = resultFile)
+        // TODO 音声素材の音量調節を個別に指定できるようにする
+        val audioAssetList = akariProjectData.audioAssetList
+        val audioEncoder = AudioEncoderData(
+            codecName = codec.audioMediaCodecMimeType,
+            mixingVolume = audioAssetList.first().volume
+        )
+        val videoFileData = VideoFileData(
+            videoFile = videoFile,
+            audioAssetFileList = audioAssetList.map { File(it.audioFilePath) },
+            tempWorkFolder = tempFolder,
+            containerFormat = codec.containerFormat.mediaMuxerVal,
+            outputFile = resultFile
+        )
         val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
 
         // エンコードを開始する。フォアグラウンドサービスにしてバインドが解除されても動くようにする。

@@ -109,7 +109,10 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
      * @param delete [AudioAssetData]
      */
     fun deleteAudioAssetData(delete: AudioAssetData) {
-        _audioAssetList.value = audioAssetList.value.filter { it.id != delete.id }
+        viewModelScope.launch {
+            videoEditProjectManager.deleteFile(delete.audioFilePath)
+            _audioAssetList.value = audioAssetList.value.filter { it.id != delete.id }
+        }
     }
 
     /**

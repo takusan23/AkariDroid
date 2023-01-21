@@ -69,6 +69,15 @@ class VideoEditProjectManager(private val context: Context) {
     }
 
     /**
+     * プロジェクトのファイルを削除する
+     *
+     * @param filePath ファイルパス
+     */
+    suspend fun deleteFile(filePath: String) = withContext(Dispatchers.IO) {
+        File(filePath).delete()
+    }
+
+    /**
      * プロジェクトのフォルダの[File]を取得する
      *
      * @param projectId プロジェクトID
