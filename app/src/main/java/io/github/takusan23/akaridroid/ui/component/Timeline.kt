@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.data.AudioAssetData
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
 
@@ -17,13 +18,16 @@ import io.github.takusan23.akaridroid.data.CanvasElementType
  *
  * @param modifier [Modifier]
  * @param elementList タイムラインの要素
+ * @param videoFilePath 動画パス
+ * @param audioAssetList 音声素材リスト
  * @param onElementClick 要素を押したら呼ばれる
  */
 @Composable
 fun Timeline(
     modifier: Modifier = Modifier,
-    elementList: List<CanvasElementData>,
     videoFilePath: String? = null,
+    elementList: List<CanvasElementData>,
+    audioAssetList: List<AudioAssetData>,
     onElementClick: (CanvasElementData) -> Unit
 ) {
     LazyColumn(
@@ -57,6 +61,17 @@ fun Timeline(
                     onClick = {  /* TODO */ }
                 )
             }
+        }
+        items(audioAssetList) { audioAssetData ->
+            TimelineElement(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                type = TimelineElementType.Audio,
+                text = audioAssetData.audioFilePath,
+                onClick = { /* 後で実装 */ }
+            )
         }
     }
 }

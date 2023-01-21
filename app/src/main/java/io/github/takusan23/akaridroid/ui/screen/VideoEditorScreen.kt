@@ -45,9 +45,12 @@ fun VideoEditorScreen(
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
 
+    // Storage Access Framework
+    val videoPicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri -> viewModel.setVideoFile(uri) }
+    val audioPicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri -> viewModel.addAudioFile(uri) }
+
     // エンコーダーサービスとバインドする
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsState(initial = null)
-    val filePicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia()) { uri -> viewModel.setVideoFile(uri) }
     val playerState = rememberVideoPlayerState(context = context, lifecycle = lifecycle.lifecycle)
     val bottomSheetState = rememberBottomSheetState { resultData ->
         // ボトムシートの結果
@@ -85,8 +88,9 @@ fun VideoEditorScreen(
     val isRunningEncode = encoderService.value?.isRunningEncode?.collectAsState()
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
-    val canvasElementList = viewModel.canvasElementList.collectAsState()
     val videoFilePath = viewModel.videoFilePath.collectAsState()
+    val canvasElementList = viewModel.canvasElementList.collectAsState()
+    val audioAssetList = viewModel.audioAssetList.collectAsState()
     val videoOutputFormat = viewModel.videoOutputFormat.collectAsState()
 
     // 動画をセット
@@ -154,8 +158,9 @@ fun VideoEditorScreen(
                     .weight(1f)
                     .padding(start = 10.dp, end = 10.dp)
                     .fillMaxWidth(),
-                elementList = canvasElementList.value,
                 videoFilePath = videoFilePath.value,
+                elementList = canvasElementList.value,
+                audioAssetList = audioAssetList.value,
                 onElementClick = { element ->
                     // 編集ボトムシートを開く
                     bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(element))
@@ -165,8 +170,9 @@ fun VideoEditorScreen(
             EditorMenuBar(
                 modifier = Modifier.fillMaxWidth(),
                 onMenuClick = { bottomSheetState.open(BottomSheetInitData.VideoEditMenuInitData) },
-                onVideoClick = { filePicker.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.VideoOnly)) },
-                onTextClick = { viewModel.addTextElement().also { addTextElement -> bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(addTextElement)) } }
+                onVideoClick = { videoPicker.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.VideoOnly)) },
+                onTextClick = { viewModel.addTextElement().also { addTextElement -> bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(addTextElement)) } },
+                onAudioClick = { audioPicker.launch(arrayOf("audio/*")) }
             )
         }
     }

@@ -119,7 +119,6 @@ class EncoderService : Service() {
                     AkariCanvas.render(this, akariProjectData.canvasElementList)
                 }
             }
-
             // 動画フォルダへコピーする
             MediaStoreTool.copyToVideoFolder(this, resultFile)
             // コピー後のファイルを消す

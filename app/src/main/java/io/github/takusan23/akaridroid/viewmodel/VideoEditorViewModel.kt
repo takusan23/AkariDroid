@@ -9,10 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import io.github.takusan23.akaridroid.data.AkariProjectData
-import io.github.takusan23.akaridroid.data.CanvasElementData
-import io.github.takusan23.akaridroid.data.CanvasElementType
-import io.github.takusan23.akaridroid.data.VideoOutputFormat
+import io.github.takusan23.akaridroid.data.*
 import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,9 +21,10 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     private val videoEditProjectManager by lazy { VideoEditProjectManager(context) }
 
     private var akariProjectData: AkariProjectData? = null
-    private val _canvasElementList = MutableStateFlow<List<CanvasElementData>>(listOf())
+    private val _canvasElementList = MutableStateFlow<List<CanvasElementData>>(emptyList())
     private val _videoFilePath = MutableStateFlow<String?>(null)
     private val _videoOutputFormat = MutableStateFlow(VideoOutputFormat())
+    private val _audioAssetList = MutableStateFlow<List<AudioAssetData>>(emptyList())
 
     /** Canvasに描画する要素 */
     val canvasElementList = _canvasElementList.asStateFlow()
@@ -36,6 +34,9 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 
     /** エンコードする際の動画情報（フレームレートとか） */
     val videoOutputFormat = _videoOutputFormat.asStateFlow()
+
+    /** 音声データ */
+    val audioAssetList = _audioAssetList.asStateFlow()
 
     init {
 /*
@@ -103,6 +104,23 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     }
 
     /**
+     * 音声ファイルをセットする。Uriをプロジェクトフォルダへコピーする。
+     *
+     * @param uri ファイルピッカーで選んだ Uri
+     */
+    fun addAudioFile(uri: Uri?) {
+        uri ?: return
+        viewModelScope.launch {
+            val audioFile = videoEditProjectManager.addFileToProject(projectId, uri, "audiofile_${System.currentTimeMillis()}")
+            val audioAssetData = AudioAssetData(
+                audioFilePath = audioFile.path,
+                volume = 0.10f
+            )
+            _audioAssetList.value = audioAssetList.value + audioAssetData
+        }
+    }
+
+    /**
      * テキスト要素を作成する
      *
      * @return 新規作成された [CanvasElementData]
@@ -130,7 +148,8 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
             projectId = projectId,
             canvasElementList = canvasElementList.value,
             videoFilePath = videoFilePath.value,
-            videoOutputFormat = videoOutputFormat.value
+            videoOutputFormat = videoOutputFormat.value,
+            audioAssetList = audioAssetList.value
         )
         videoEditProjectManager.saveProjectData(newProjectData)
         return newProjectData

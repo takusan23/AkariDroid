@@ -48,6 +48,7 @@ fun TimelineElement(
                     id = when (type) {
                         TimelineElementType.Text -> R.drawable.ic_outline_text_fields_24
                         TimelineElementType.Video -> R.drawable.ic_outline_video_file_24
+                        TimelineElementType.Audio -> R.drawable.outline_audiotrack_24
                     }
                 )
             )
@@ -65,5 +66,8 @@ enum class TimelineElementType {
     Text,
 
     /** 動画 */
-    Video
+    Video,
+
+    /** 音声 */
+    Audio
 }

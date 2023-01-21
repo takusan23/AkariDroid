@@ -25,6 +25,7 @@ fun EditorMenuBar(
     onMenuClick: () -> Unit,
     onVideoClick: () -> Unit,
     onTextClick: () -> Unit,
+    onAudioClick: () -> Unit
 ) {
     Surface(
         modifier = modifier,
@@ -51,6 +52,13 @@ fun EditorMenuBar(
                     icon = painterResource(id = R.drawable.ic_outline_text_fields_24),
                     text = "テキストの追加",
                     onClick = onTextClick
+                )
+            }
+            item {
+                EditorMenuBarItem(
+                    icon = painterResource(id = R.drawable.outline_audiotrack_24),
+                    text = "音声の追加",
+                    onClick = onAudioClick
                 )
             }
         }
