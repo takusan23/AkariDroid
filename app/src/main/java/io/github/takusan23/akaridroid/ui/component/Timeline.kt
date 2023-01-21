@@ -28,7 +28,8 @@ fun Timeline(
     videoFilePath: String? = null,
     elementList: List<CanvasElementData>,
     audioAssetList: List<AudioAssetData>,
-    onElementClick: (CanvasElementData) -> Unit
+    onElementClick: (CanvasElementData) -> Unit,
+    onAudioAssetClick: (AudioAssetData) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -70,7 +71,7 @@ fun Timeline(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 type = TimelineElementType.Audio,
                 text = audioAssetData.audioFilePath,
-                onClick = { /* 後で実装 */ }
+                onClick = { onAudioAssetClick(audioAssetData) }
             )
         }
     }

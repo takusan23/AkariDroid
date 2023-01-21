@@ -63,6 +63,14 @@ fun VideoEditorScreen(
             is BottomSheetResultData.CanvasElementDeleteResult -> {
                 viewModel.deleteElement(resultData.deleteElementData)
             }
+            // 音声要素の更新
+            is BottomSheetResultData.AudioAssetResult -> {
+                viewModel.updateAudioAssetData(resultData.audioAssetData)
+            }
+            // 音声要素の削除
+            is BottomSheetResultData.AudioAssetDeleteResult -> {
+                viewModel.deleteAudioAssetData(resultData.audioAssetData)
+            }
             // メニューのコールバック
             is BottomSheetResultData.VideoEditMenuResult -> {
                 when (resultData.menu) {
@@ -164,6 +172,9 @@ fun VideoEditorScreen(
                 onElementClick = { element ->
                     // 編集ボトムシートを開く
                     bottomSheetState.open(BottomSheetInitData.CanvasElementInitData(element))
+                },
+                onAudioAssetClick = { audioAssetData ->
+                    bottomSheetState.open(BottomSheetInitData.AudioAssetInitData(audioAssetData))
                 }
             )
             // 下のバー

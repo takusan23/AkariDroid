@@ -64,6 +64,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
             _canvasElementList.value = loadAkariProjectData.canvasElementList
             _videoFilePath.value = loadAkariProjectData.videoFilePath
             _videoOutputFormat.value = loadAkariProjectData.videoOutputFormat
+            _audioAssetList.value = loadAkariProjectData.audioAssetList
         }
     }
 
@@ -87,6 +88,28 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
      */
     fun deleteElement(delete: CanvasElementData) {
         _canvasElementList.value = canvasElementList.value.filter { it.id != delete.id }
+    }
+
+    /**
+     * 音声要素を更新する
+     *
+     * @param after [AudioAssetData]
+     */
+    fun updateAudioAssetData(after: AudioAssetData) {
+        _audioAssetList.value = audioAssetList.value.map { before ->
+            if (before.id == after.id) {
+                after.copy()
+            } else before
+        }
+    }
+
+    /**
+     * 音声要素を削除する
+     *
+     * @param delete [AudioAssetData]
+     */
+    fun deleteAudioAssetData(delete: AudioAssetData) {
+        _audioAssetList.value = audioAssetList.value.filter { it.id != delete.id }
     }
 
     /**

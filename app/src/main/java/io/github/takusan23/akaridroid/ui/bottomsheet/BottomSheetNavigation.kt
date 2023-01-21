@@ -37,9 +37,22 @@ fun BottomSheetNavigation(
                     }
                 )
             }
+            // メニュー
             is BottomSheetInitData.VideoEditMenuInitData -> {
                 VideoEditMenuBottomSheet(
                     onClick = { bottomSheetState.sendResult(BottomSheetResultData.VideoEditMenuResult(it)) }
+                )
+            }
+            // 音声素材の編集画面
+            is BottomSheetInitData.AudioAssetInitData -> {
+                AudioAssetEditBottomSheet(
+                    initAudioAssetData = initData.audioAssetInitData,
+                    onClose = onClose,
+                    onUpdate = { bottomSheetState.sendResult(BottomSheetResultData.AudioAssetResult(it)) },
+                    onDelete = {
+                        bottomSheetState.sendResult(BottomSheetResultData.AudioAssetDeleteResult(it))
+                        bottomSheetState.close()
+                    },
                 )
             }
             null -> {
