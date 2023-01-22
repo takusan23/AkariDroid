@@ -7,15 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.data.CanvasElementType
+import io.github.takusan23.akaridroid.ui.component.InitValueTextField
 
 /**
  * テキスト要素の編集フォーム
@@ -31,45 +29,39 @@ fun TextEditForm(
     textElement: CanvasElementType.TextElement,
     onUpdate: (CanvasElementType.TextElement) -> Unit
 ) {
-    // Int を カラーコード
-    val colorCode = remember { mutableStateOf("#%06X".format((0xFFFFFF and textElement.color))) }
-
     Column(modifier = modifier) {
 
-        OutlinedTextField(
+        InitValueTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp),
-            value = textElement.text,
-            onValueChange = { onUpdate(textElement.copy(text = it)) },
-            label = { Text(text = "テキスト") }
+            initValue = textElement.text,
+            label = { Text(text = "テキスト") },
+            onValueChange = { onUpdate(textElement.copy(text = it)) }
         )
 
         Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
-                value = colorCode.value,
-                onValueChange = {
-                    colorCode.value = it
+                initValue = "#%06X".format((0xFFFFFF and textElement.color)),
+                onValueChange = { value ->
                     runCatching {
-                        Color.parseColor(it)
+                        Color.parseColor(value)
                     }.onSuccess { color -> onUpdate(textElement.copy(color = color)) }
                 },
                 label = { Text(text = "色") }
             )
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                value = textElement.fontSize.toString(),
-                onValueChange = { onUpdate(textElement.copy(fontSize = it.toFloat())) },
-                label = { Text(text = "フォントサイズ") }
+                initValue = textElement.fontSize.toString(),
+                label = { Text(text = "フォントサイズ") },
+                onValueChange = { value -> value.toFloatOrNull()?.also { onUpdate(textElement.copy(fontSize = it)) } }
             )
         }
-
     }
-
 }

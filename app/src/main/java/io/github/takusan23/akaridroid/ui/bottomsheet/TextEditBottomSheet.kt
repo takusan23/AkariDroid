@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
-import io.github.takusan23.akaridroid.ui.component.edit.CanvasElementForm
+import io.github.takusan23.akaridroid.ui.component.edit.CanvasElementEditForm
 import io.github.takusan23.akaridroid.ui.component.edit.TextEditForm
 import kotlinx.coroutines.launch
 
@@ -81,7 +81,7 @@ fun TextEditBottomSheet(
             }
             item { Divider(modifier = Modifier.padding(start = 10.dp, end = 10.dp)) }
             item {
-                CanvasElementForm(
+                CanvasElementEditForm(
                     canvasElementData = canvasElementData.value,
                     onUpdate = { elementData -> canvasElementData.value = elementData },
                     onDelete = { elementData ->

@@ -17,6 +17,11 @@ import kotlinx.coroutines.launch
 
 /**
  * 音声素材の編集画面
+ *
+ * @param initAudioAssetData 音声データクラス
+ * @param onUpdate 更新時に呼ばれる
+ * @param onDelete 削除時に呼ばれる
+ * @param onClose 閉じる際に呼ばれる
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

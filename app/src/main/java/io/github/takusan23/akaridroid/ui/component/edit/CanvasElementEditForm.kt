@@ -10,6 +10,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.data.CanvasElementData
+import io.github.takusan23.akaridroid.ui.component.InitValueTextField
 
 /**
  * 要素に共通する編集フォーム
@@ -21,7 +22,7 @@ import io.github.takusan23.akaridroid.data.CanvasElementData
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CanvasElementForm(
+fun CanvasElementEditForm(
     modifier: Modifier = Modifier,
     canvasElementData: CanvasElementData,
     onUpdate: (CanvasElementData) -> Unit,
@@ -30,44 +31,44 @@ fun CanvasElementForm(
     Column(modifier = modifier) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                value = canvasElementData.xPos.toString(),
-                onValueChange = { onUpdate(canvasElementData.copy(xPos = it.toFloat())) },
-                label = { Text(text = "X座標") }
+                initValue = canvasElementData.xPos.toString(),
+                label = { Text(text = "X座標") },
+                onValueChange = { value -> value.toFloatOrNull()?.also { onUpdate(canvasElementData.copy(xPos = it)) } },
             )
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                value = canvasElementData.yPos.toString(),
-                onValueChange = { onUpdate(canvasElementData.copy(yPos = it.toFloat())) },
-                label = { Text(text = "Y座標") }
+                initValue = canvasElementData.yPos.toString(),
+                label = { Text(text = "Y座標") },
+                onValueChange = { value -> value.toFloatOrNull()?.also { onUpdate(canvasElementData.copy(yPos = it)) } },
             )
         }
 
         Row(modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                value = canvasElementData.startMs.toString(),
-                onValueChange = { onUpdate(canvasElementData.copy(startMs = it.toLong())) },
-                label = { Text(text = "描画開始時間 (ms)") }
+                initValue = canvasElementData.startMs.toString(),
+                label = { Text(text = "描画開始時間 (ms)") },
+                onValueChange = { value -> value.toLongOrNull()?.also { onUpdate(canvasElementData.copy(startMs = it)) } }
             )
-            OutlinedTextField(
+            InitValueTextField(
                 modifier = Modifier
                     .weight(1f)
                     .padding(10.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                value = canvasElementData.endMs.toString(),
-                onValueChange = { onUpdate(canvasElementData.copy(endMs = it.toLong())) },
-                label = { Text(text = "描画終了時間 (ms)") }
+                initValue = canvasElementData.endMs.toString(),
+                label = { Text(text = "描画終了時間 (ms)") },
+                onValueChange = { value -> value.toLongOrNull()?.also { onUpdate(canvasElementData.copy(endMs = it)) } }
             )
         }
 
