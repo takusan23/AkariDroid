@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import io.github.takusan23.akaridroid.data.AkariProjectData
 import io.github.takusan23.akaridroid.tool.JsonTool
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -60,11 +61,7 @@ class VideoEditProjectManager(private val context: Context) {
         val addFile = File(projectFolder, fileName).apply {
             createNewFile()
         }
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            addFile.outputStream().use { output ->
-                input.copyTo(output, FILE_COPY_BUFFER_SIZE)
-            }
-        }
+        MediaStoreTool.fileCopy(context, uri, addFile)
         return@withContext addFile
     }
 
@@ -95,9 +92,6 @@ class VideoEditProjectManager(private val context: Context) {
 
         /** プロジェクトJSONファイルの名前 */
         private const val PROJECT_JSON_FILE_NAME = "project.json"
-
-        /** コピー時のバッファサイズ */
-        private const val FILE_COPY_BUFFER_SIZE = 8 * 1024
     }
 
 }

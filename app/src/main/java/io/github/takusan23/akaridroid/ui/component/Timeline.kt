@@ -12,20 +12,21 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.data.AudioAssetData
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
+import io.github.takusan23.akaridroid.data.VideoFileData
 
 /**
  * タイムライン
  *
  * @param modifier [Modifier]
  * @param elementList タイムラインの要素
- * @param videoFilePath 動画パス
+ * @param videoFileData 動画データ
  * @param audioAssetList 音声素材リスト
  * @param onElementClick 要素を押したら呼ばれる
  */
 @Composable
 fun Timeline(
     modifier: Modifier = Modifier,
-    videoFilePath: String? = null,
+    videoFileData: VideoFileData?,
     elementList: List<CanvasElementData>,
     audioAssetList: List<AudioAssetData>,
     onElementClick: (CanvasElementData) -> Unit,
@@ -50,7 +51,7 @@ fun Timeline(
                 }
             }
         }
-        if (videoFilePath != null) {
+        if (videoFileData != null) {
             item {
                 TimelineElement(
                     modifier = Modifier
@@ -58,7 +59,7 @@ fun Timeline(
                         .height(50.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     type = TimelineElementType.Video,
-                    text = videoFilePath,
+                    text = videoFileData.fileName,
                     onClick = {  /* TODO */ }
                 )
             }
@@ -70,7 +71,7 @@ fun Timeline(
                     .height(50.dp),
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 type = TimelineElementType.Audio,
-                text = audioAssetData.audioFilePath,
+                text = audioAssetData.fileName,
                 onClick = { onAudioAssetClick(audioAssetData) }
             )
         }

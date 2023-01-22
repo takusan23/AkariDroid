@@ -46,7 +46,7 @@ fun VideoEditMenuBottomSheet(
         item {
             VideoEditMenuBottomSheetItem(
                 text = "動画を出力する",
-                icon = painterResource(id = R.drawable.ic_outline_save_24),
+                icon = painterResource(id = R.drawable.ic_outline_video_file_24),
                 onClick = { onClick(VideoEditMenuBottomSheetMenu.EncodeMenu) }
             )
         }

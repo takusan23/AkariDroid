@@ -96,14 +96,14 @@ fun VideoEditorScreen(
     val isRunningEncode = encoderService.value?.isRunningEncode?.collectAsState()
     val isPlayingFlow = playerState.playWhenRelayFlow.collectAsState()
     val currentPositionFlow = playerState.currentPositionMsFlow.collectAsState()
-    val videoFilePath = viewModel.videoFilePath.collectAsState()
+    val videoFileData = viewModel.videoFileData.collectAsState()
     val canvasElementList = viewModel.canvasElementList.collectAsState()
     val audioAssetList = viewModel.audioAssetList.collectAsState()
     val videoOutputFormat = viewModel.videoOutputFormat.collectAsState()
 
     // 動画をセット
-    LaunchedEffect(key1 = videoFilePath.value) {
-        videoFilePath.value?.also { path -> playerState.setMediaItem(path) }
+    LaunchedEffect(key1 = videoFileData.value) {
+        videoFileData.value?.also { path -> playerState.setMediaItem(path.videoFilePath) }
     }
 
     ModalSheetScaffold(
@@ -166,7 +166,7 @@ fun VideoEditorScreen(
                     .weight(1f)
                     .padding(start = 10.dp, end = 10.dp)
                     .fillMaxWidth(),
-                videoFilePath = videoFilePath.value,
+                videoFileData = videoFileData.value,
                 elementList = canvasElementList.value,
                 audioAssetList = audioAssetList.value,
                 onElementClick = { element ->

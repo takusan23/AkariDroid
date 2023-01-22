@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AudioAssetData(
     val id: Long = System.currentTimeMillis(),
+    val fileName: String,
     val audioFilePath: String,
     val volume: Float = 1f
 )

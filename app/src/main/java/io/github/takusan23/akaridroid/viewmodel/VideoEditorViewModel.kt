@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.takusan23.akaridroid.data.*
 import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,7 +23,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 
     private var akariProjectData: AkariProjectData? = null
     private val _canvasElementList = MutableStateFlow<List<CanvasElementData>>(emptyList())
-    private val _videoFilePath = MutableStateFlow<String?>(null)
+    private val _videoFileData = MutableStateFlow<VideoFileData?>(null)
     private val _videoOutputFormat = MutableStateFlow(VideoOutputFormat())
     private val _audioAssetList = MutableStateFlow<List<AudioAssetData>>(emptyList())
 
@@ -30,7 +31,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     val canvasElementList = _canvasElementList.asStateFlow()
 
     /** 動画パス */
-    val videoFilePath = _videoFilePath.asStateFlow()
+    val videoFileData = _videoFileData.asStateFlow()
 
     /** エンコードする際の動画情報（フレームレートとか） */
     val videoOutputFormat = _videoOutputFormat.asStateFlow()
@@ -62,7 +63,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
 
             akariProjectData = loadAkariProjectData
             _canvasElementList.value = loadAkariProjectData.canvasElementList
-            _videoFilePath.value = loadAkariProjectData.videoFilePath
+            _videoFileData.value = loadAkariProjectData.videoFileData
             _videoOutputFormat.value = loadAkariProjectData.videoOutputFormat
             _audioAssetList.value = loadAkariProjectData.audioAssetList
         }
@@ -123,9 +124,16 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     fun setVideoFile(uri: Uri?) {
         uri ?: return
         viewModelScope.launch {
-            _videoFilePath.value = null
-            val videoFile = videoEditProjectManager.addFileToProject(projectId, uri, "videofile")
-            _videoFilePath.value = videoFile.path
+            videoFileData.value?.videoFilePath?.let {
+                videoEditProjectManager.deleteFile(it)
+            }
+            _videoFileData.value = null
+            val fileName = MediaStoreTool.getFileName(context, uri) ?: "videofile"
+            val videoFile = videoEditProjectManager.addFileToProject(projectId, uri, fileName)
+            _videoFileData.value = VideoFileData(
+                videoFilePath = videoFile.path,
+                fileName = videoFile.name
+            )
         }
     }
 
@@ -137,9 +145,11 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     fun addAudioFile(uri: Uri?) {
         uri ?: return
         viewModelScope.launch {
-            val audioFile = videoEditProjectManager.addFileToProject(projectId, uri, "audiofile_${System.currentTimeMillis()}")
+            val fileName = MediaStoreTool.getFileName(context, uri) ?: "audiofile_${System.currentTimeMillis()}"
+            val audioFile = videoEditProjectManager.addFileToProject(projectId, uri, fileName)
             val audioAssetData = AudioAssetData(
                 audioFilePath = audioFile.path,
+                fileName = fileName,
                 volume = 0.10f
             )
             _audioAssetList.value = audioAssetList.value + audioAssetData
@@ -173,7 +183,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
         val newProjectData = (akariProjectData ?: AkariProjectData()).copy(
             projectId = projectId,
             canvasElementList = canvasElementList.value,
-            videoFilePath = videoFilePath.value,
+            videoFileData = videoFileData.value,
             videoOutputFormat = videoOutputFormat.value,
             audioAssetList = audioAssetList.value
         )
