@@ -1,9 +1,6 @@
 package io.github.takusan23.akaridroid.ui.tool
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.PorterDuff
+import android.graphics.*
 import io.github.takusan23.akaridroid.data.CanvasElementData
 import io.github.takusan23.akaridroid.data.CanvasElementType
 
@@ -19,6 +16,29 @@ object AkariCanvas {
         val bitmap = Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         return bitmap to canvas
+    }
+
+    /**
+     * それぞれの要素の位置を[Rect]で返す
+     *
+     * @param elementList Canvas要素
+     * @return Canvas要素と座標
+     */
+    fun calcElementHitBox(elementList: List<CanvasElementData>): List<Pair<CanvasElementData, RectF>> {
+        val paint = Paint()
+        return elementList.map { elementData ->
+            when (val elementType = elementData.elementType) {
+                is CanvasElementType.TextElement -> {
+                    paint.apply {
+                        color = elementType.color
+                        textSize = elementType.fontSize
+                    }
+                    val textWidth = paint.measureText(elementType.text)
+                    val textSize = paint.textSize
+                    elementData to RectF(elementData.xPos, elementData.yPos, elementData.xPos + textWidth, elementData.yPos + textSize)
+                }
+            }
+        }
     }
 
     /**
