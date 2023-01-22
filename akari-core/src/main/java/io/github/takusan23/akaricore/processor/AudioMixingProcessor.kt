@@ -35,10 +35,11 @@ class AudioMixingProcessor(
     /** 処理を始める、終わるまで一時停止します */
     suspend fun start() = withContext(Dispatchers.Default) {
         // 特に時間が指定されていない場合は最初のファイルの時間を取り出す
-        val audioDurationMs = audioDurationMs ?: MediaExtractorTool.extractMedia(audioFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)?.let { (mediaExtractor, _, format) ->
-            val durationMs = format.getLong(MediaFormat.KEY_DURATION).toInt()
+        // 単位はマイクロ秒
+        val audioDurationUs = (audioDurationMs?.times(1000L)) ?: MediaExtractorTool.extractMedia(audioFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)?.let { (mediaExtractor, _, format) ->
+            val durationUs = format.getLong(MediaFormat.KEY_DURATION)
             mediaExtractor.release()
-            return@let durationMs
+            return@let durationUs
         } ?: return@withContext
 
         // それぞれのファイルをデコードして PCM にする
@@ -58,8 +59,7 @@ class AudioMixingProcessor(
                     readSampleData = { byteBuffer ->
                         val size = mediaExtractor.readSampleData(byteBuffer, 0)
                         mediaExtractor.advance()
-                        // 単位注意
-                        return@startAudioDecode if (mediaExtractor.sampleTime / 1000 < audioDurationMs) {
+                        return@startAudioDecode if (mediaExtractor.sampleTime < audioDurationUs) {
                             // 動画時間の方がまだ長い場合は継続。動画のほうが短くても終わる
                             size to mediaExtractor.sampleTime
                         } else {
