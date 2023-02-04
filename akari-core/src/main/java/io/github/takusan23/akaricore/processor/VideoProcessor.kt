@@ -2,6 +2,7 @@ package io.github.takusan23.akaricore.processor
 
 import android.graphics.Canvas
 import android.media.*
+import android.os.Build
 import io.github.takusan23.akaricore.gl.CodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
@@ -63,11 +64,22 @@ class VideoProcessor(
         mediaExtractor.selectTrack(index)
         mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
+        // 画面回転情報
+        val hasRotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            format.getInteger(MediaFormat.KEY_ROTATION) == 90
+        } else {
+            // TODO android 5 ...
+            false
+        }
+
         // 解析結果から各パラメータを取り出す
         val decodeMimeType = format.getString(MediaFormat.KEY_MIME)!!
         val encoderMimeType = videoCodec ?: decodeMimeType
-        val originVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
-        val originVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
+        val videoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
+        val videoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
+        // 画面回転度がある場合は width / height がそれぞれ入れ替わるので注意（一敗）
+        val originVideoWidth = if (hasRotation) videoHeight else videoWidth
+        val originVideoHeight = if (hasRotation) videoWidth else videoHeight
         val bitRate = bitRate ?: 1_000_000
         val frameRate = frameRate ?: 30
 
