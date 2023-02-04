@@ -13,7 +13,8 @@ import java.nio.ByteOrder
 
 /**
  * OpenGL関連
- * 映像にCanvasを重ねてエンコーダーに渡す
+ * 映像にCanvasを重ねてエンコーダーに渡す。
+ * 映像を描画したあとにCanvasを描画する。二回四角形を描画している。
  *
  * @param videoWidth 映像の幅。Canvasの作成に利用
  * @param videoHeight 映像の高さ。Canvasの作成に利用
@@ -30,7 +31,6 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
 
     private val mMVPMatrix = FloatArray(16)
     private val mSTMatrix = FloatArray(16)
-    private val rotationAngle = 0
 
     /** Canvasで書いたBitmap。Canvasの内容をOpenGLのテクスチャとして利用 */
     private val canvasBitmap by lazy { Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888) }
@@ -46,20 +46,20 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
     private var maTextureHandle = 0
     private var uCanvasTextureHandle = 0
     private var uVideoTextureHandle = 0
+    private var uDrawVideo = 0
+
+    /** キャンバスの画像を渡すOpenGLのテクスチャID */
+    private var canvasTextureID = -1
 
     /** デコード結果が流れてくるOpenGLのテクスチャID */
     var videoTextureID = -1
-        private set
-
-    /** キャンバスの画像を渡すOpenGLのテクスチャID */
-    var canvasTextureID = -1
         private set
 
     init {
         Matrix.setIdentityM(mSTMatrix, 0)
     }
 
-    /** フレームを描画して、フラグメントシェーダーでCanvasと合成する */
+    /** フレームを描画する */
     fun drawFrame(surfaceTexture: SurfaceTexture) {
         checkGlError("onDrawFrame start")
         surfaceTexture.getTransformMatrix(mSTMatrix)
@@ -67,8 +67,10 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         checkGlError("glUseProgram")
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, videoTextureID)
-        // GLES20.GL_TEXTURE0 なので 0
+        // 映像のテクスチャユニットは GLES20.GL_TEXTURE0 なので 0
         GLES20.glUniform1i(uVideoTextureHandle, 0)
+        // Canvasのテクスチャユニットは GLES20.GL_TEXTURE1 なので 1
+        GLES20.glUniform1i(uCanvasTextureHandle, 1)
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
         checkGlError("glVertexAttribPointer maPosition")
@@ -79,29 +81,37 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         checkGlError("glVertexAttribPointer maTextureHandle")
         GLES20.glEnableVertexAttribArray(maTextureHandle)
         checkGlError("glEnableVertexAttribArray maTextureHandle")
+        // ----
+        // 映像を描画するフラグを立てる
+        // ----
+        GLES20.glUniform1i(uDrawVideo, 1)
+        // アスペクト比を調整する
+        Matrix.setIdentityM(mMVPMatrix, 0)
+        // Matrix.rotateM(mMVPMatrix, 0, 90f, 0f, 0f, 1f)
+
+        Matrix.scaleM(mMVPMatrix, 0, 0.56f, 1f, 1f)
+
+        // 描画する
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
         GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-        checkGlError("glDrawArrays")
-        GLES20.glFinish()
+        checkGlError("glDrawArrays VideoFrame")
     }
 
     /**
-     * Canvasを更新して、OpenGLのテクスチャを再セットする
+     * Canvas に書いて OpenGL で描画する。
+     * [drawFrame]のあとに呼び出す必要あり。
      *
      * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
      */
     fun drawCanvas(onCanvasDrawRequest: (Canvas) -> Unit) {
         checkGlError("drawCanvas start")
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
         // コンテキストをCanvasのテクスチャIDに切り替える
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, canvasTextureID)
         // 縮小拡大時の補間設定
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-
         // 前回のを消す
         canvas.drawColor(0, PorterDuff.Mode.CLEAR)
         // Canvasで書く
@@ -110,11 +120,26 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         // 更新なので texSubImage2D
         GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, canvasBitmap)
         checkGlError("GLUtils.texSubImage2D canvasTextureID")
-
         // Uniform 変数へテクスチャを設定
         // 第二引数の 1 って何、、、（GLES20.GL_TEXTURE1 だから？）
         GLES20.glUniform1i(uCanvasTextureHandle, 1)
         checkGlError("glUniform1i uCanvasTextureHandle")
+        // ----
+        // Canvasを描画するフラグを立てる
+        // ----
+        GLES20.glUniform1i(uDrawVideo, 0)
+        // アスペクト比の調整はいらないのでリセット（エンコーダーの出力サイズにCanvasを合わせて作っているため）
+        Matrix.setIdentityM(mMVPMatrix, 0)
+        // 描画する
+        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
+        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+        checkGlError("glDrawArrays Canvas")
+    }
+
+    /** glFinish をよびだす */
+    fun invokeGlFinish() {
+        GLES20.glFinish()
     }
 
     fun surfaceCreated() {
@@ -144,6 +169,7 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         }
         uCanvasTextureHandle = GLES20.glGetUniformLocation(mProgram, "uCanvasTexture")
         uVideoTextureHandle = GLES20.glGetUniformLocation(mProgram, "uVideoTexture")
+        uDrawVideo = GLES20.glGetUniformLocation(mProgram, "uDrawVideo")
 
         // 映像が入ってくるテクスチャ、Canvasのテクスチャを登録する
         // テクスチャ2つ作る
@@ -175,13 +201,13 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         // テクスチャを初期化
         // 更新の際はコンテキストを切り替えた上で texSubImage2D を使う
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, canvasBitmap, 0)
-
         checkGlError("glTexParameter canvasTextureID")
 
-        Matrix.setIdentityM(mMVPMatrix, 0)
-        if (rotationAngle != 0) {
-            Matrix.rotateM(mMVPMatrix, 0, rotationAngle.toFloat(), 0f, 0f, 1f)
-        }
+        // アルファブレンドを有効
+        // これにより、透明なテクスチャがちゃんと透明に描画される
+        GLES20.glEnable(GLES20.GL_BLEND)
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+        checkGlError("glEnable BLEND")
     }
 
     fun changeFragmentShader(fragmentShader: String) {
@@ -262,6 +288,7 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
             attribute vec4 aPosition;
             attribute vec4 aTextureCoord;
             varying vec2 vTextureCoord;
+            
             void main() {
               gl_Position = uMVPMatrix * aPosition;
               vTextureCoord = (uSTMatrix * aTextureCoord).xy;
@@ -276,16 +303,18 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
             varying vec2 vTextureCoord;
             uniform samplerExternalOES uVideoTexture;        
             uniform sampler2D uCanvasTexture;
+            
+            // 映像を描画するのか、Canvasを描画するのかのフラグ
+            uniform int uDrawVideo;
         
             void main() {
                 vec4 videoTexture = texture2D(uVideoTexture, vTextureCoord);
                 vec4 canvasTexture = texture2D(uCanvasTexture, vTextureCoord);
                 
-                // Canvas の透明な部分は 動画のテクスチャ からピクセルを取得する
-                if (canvasTexture.a > 0.0) {
-                    gl_FragColor = canvasTexture;
-                } else {
+                if (bool(uDrawVideo)) {
                     gl_FragColor = videoTexture;                
+                } else {
+                    gl_FragColor = canvasTexture;
                 }
             }
         """

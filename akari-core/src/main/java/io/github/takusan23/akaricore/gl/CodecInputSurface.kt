@@ -57,8 +57,9 @@ class CodecInputSurface(
 
     fun createRender() {
         textureRenderer.surfaceCreated()
-        surfaceTexture = SurfaceTexture(textureRenderer.videoTextureID)
-            .also { it.setOnFrameAvailableListener(this) }
+        surfaceTexture = SurfaceTexture(textureRenderer.videoTextureID).also { surfaceTexture ->
+            surfaceTexture.setOnFrameAvailableListener(this)
+        }
         drawSurface = Surface(surfaceTexture)
     }
 
@@ -94,8 +95,10 @@ class CodecInputSurface(
             EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
             EGL14.EGL_NONE
         )
-        mEGLContext = EGL14.eglCreateContext(mEGLDisplay, configs[0], EGL14.EGL_NO_CONTEXT,
-            attrib_list, 0)
+        mEGLContext = EGL14.eglCreateContext(
+            mEGLDisplay, configs[0], EGL14.EGL_NO_CONTEXT,
+            attrib_list, 0
+        )
         checkEglError("eglCreateContext")
 
         // Create a window surface, and attach it to the Surface we received.
@@ -136,8 +139,9 @@ class CodecInputSurface(
      */
     fun drawImage(onCanvasDrawRequest: (Canvas) -> Unit) {
         val surfaceTexture = surfaceTexture ?: return
-        textureRenderer.drawCanvas(onCanvasDrawRequest)
         textureRenderer.drawFrame(surfaceTexture)
+        textureRenderer.drawCanvas(onCanvasDrawRequest)
+        textureRenderer.invokeGlFinish()
     }
 
     override fun onFrameAvailable(st: SurfaceTexture) {
