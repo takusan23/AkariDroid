@@ -18,8 +18,8 @@ import java.io.File
  * @param frameRate フレームレート。何故か取れなかった
  * @param videoCodec エンコード後の動画コーデック [MediaFormat.MIMETYPE_VIDEO_AVC] など
  * @param containerFormat コンテナフォーマット [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
- * @param videoHeight 動画の高さを変える場合は変えられます。16の倍数であることが必須です
- * @param videoWidth 動画の幅を変える場合は変えられます。16の倍数であることが必須です
+ * @param outputVideoWidth 動画の高さを変える場合は変えられます。16の倍数であることが必須です
+ * @param outputVideoHeight 動画の幅を変える場合は変えられます。16の倍数であることが必須です
  * */
 class VideoProcessor(
     private val videoFile: File,
@@ -28,8 +28,8 @@ class VideoProcessor(
     private val containerFormat: Int? = null,
     private val bitRate: Int? = null,
     private val frameRate: Int? = null,
-    private val videoWidth: Int? = null,
-    private val videoHeight: Int? = null,
+    private val outputVideoWidth: Int = 1280,
+    private val outputVideoHeight: Int = 720,
 ) {
     /** データを取り出すやつ */
     private var currentMediaExtractor: MediaExtractor? = null
@@ -66,8 +66,8 @@ class VideoProcessor(
         // 解析結果から各パラメータを取り出す
         val decodeMimeType = format.getString(MediaFormat.KEY_MIME)!!
         val encoderMimeType = videoCodec ?: decodeMimeType
-        val width = videoWidth ?: format.getInteger(MediaFormat.KEY_WIDTH)
-        val height = videoHeight ?: format.getInteger(MediaFormat.KEY_HEIGHT)
+        val originVideoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
+        val originVideoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
         val bitRate = bitRate ?: 1_000_000
         val frameRate = frameRate ?: 30
 
@@ -77,7 +77,7 @@ class VideoProcessor(
         encodeMediaCodec = MediaCodec.createEncoderByType(encoderMimeType).apply {
             // エンコーダーにセットするMediaFormat
             // コーデックが指定されていればそっちを使う
-            val videoMediaFormat = MediaFormat.createVideoFormat(encoderMimeType, width, height).apply {
+            val videoMediaFormat = MediaFormat.createVideoFormat(encoderMimeType, outputVideoWidth, outputVideoHeight).apply {
                 setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, INPUT_BUFFER_SIZE)
                 setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
                 setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
@@ -88,7 +88,15 @@ class VideoProcessor(
         }
 
         // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-        codecInputSurface = CodecInputSurface(encodeMediaCodec!!.createInputSurface(), TextureRenderer(videoWidth = width, videoHeight = height))
+        codecInputSurface = CodecInputSurface(
+            encodeMediaCodec!!.createInputSurface(),
+            TextureRenderer(
+                outputVideoWidth = outputVideoWidth,
+                outputVideoHeight = outputVideoHeight,
+                originVideoWidth = originVideoWidth,
+                originVideoHeight = originVideoHeight
+            )
+        )
         codecInputSurface?.makeCurrent()
         encodeMediaCodec!!.start()
 

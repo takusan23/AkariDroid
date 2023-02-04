@@ -76,15 +76,16 @@ class ExampleInstrumentedTest {
             textSize = 80f
         }
 
-//        val videoFile = File(projectFolder, "applehls.mp4")
-        val videoFile = File(projectFolder, "videofile")
+        // val videoFile = File(projectFolder, "applehls.mp4")
+        val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
+        // val videoFile = File(projectFolder, "iphone.mp4")
         val videoProcessor = VideoProcessor(
             videoFile = videoFile,
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
             containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-            videoWidth = 1280,
-            videoHeight = 1280
+            outputVideoWidth = 1280,
+            outputVideoHeight = 720
         )
         videoProcessor.start { canvas, positionMs ->
             println(positionMs)

@@ -47,8 +47,8 @@ class AkariCore(
             containerFormat = videoFileData.containerFormat,
             bitRate = videoEncoderData.bitRate,
             frameRate = videoEncoderData.frameRate,
-            videoWidth = videoEncoderData.width,
-            videoHeight = videoEncoderData.height
+            outputVideoWidth = videoEncoderData.width ?: 1280,
+            outputVideoHeight = videoEncoderData.height ?: 720
         )
     }
 

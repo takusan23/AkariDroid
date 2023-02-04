@@ -16,10 +16,15 @@ import java.nio.ByteOrder
  * 映像にCanvasを重ねてエンコーダーに渡す。
  * 映像を描画したあとにCanvasを描画する。二回四角形を描画している。
  *
- * @param videoWidth 映像の幅。Canvasの作成に利用
- * @param videoHeight 映像の高さ。Canvasの作成に利用
+ * @param
+ * @param
  */
-class TextureRenderer(videoWidth: Int, videoHeight: Int) {
+class TextureRenderer(
+    private val outputVideoWidth: Int,
+    private val outputVideoHeight: Int,
+    private val originVideoHeight: Int,
+    private val originVideoWidth: Int
+) {
 
     private var mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).run {
         order(ByteOrder.nativeOrder())
@@ -33,7 +38,7 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
     private val mSTMatrix = FloatArray(16)
 
     /** Canvasで書いたBitmap。Canvasの内容をOpenGLのテクスチャとして利用 */
-    private val canvasBitmap by lazy { Bitmap.createBitmap(videoWidth, videoHeight, Bitmap.Config.ARGB_8888) }
+    private val canvasBitmap by lazy { Bitmap.createBitmap(outputVideoWidth, outputVideoHeight, Bitmap.Config.ARGB_8888) }
 
     /** Canvas。これがエンコーダーに行く */
     private val canvas by lazy { Canvas(canvasBitmap) }
@@ -87,9 +92,14 @@ class TextureRenderer(videoWidth: Int, videoHeight: Int) {
         GLES20.glUniform1i(uDrawVideo, 1)
         // アスペクト比を調整する
         Matrix.setIdentityM(mMVPMatrix, 0)
-        // Matrix.rotateM(mMVPMatrix, 0, 90f, 0f, 0f, 1f)
 
-        Matrix.scaleM(mMVPMatrix, 0, 0.56f, 1f, 1f)
+        // 横幅を計算して合わせる
+        // 縦は outputHeight 最大まで
+        val scaleY = (outputVideoHeight / originVideoHeight.toFloat())
+        val textureWidth = originVideoWidth * scaleY
+        println("scaleY = ${scaleY} / textureWidth = ${textureWidth} / originVideoWidth = ${originVideoWidth} / originVideoHeight = ${originVideoHeight}")
+        val percent = textureWidth / outputVideoWidth.toFloat()
+        Matrix.scaleM(mMVPMatrix, 0, percent, 1f, 1f)
 
         // 描画する
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
