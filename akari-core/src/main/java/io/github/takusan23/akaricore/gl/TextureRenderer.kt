@@ -17,13 +17,14 @@ import java.nio.ByteOrder
  * 映像を描画したあとにCanvasを描画する。二回四角形を描画している。
  *
  * @param
- * @param
+ * @param videoRotation 映像を回転させる場合に利用
  */
 class TextureRenderer(
     private val outputVideoWidth: Int,
     private val outputVideoHeight: Int,
     private val originVideoHeight: Int,
-    private val originVideoWidth: Int
+    private val originVideoWidth: Int,
+    private val videoRotation: Float
 ) {
 
     private var mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).run {
@@ -64,7 +65,11 @@ class TextureRenderer(
         Matrix.setIdentityM(mSTMatrix, 0)
     }
 
-    /** フレームを描画する */
+    /**
+     * フレームを描画する
+     *
+     * @param surfaceTexture [SurfaceTexture]
+     */
     fun drawFrame(surfaceTexture: SurfaceTexture) {
         checkGlError("onDrawFrame start")
         surfaceTexture.getTransformMatrix(mSTMatrix)
@@ -97,9 +102,11 @@ class TextureRenderer(
         // 縦は outputHeight 最大まで
         val scaleY = (outputVideoHeight / originVideoHeight.toFloat())
         val textureWidth = originVideoWidth * scaleY
-        println("scaleY = ${scaleY} / textureWidth = ${textureWidth} / originVideoWidth = ${originVideoWidth} / originVideoHeight = ${originVideoHeight}")
         val percent = textureWidth / outputVideoWidth.toFloat()
         Matrix.scaleM(mMVPMatrix, 0, percent, 1f, 1f)
+
+        // 動画が回転している場合に戻す
+        Matrix.rotateM(mMVPMatrix, 0, videoRotation, 0f, 0f, 1f)
 
         // 描画する
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)

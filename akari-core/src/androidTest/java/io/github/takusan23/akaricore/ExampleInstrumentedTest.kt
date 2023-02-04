@@ -77,8 +77,8 @@ class ExampleInstrumentedTest {
         }
 
         // val videoFile = File(projectFolder, "applehls.mp4")
-        // val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
-        val videoFile = File(projectFolder, "iphone.mp4")
+        val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
+        // val videoFile = File(projectFolder, "iphone.mp4")
         val videoProcessor = VideoProcessor(
             videoFile = videoFile,
             resultFile = resultFile,

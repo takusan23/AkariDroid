@@ -2,7 +2,6 @@ package io.github.takusan23.akaricore.processor
 
 import android.graphics.Canvas
 import android.media.*
-import android.os.Build
 import io.github.takusan23.akaricore.gl.CodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
@@ -64,19 +63,13 @@ class VideoProcessor(
         mediaExtractor.selectTrack(index)
         mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
-        // 画面回転情報
-        val hasRotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            format.getInteger(MediaFormat.KEY_ROTATION) == 90
-        } else {
-            // TODO android 5 ...
-            false
-        }
-
         // 解析結果から各パラメータを取り出す
         val decodeMimeType = format.getString(MediaFormat.KEY_MIME)!!
         val encoderMimeType = videoCodec ?: decodeMimeType
         val videoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
         val videoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
+        // 画面回転情報
+        val hasRotation = format.getIntegerOrNull(KEY_ROTATION) == 90
         // 画面回転度がある場合は width / height がそれぞれ入れ替わるので注意（一敗）
         val originVideoWidth = if (hasRotation) videoHeight else videoWidth
         val originVideoHeight = if (hasRotation) videoWidth else videoHeight
@@ -106,7 +99,8 @@ class VideoProcessor(
                 outputVideoWidth = outputVideoWidth,
                 outputVideoHeight = outputVideoHeight,
                 originVideoWidth = originVideoWidth,
-                originVideoHeight = originVideoHeight
+                originVideoHeight = originVideoHeight,
+                videoRotation = if (hasRotation) 270f else 0f
             )
         )
         codecInputSurface?.makeCurrent()
@@ -115,6 +109,10 @@ class VideoProcessor(
         // デコード用（H.264 -> 生データ）MediaCodec
         codecInputSurface?.createRender()
         decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
+            // 画面回転データが有った場合にリセットする
+            // このままだと回転されたままなので、OpenGL 側で回転させる
+            // setInteger をここでやるのは良くない気がするけど面倒なので
+            format.setInteger(KEY_ROTATION, 0)
             configure(format, codecInputSurface!!.drawSurface, null, 0)
         }
         decodeMediaCodec?.start()
@@ -238,6 +236,17 @@ class VideoProcessor(
         }
     }
 
+    /**
+     * [MediaFormat.getInteger]、キーがなければ null を返す
+     *
+     * @param name [MediaFormat.KEY_ROTATION]など
+     */
+    private fun MediaFormat.getIntegerOrNull(name: String): Int? {
+        return if (containsKey(name)) {
+            getInteger(name)
+        } else null
+    }
+
     companion object {
         /** タイムアウト */
         private const val TIMEOUT_US = 10000L
@@ -247,6 +256,12 @@ class VideoProcessor(
 
         /** トラック番号が空の場合 */
         private const val UNDEFINED_TRACK_INDEX = -1
+
+        /**
+         * [MediaFormat.KEY_ROTATION]
+         * MediaFormat.KEY_ROTATION の定数。Android 6 以上だがフラグ自体は 5 から存在するらしいので
+         */
+        private const val KEY_ROTATION = "rotation-degrees"
     }
 
 }
