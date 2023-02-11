@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.takusan23.akari_core"
+    namespace = "io.github.takusan23.akaricore"
     compileSdk = 33
 
     defaultConfig {

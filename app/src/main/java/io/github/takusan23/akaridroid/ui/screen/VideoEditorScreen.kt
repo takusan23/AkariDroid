@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -138,6 +139,7 @@ fun VideoEditorScreen(
                 modifier = Modifier
                     .padding(start = 10.dp, end = 10.dp)
                     .aspectRatio(1.7f),
+                color = Color.Black,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
             ) {
                 VideoPlayer(

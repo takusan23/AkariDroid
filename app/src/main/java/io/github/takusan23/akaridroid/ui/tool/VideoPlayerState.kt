@@ -12,6 +12,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.video.VideoSize
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,7 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
 
     private val _playWhenRelayFlow = MutableStateFlow(false)
     private val _currentPositionMsFlow = MutableStateFlow(PlayerPositionData(0L, 0L))
+    private val _videoSizeData = MutableStateFlow<VideoSizeData?>(null)
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private val exoPlayer = ExoPlayer.Builder(context).build().apply {
@@ -41,6 +43,11 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 super.onPlayWhenReadyChanged(playWhenReady, reason)
                 _playWhenRelayFlow.value = playWhenReady
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                super.onVideoSizeChanged(videoSize)
+                _videoSizeData.value = VideoSizeData(videoSize.height, videoSize.width)
             }
         })
     }
@@ -50,6 +57,9 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
 
     /** 現在位置 */
     val currentPositionMsFlow = _currentPositionMsFlow.asStateFlow()
+
+    /** アスペクト比 */
+    val videoSizeData = _videoSizeData.asStateFlow()
 
     /** 再生時間 ms */
     var currentPositionMs: Long
@@ -117,4 +127,14 @@ class VideoPlayerState(context: Context, lifecycle: Lifecycle) : DefaultLifecycl
         val durationMs: Long
     )
 
+    /**
+     * 動画サイズ
+     *
+     * @param width 幅
+     * @param height 高さ
+     */
+    data class VideoSizeData(
+        val height: Int,
+        val width: Int
+    )
 }

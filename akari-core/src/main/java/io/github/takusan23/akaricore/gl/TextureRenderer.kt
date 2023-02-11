@@ -16,7 +16,10 @@ import java.nio.ByteOrder
  * 映像にCanvasを重ねてエンコーダーに渡す。
  * 映像を描画したあとにCanvasを描画する。二回四角形を描画している。
  *
- * @param
+ * @param outputVideoWidth エンコード時の動画の幅
+ * @param outputVideoHeight エンコード時の動画の高さ
+ * @param originVideoWidth 元動画の幅
+ * @param originVideoHeight 元動画の高さ
  * @param videoRotation 映像を回転させる場合に利用
  */
 class TextureRenderer(
