@@ -14,11 +14,11 @@ enum class NavigationPaths(val path: String) {
     CreateVideo("create_video"),
 
     /** 編集画面 */
-    VideoEditor("editor");
+    VideoEditor("editor?project_id={project_id}");
 
     companion object {
 
         /** [VideoEditor]を開く */
-        fun createEditorParh(projectName: String): String = "${VideoEditor.path}?name=${projectName}"
+        fun createEditorPath(projectId: String): String = "editor?project_id=${projectId}"
     }
 }

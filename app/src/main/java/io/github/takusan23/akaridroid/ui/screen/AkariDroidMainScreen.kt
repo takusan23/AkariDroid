@@ -1,6 +1,8 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,8 +23,14 @@ fun AkariDroidMainScreen() {
     SetStatusBarColor()
     SetNavigationBarColor()
 
+    // startDestination にパラメーターつけると動かなくなるので
+    // 今は編集画面メインで作ってるので即時で編集画面に飛ばすように
+    LaunchedEffect(key1 = Unit) {
+        navController.navigate(NavigationPaths.createEditorPath("project-2022-01-10"))
+    }
+
     AkariDroidTheme {
-        NavHost(navController = navController, startDestination = NavigationPaths.VideoEditor.path) {
+        NavHost(navController = navController, startDestination = NavigationPaths.Home.path) {
             composable(NavigationPaths.Home.path) {
                 HomeScreen(onNavigate = { navController.navigate(it) })
             }
@@ -30,7 +38,8 @@ fun AkariDroidMainScreen() {
                 CreateVideoScreen()
             }
             composable(NavigationPaths.VideoEditor.path) {
-                VideoEditorScreen()
+                // パラメーターは ViewModel 側で受け取れる
+                VideoEditorScreen(viewModel = viewModel())
             }
         }
     }

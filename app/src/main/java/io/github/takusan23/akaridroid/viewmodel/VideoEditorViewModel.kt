@@ -4,11 +4,8 @@ import android.app.Application
 import android.graphics.Color
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.takusan23.akaridroid.data.*
 import io.github.takusan23.akaridroid.manager.VideoEditProjectManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
@@ -16,7 +13,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class VideoEditorViewModel(application: Application, private val projectId: String) : AndroidViewModel(application) {
+/**
+ * 編集画面のViewModel
+ *
+ * @param savedStateHandle JetpackCompose Navigation のクエリパラメーターが取得できる
+ */
+class VideoEditorViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
     private val context = application.applicationContext
     private val videoEditProjectManager by lazy { VideoEditProjectManager(context) }
@@ -58,7 +60,7 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
             // まだプロジェクト作成機能がないので、とりあえずハードコートしたファイルパスでロードする
             // 初回時は絶対落ちるので runCatching
             val loadAkariProjectData = runCatching {
-                videoEditProjectManager.loadProjectData(projectId)
+                videoEditProjectManager.loadProjectData(savedStateHandle["project_id"]!!)
             }.getOrNull() ?: AkariProjectData()
 
             akariProjectData = loadAkariProjectData
@@ -123,13 +125,14 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
      */
     fun setVideoFile(uri: Uri?) {
         uri ?: return
+        val akariProjectData = akariProjectData ?: return
         viewModelScope.launch {
             videoFileData.value?.videoFilePath?.let {
                 videoEditProjectManager.deleteFile(it)
             }
             _videoFileData.value = null
             val fileName = MediaStoreTool.getFileName(context, uri) ?: "videofile"
-            val videoFile = videoEditProjectManager.addFileToProject(projectId, uri, fileName)
+            val videoFile = videoEditProjectManager.addFileToProject(akariProjectData.projectId, uri, fileName)
             _videoFileData.value = VideoFileData(
                 videoFilePath = videoFile.path,
                 fileName = videoFile.name
@@ -144,9 +147,10 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
      */
     fun addAudioFile(uri: Uri?) {
         uri ?: return
+        val akariProjectData = akariProjectData ?: return
         viewModelScope.launch {
             val fileName = MediaStoreTool.getFileName(context, uri) ?: "audiofile_${System.currentTimeMillis()}"
-            val audioFile = videoEditProjectManager.addFileToProject(projectId, uri, fileName)
+            val audioFile = videoEditProjectManager.addFileToProject(akariProjectData.projectId, uri, fileName)
             val audioAssetData = AudioAssetData(
                 audioFilePath = audioFile.path,
                 fileName = fileName,
@@ -181,7 +185,6 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
     suspend fun saveEncodeData(): AkariProjectData {
         // 保存する。
         val newProjectData = (akariProjectData ?: AkariProjectData()).copy(
-            projectId = projectId,
             canvasElementList = canvasElementList.value,
             videoFileData = videoFileData.value,
             videoOutputFormat = videoOutputFormat.value,
@@ -189,20 +192,6 @@ class VideoEditorViewModel(application: Application, private val projectId: Stri
         )
         videoEditProjectManager.saveProjectData(newProjectData)
         return newProjectData
-    }
-
-    companion object {
-
-        val PROJECT_ID = object : CreationExtras.Key<String> {}
-
-        val Factory = viewModelFactory {
-            initializer {
-                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                val projectId = this[PROJECT_ID]!!
-                VideoEditorViewModel(application, projectId)
-            }
-        }
-
     }
 
 }

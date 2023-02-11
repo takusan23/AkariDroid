@@ -16,10 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.HasDefaultViewModelProviderFactory
-import androidx.lifecycle.viewmodel.MutableCreationExtras
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.service.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.BottomSheetNavigation
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditMenuBottomSheetMenu
@@ -34,14 +30,7 @@ import kotlinx.coroutines.launch
 /** 編集画面 */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
-fun VideoEditorScreen(
-    viewModel: VideoEditorViewModel = viewModel(
-        factory = VideoEditorViewModel.Factory,
-        extras = MutableCreationExtras((LocalViewModelStoreOwner.current as HasDefaultViewModelProviderFactory).defaultViewModelCreationExtras).apply {
-            set(VideoEditorViewModel.PROJECT_ID, "project-2022-01-10")
-        }
-    )
-) {
+fun VideoEditorScreen(viewModel: VideoEditorViewModel) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
