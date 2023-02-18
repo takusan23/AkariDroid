@@ -20,6 +20,9 @@ android-application = { id = "com.android.application", version.ref = "androidGr
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 
+gradle-nexus-publish-plugin = { id = "io.github.gradle-nexus.publish-plugin", version = "1.0.0" }
+jetpbrains-dokka = { id = "org.jetbrains.dokka", version = "1.7.20" }
+
 [libraries]
 junit = { module = "junit:junit", version = "4.13.2" }
 
