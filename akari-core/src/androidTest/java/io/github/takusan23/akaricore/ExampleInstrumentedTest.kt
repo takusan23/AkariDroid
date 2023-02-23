@@ -7,6 +7,7 @@ import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.processor.AudioMixingProcessor
+import io.github.takusan23.akaricore.processor.CanvasProcessor
 import io.github.takusan23.akaricore.processor.VideoProcessor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -78,7 +79,7 @@ class ExampleInstrumentedTest {
 
         // val videoFile = File(projectFolder, "applehls.mp4")
         // val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
-        val videoFile = File(projectFolder, "iphone2.mp4")
+        val videoFile = File(projectFolder, "iphone.mp4")
         val videoProcessor = VideoProcessor(
             videoFile = videoFile,
             resultFile = resultFile,
@@ -88,8 +89,47 @@ class ExampleInstrumentedTest {
             outputVideoHeight = 720
         )
         videoProcessor.start { canvas, positionMs ->
-            println(positionMs)
             canvas.drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
+        }
+    }
+
+    @Test
+    fun test_キャンバスの入力から動画を作成() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
+            createNewFile()
+        }
+
+        val canvasProcessor = CanvasProcessor(
+            resultFile = resultFile,
+            videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
+            containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+            bitRate = 1_000_000,
+            frameRate = 30,
+            outputVideoWidth = 1280,
+            outputVideoHeight = 720,
+        )
+
+        val textPaint = Paint().apply {
+            isAntiAlias = true
+            textSize = 80f
+        }
+
+        canvasProcessor.start { positionMs ->
+            drawColor(Color.MAGENTA)
+            // 枠取り文字
+            val text = "動画の時間 = ${"%.2f".format(positionMs / 1000f)}"
+            textPaint.color = Color.BLACK
+            textPaint.style = Paint.Style.STROKE
+            // 枠取り文字
+            drawText(text, 0f, 80f, textPaint)
+            textPaint.style = Paint.Style.FILL
+            textPaint.color = Color.WHITE
+            // 枠無し文字
+            drawText(text, 0f, 80f, textPaint)
+
+            // true を返している間は動画を作成する
+            positionMs < 10 * 1_000
         }
     }
 

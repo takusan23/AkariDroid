@@ -68,22 +68,11 @@ class TextureRenderer(
         Matrix.setIdentityM(mSTMatrix, 0)
     }
 
-    /**
-     * フレームを描画する
-     *
-     * @param surfaceTexture [SurfaceTexture]
-     */
-    fun drawFrame(surfaceTexture: SurfaceTexture) {
-        checkGlError("onDrawFrame start")
-        surfaceTexture.getTransformMatrix(mSTMatrix)
+    /** 描画前に呼び出す */
+    fun prepareDraw() {
+        // glError 1282 の原因とかになる
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, videoTextureID)
-        // 映像のテクスチャユニットは GLES20.GL_TEXTURE0 なので 0
-        GLES20.glUniform1i(uVideoTextureHandle, 0)
-        // Canvasのテクスチャユニットは GLES20.GL_TEXTURE1 なので 1
-        GLES20.glUniform1i(uCanvasTextureHandle, 1)
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
         checkGlError("glVertexAttribPointer maPosition")
@@ -94,6 +83,28 @@ class TextureRenderer(
         checkGlError("glVertexAttribPointer maTextureHandle")
         GLES20.glEnableVertexAttribArray(maTextureHandle)
         checkGlError("glEnableVertexAttribArray maTextureHandle")
+
+        // Snapdragon だと glClear が無いと映像が乱れる
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
+    }
+
+    /**
+     * フレームを描画する
+     *
+     * @param surfaceTexture [SurfaceTexture]
+     */
+    fun drawFrame(surfaceTexture: SurfaceTexture) {
+        checkGlError("onDrawFrame start")
+        Matrix.setIdentityM(mSTMatrix, 0)
+        surfaceTexture.getTransformMatrix(mSTMatrix)
+        // テクスチャ設定
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, videoTextureID)
+        // 映像のテクスチャユニットは GLES20.GL_TEXTURE0 なので 0
+        GLES20.glUniform1i(uVideoTextureHandle, 0)
+        // Canvasのテクスチャユニットは GLES20.GL_TEXTURE1 なので 1
+        GLES20.glUniform1i(uCanvasTextureHandle, 1)
+
         // ----
         // 映像を描画するフラグを立てる
         // ----
@@ -127,6 +138,7 @@ class TextureRenderer(
     fun drawCanvas(onCanvasDrawRequest: (Canvas) -> Unit) {
         checkGlError("drawCanvas start")
         // コンテキストをCanvasのテクスチャIDに切り替える
+        // テクスチャ設定
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, canvasTextureID)
         // 縮小拡大時の補間設定
@@ -150,6 +162,10 @@ class TextureRenderer(
         GLES20.glUniform1i(uDrawVideo, 0)
         // アスペクト比の調整はいらないのでリセット（エンコーダーの出力サイズにCanvasを合わせて作っているため）
         Matrix.setIdentityM(mMVPMatrix, 0)
+        // それとは別に、OpenGLの画像は原点が左下なので（普通は左上）、行列を反転させる
+        // すいませんよくわかりません。
+        Matrix.setIdentityM(mSTMatrix, 0)
+        Matrix.scaleM(mSTMatrix, 0, 1f, -1f, 1f)
         // 描画する
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
         GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)

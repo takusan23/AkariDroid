@@ -35,7 +35,7 @@ import android.view.Surface
  *
  * @param surface MediaCodecでもらえるcreateInputSurface
  */
-class CodecInputSurface(
+class MediaCodecInputSurface(
     private val surface: Surface,
     private val textureRenderer: TextureRenderer,
 ) : SurfaceTexture.OnFrameAvailableListener {
@@ -139,6 +139,7 @@ class CodecInputSurface(
      */
     fun drawImage(onCanvasDrawRequest: (Canvas) -> Unit) {
         val surfaceTexture = surfaceTexture ?: return
+        textureRenderer.prepareDraw()
         textureRenderer.drawFrame(surfaceTexture)
         textureRenderer.drawCanvas(onCanvasDrawRequest)
         textureRenderer.invokeGlFinish()

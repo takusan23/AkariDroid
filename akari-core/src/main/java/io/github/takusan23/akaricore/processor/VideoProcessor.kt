@@ -2,7 +2,7 @@ package io.github.takusan23.akaricore.processor
 
 import android.graphics.Canvas
 import android.media.*
-import io.github.takusan23.akaricore.gl.CodecInputSurface
+import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +44,7 @@ class VideoProcessor(
     private val mediaMuxer by lazy { MediaMuxer(resultFile.path, containerFormat ?: MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4) }
 
     /** OpenGL */
-    private var codecInputSurface: CodecInputSurface? = null
+    private var mediaCodecInputSurface: MediaCodecInputSurface? = null
 
     /**
      * 処理を始める、終わるまで一時停止します
@@ -93,7 +93,7 @@ class VideoProcessor(
         }
 
         // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-        codecInputSurface = CodecInputSurface(
+        mediaCodecInputSurface = MediaCodecInputSurface(
             encodeMediaCodec!!.createInputSurface(),
             TextureRenderer(
                 outputVideoWidth = outputVideoWidth,
@@ -103,17 +103,17 @@ class VideoProcessor(
                 videoRotation = if (hasRotation) 270f else 0f
             )
         )
-        codecInputSurface?.makeCurrent()
+        mediaCodecInputSurface?.makeCurrent()
         encodeMediaCodec!!.start()
 
         // デコード用（H.264 -> 生データ）MediaCodec
-        codecInputSurface?.createRender()
+        mediaCodecInputSurface?.createRender()
         decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
             // 画面回転データが有った場合にリセットする
             // このままだと回転されたままなので、OpenGL 側で回転させる
             // setInteger をここでやるのは良くない気がするけど面倒なので
             format.setInteger(KEY_ROTATION, 0)
-            configure(format, codecInputSurface!!.drawSurface, null, 0)
+            configure(format, mediaCodecInputSurface!!.drawSurface, null, 0)
         }
         decodeMediaCodec?.start()
 
@@ -185,17 +185,17 @@ class VideoProcessor(
                     if (doRender) {
                         var errorWait = false
                         try {
-                            codecInputSurface?.awaitNewImage()
+                            mediaCodecInputSurface?.awaitNewImage()
                         } catch (e: Exception) {
                             errorWait = true
                         }
                         if (!errorWait) {
                             // 映像とCanvasを合成する
-                            codecInputSurface?.drawImage { canvas ->
+                            mediaCodecInputSurface?.drawImage { canvas ->
                                 onCanvasDrawRequest(canvas, bufferInfo.presentationTimeUs / 1000L)
                             }
-                            codecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
-                            codecInputSurface?.swapBuffers()
+                            mediaCodecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                            mediaCodecInputSurface?.swapBuffers()
                         }
                     }
                     if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
@@ -210,7 +210,7 @@ class VideoProcessor(
         decodeMediaCodec.stop()
         decodeMediaCodec.release()
         // OpenGL開放
-        codecInputSurface?.release()
+        mediaCodecInputSurface?.release()
         // エンコーダー終了
         encodeMediaCodec.stop()
         encodeMediaCodec.release()
@@ -225,7 +225,7 @@ class VideoProcessor(
         try {
             decodeMediaCodec?.stop()
             decodeMediaCodec?.release()
-            codecInputSurface?.release()
+            mediaCodecInputSurface?.release()
             encodeMediaCodec?.stop()
             encodeMediaCodec?.release()
             currentMediaExtractor?.release()
