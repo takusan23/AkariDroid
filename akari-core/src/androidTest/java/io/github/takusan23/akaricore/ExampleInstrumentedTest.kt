@@ -88,8 +88,8 @@ class ExampleInstrumentedTest {
             outputVideoWidth = 1280,
             outputVideoHeight = 720
         )
-        videoProcessor.start { canvas, positionMs ->
-            canvas.drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
+        videoProcessor.start { positionMs ->
+            drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
         }
     }
 

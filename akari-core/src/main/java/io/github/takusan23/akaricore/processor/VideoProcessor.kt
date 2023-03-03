@@ -53,7 +53,7 @@ class VideoProcessor(
      */
     @Suppress("BlockingMethodInNonBlockingContext")
     suspend fun start(
-        onCanvasDrawRequest: (canvas: Canvas, positionMs: Long) -> Unit,
+        onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
     ) = withContext(Dispatchers.Default) {
 
         // 動画の情報を読み出す

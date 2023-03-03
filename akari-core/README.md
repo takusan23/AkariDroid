@@ -81,7 +81,19 @@ limitations under the License.
 
 # わたし向け MavenCentral 公開手順
 
-## local.properties に必要な値を書く
+## バージョンをインクリメントする
+
+`build.gradle.kts`の`version = "1.0.0-alpha01"`を +1 します。
+
+## GitHub Actions を利用する
+`GitHub Actions`の`publish-library-maven-central.yml`を利用することで、ライブラリを`MavenCentral`までアップロードしてくれます。  
+手動実行ボタンを押してしばらく待ちます。  
+あとは一番最後の手順を踏みます。
+
+## GitHub Actions を利用しない
+ローカルでも公開できます。
+
+### local.properties に必要な値を書く
 
 ```properties
 # Key Id Last 8 character
@@ -98,15 +110,14 @@ ossrhPassword={Sonatype OSSRH のパスワード}
 sonatypeStagingProfileId={SonatypeステージングプロファイルID}
 ```
 
-## バージョンをインクリメントする
-
-`build.gradle.kts`の`version = "1.0.0-alpha01"`を +1 します。
-
-## コマンドを叩く
+#### コマンドを叩く
 
 `gradle :akari-core:publishToSonatype`
 
 ## Close と Release を行う
+https://s01.oss.sonatype.org/  
+へアクセスしログインした後、`Staging Repositories`を押します。
+
 `Close` を押します。
 
 ![Imgur](https://imgur.com/pDPVunk.png)

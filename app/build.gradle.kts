@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.exoplayer.core)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
