@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * タイムラインの情報（素材を並べるやつ）
  *
- * @param videoDurationMs 動画時間
+ * @param videoDurationMs 動画の合計時間
  * @param timelineItemDataList タイムラインのアイテム
  */
 @Serializable
@@ -27,10 +27,10 @@ data class TimelineData(
         if (videoItemOnlyList.isEmpty()) {
             // すべて Canvas で描画可能
             // そのまま返す
-            return listOf(TimelineChunkData(0, timelineItemDataList))
+            return listOf(TimelineChunkData(0, videoDurationMs, timelineItemDataList))
         }
         // return するリスト
-        val chunkList = mutableListOf<List<TimelineItemData>>()
+        val chunkList = mutableListOf<TimelineChunkData>()
 
         // filterに渡す関数
         fun filterFunc(it: TimelineItemData, timeRange: LongRange): Boolean {
@@ -54,24 +54,33 @@ data class TimelineData(
             if (diffVideoStartMs > 0) {
                 val range = nextStartMs..videoStartMs
                 // 動画の前にあるタイムラインアイテム
-                chunkList += timelineItemDataList.filter { filterFunc(it, range) }
+                chunkList += TimelineChunkData(
+                    startMs = range.first,
+                    endMs = range.last,
+                    timelineItemDataList = timelineItemDataList.filter { filterFunc(it, range) }
+                )
             }
             // 動画と重なる
             val range = item.timeRange
-            chunkList += timelineItemDataList.filter { filterFunc(it, range) }
+            chunkList += TimelineChunkData(
+                startMs = range.first,
+                endMs = range.last,
+                timelineItemDataList = timelineItemDataList.filter { filterFunc(it, range) }
+            )
             // 次の開始地点
             nextStartMs = videoEndMs
         }
         // 最後
         if (nextStartMs < videoDurationMs) {
             val range = nextStartMs..videoDurationMs
-            chunkList += timelineItemDataList.filter { filterFunc(it, range) }
+            chunkList += TimelineChunkData(
+                startMs = range.first,
+                endMs = range.last,
+                timelineItemDataList = timelineItemDataList.filter { filterFunc(it, range) }
+            )
         }
 
-        return chunkList.map {
-            val offset = it.minOf { it.startMs }
-            TimelineChunkData(offset, it)
-        }
+        return chunkList
     }
 
 }

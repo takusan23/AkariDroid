@@ -30,6 +30,8 @@ sealed interface TimelineItemType {
      * 動画を描画する
      * （akari-core の制約上、同時に動画は一つだけ描画可能）
      *
+     * TODO [TimelineItemData.startMs] に収まるように動画を加工する処理が必要
+     *
      * @param videoPath 動画パス
      */
     @Serializable

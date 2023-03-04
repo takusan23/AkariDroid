@@ -37,6 +37,9 @@ class TimelineDataTest {
         assertTrue { chunkList[1].timelineItemDataList.any { it.timelineItemType is TimelineItemType.TextItem } }
         assertTrue { chunkList[0].timelineItemDataList.any { it.timelineItemType is TimelineItemType.VideoItem } }
         assertTrue { chunkList[1].timelineItemDataList.any { it.timelineItemType is TimelineItemType.VideoItem } }
+        // startMs / endMs があっていること
+        assertEquals(chunkList[0].startMs, 0)
+        assertEquals(chunkList[0].endMs, 5_000)
     }
 
     @Test
@@ -66,6 +69,9 @@ class TimelineDataTest {
         // それぞれ文字と図形が入っていること
         assertEquals(chunkList[0].timelineItemDataList.count { it.timelineItemType is TimelineItemType.TextItem }, 2)
         assertEquals(chunkList[0].timelineItemDataList.count { it.timelineItemType is TimelineItemType.RectItem }, 2)
+        // startMs / endMs があっていること
+        assertEquals(chunkList[0].startMs, 0)
+        assertEquals(chunkList[0].endMs, 10_000)
     }
 
     @Test
@@ -113,6 +119,11 @@ class TimelineDataTest {
         assertEquals(chunkList[1].timelineItemDataList.count(), 2)
         assertEquals(chunkList[2].timelineItemDataList.count(), 3)
         assertEquals(chunkList[3].timelineItemDataList.count(), 2)
+        // startMs / endMs があっていること
+        assertEquals(chunkList[0].startMs, 0)
+        assertEquals(chunkList[0].endMs, 5_000)
+        assertEquals(chunkList[1].startMs, 5_000)
+        assertEquals(chunkList[1].endMs, 10_000)
         // 最初と最後の時間が合っていること
         assertEquals(chunkList.first().timelineItemDataList.first().startMs, 0)
         assertEquals(chunkList.last().timelineItemDataList.last().endMs, 20_000)
