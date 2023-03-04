@@ -6,8 +6,10 @@ import io.github.takusan23.akaricore.common.AudioEncoder
 import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.tool.MediaMuxerTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -33,34 +35,42 @@ class VideoConcatProcessor(
 
     /** 処理を開始する */
     suspend fun start() = withContext(Dispatchers.Default) {
-        val videoFile = async { concatVideo() }.await()
-        //val audioFile = async { concatAudio() }
-        // val videoAndAudioFile = listOf(videoFile, audioFile).awaitAll()
-        // MediaMuxerTool.mixed(
-        //     resultFile = resultFile,
-        //     containerFormat = containerFormat,
-        //     mergeFileList = videoAndAudioFile
-        // )
-        // withContext(Dispatchers.IO) {
-        //     tempFolder.deleteRecursively()
-        // }
+        val videoFile = async { concatVideo() }
+        val audioFile = async { concatAudio() }
+        val videoAndAudioFile = listOf(videoFile, audioFile).awaitAll()
+        MediaMuxerTool.mixed(
+            resultFile = resultFile,
+            containerFormat = containerFormat,
+            mergeFileList = videoAndAudioFile
+        )
+        withContext(Dispatchers.IO) {
+            tempFolder.deleteRecursively()
+        }
     }
 
     /** 映像の結合を行う */
     private suspend fun concatVideo() = withContext(Dispatchers.Default) {
-
-        // 動画の情報を読み出す
-        val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) ?: return@withContext
-        // トラックを選択
-        mediaExtractor.selectTrack(index)
-        mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-
+        val videoFileIterator = videoFileList.iterator()
         var videoTrackIndex = UNDEFINED_TRACK_INDEX
+        var currentMediaExtractor: MediaExtractor? = null
+        var currentMediaFormat: MediaFormat? = null
+
+        // currentMediaExtractor / currentMediaFormat を更新する
+        suspend fun extract(videoFile: File) {
+            // 動画の情報を読み出す
+            val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
+            currentMediaExtractor = mediaExtractor
+            currentMediaFormat = format
+            // トラックを選択
+            mediaExtractor.selectTrack(index)
+            mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+        }
+
+        // 最初の動画を MediaExtractor で取り出す
+        extract(videoFileIterator.next())
 
         // エンコード用（生データ -> H.264）MediaCodec
         val encodeMediaCodec = MediaCodec.createEncoderByType(videoCodec).apply {
-            // エンコーダーにセットするMediaFormat
-            // コーデックが指定されていればそっちを使う
             val videoMediaFormat = MediaFormat.createVideoFormat(videoCodec, outputVideoWidth, outputVideoHeight).apply {
                 setInteger(MediaFormat.KEY_BIT_RATE, videoBitRate)
                 setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
@@ -87,16 +97,17 @@ class VideoConcatProcessor(
         // デコード用（H.264 -> 生データ）MediaCodec
         mediaCodecInputSurface.createRender()
         val decodeMediaCodec = MediaCodec.createDecoderByType(videoCodec).apply {
-            // 画面回転データが有った場合にリセットする
-            // このままだと回転されたままなので、OpenGL 側で回転させる
-            // setInteger をここでやるのは良くない気がするけど面倒なので
-            format.setInteger(MediaFormat.KEY_ROTATION, 0)
-            configure(format, mediaCodecInputSurface!!.drawSurface, null, 0)
+            configure(currentMediaFormat!!, mediaCodecInputSurface.drawSurface, null, 0)
         }
         decodeMediaCodec.start()
 
-        val tempAudioFile = tempFolder.resolve(TEMP_CONCAT_VIDEO_FILE_NAME).apply { createNewFile() }
-        val mediaMuxer = MediaMuxer(tempAudioFile.path, containerFormat)
+        // MediaMuxer でコンテナに格納する
+        val tempVideoFile = tempFolder.resolve(TEMP_CONCAT_VIDEO_FILE_NAME).apply { createNewFile() }
+        val mediaMuxer = MediaMuxer(tempVideoFile.path, containerFormat)
+
+        // 前回の動画ファイルを足した動画時間
+        var totalPresentationTime = 0L
+        var prevPresentationTime = 0L
 
         // メタデータ格納用
         val bufferInfo = MediaCodec.BufferInfo()
@@ -104,27 +115,44 @@ class VideoConcatProcessor(
         var inputDone = false
 
         while (!outputDone) {
-            if (!inputDone) {
 
+            if (!inputDone) {
                 val inputBufferId = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
                 if (inputBufferId >= 0) {
                     val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferId)!!
-                    val size = mediaExtractor.readSampleData(inputBuffer, 0)
+                    val size = currentMediaExtractor!!.readSampleData(inputBuffer, 0)
                     if (size > 0) {
                         // デコーダーへ流す
                         // 今までの動画の分の再生位置を足しておく
-                        decodeMediaCodec.queueInputBuffer(inputBufferId, 0, size, mediaExtractor.sampleTime, 0)
-                        mediaExtractor.advance()
+                        decodeMediaCodec.queueInputBuffer(inputBufferId, 0, size, currentMediaExtractor!!.sampleTime + totalPresentationTime, 0)
+                        currentMediaExtractor!!.advance()
+                        // 一個前の動画の動画サイズを控えておく
+                        // else で extractor.sampleTime すると既に-1にっているので
+                        if (currentMediaExtractor!!.sampleTime != -1L) {
+                            prevPresentationTime = currentMediaExtractor!!.sampleTime
+                        }
                     } else {
-                        // 終了
-                        decodeMediaCodec.queueInputBuffer(inputBufferId, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                        // 開放
-                        mediaExtractor.release()
-                        // 終了
-                        inputDone = true
+                        totalPresentationTime += prevPresentationTime
+                        // データがないので次データへ
+                        if (videoFileIterator.hasNext()) {
+                            // 多分いる
+                            decodeMediaCodec.queueInputBuffer(inputBufferId, 0, 0, 0, 0)
+                            // 動画の情報を読み出す
+                            currentMediaExtractor!!.release()
+                            // 次のデータへ
+                            extract(videoFileIterator.next())
+                        } else {
+                            // データなくなった場合は終了
+                            decodeMediaCodec.queueInputBuffer(inputBufferId, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                            // 開放
+                            currentMediaExtractor!!.release()
+                            // 終了
+                            inputDone = true
+                        }
                     }
                 }
             }
+
             var decoderOutputAvailable = true
             while (decoderOutputAvailable) {
                 // Surface経由でデータを貰って保存する
@@ -140,12 +168,14 @@ class VideoConcatProcessor(
                     outputDone = bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                     encodeMediaCodec.releaseOutputBuffer(encoderStatus, false)
                 } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    // MediaMuxerへ映像トラックを追加するのはこのタイミングで行う
-                    // このタイミングでやると固有のパラメーターがセットされたMediaFormatが手に入る(csd-0 とか)
-                    // 映像がぶっ壊れている場合（緑で塗りつぶされてるとか）は多分このあたりが怪しい
-                    val newFormat = encodeMediaCodec.outputFormat
-                    videoTrackIndex = mediaMuxer.addTrack(newFormat)
-                    mediaMuxer.start()
+                    if (videoTrackIndex == UNDEFINED_TRACK_INDEX) {
+                        // MediaMuxerへ映像トラックを追加するのはこのタイミングで行う
+                        // このタイミングでやると固有のパラメーターがセットされたMediaFormatが手に入る(csd-0 とか)
+                        // 映像がぶっ壊れている場合（緑で塗りつぶされてるとか）は多分このあたりが怪しい
+                        val newFormat = encodeMediaCodec.outputFormat
+                        videoTrackIndex = mediaMuxer.addTrack(newFormat)
+                        mediaMuxer.start()
+                    }
                 }
                 if (encoderStatus != MediaCodec.INFO_TRY_AGAIN_LATER) {
                     continue
@@ -166,8 +196,7 @@ class VideoConcatProcessor(
                             errorWait = true
                         }
                         if (!errorWait) {
-                            // 映像とCanvasを合成する
-                            mediaCodecInputSurface.drawImage { }
+                            mediaCodecInputSurface.drawImage()
                             mediaCodecInputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
                             mediaCodecInputSurface.swapBuffers()
                         }
@@ -179,7 +208,6 @@ class VideoConcatProcessor(
                 }
             }
         }
-
         // デコーダー終了
         decodeMediaCodec.stop()
         decodeMediaCodec.release()
@@ -191,6 +219,8 @@ class VideoConcatProcessor(
         // MediaMuxerも終了
         mediaMuxer.stop()
         mediaMuxer.release()
+
+        tempVideoFile
     }
 
     /** 音声の結合を行う */

@@ -128,8 +128,8 @@ class VideoProcessor(
         var inputDone = false
 
         while (!outputDone) {
-            if (!inputDone) {
 
+            if (!inputDone) {
                 val inputBufferId = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
                 if (inputBufferId >= 0) {
                     val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferId)!!
@@ -149,6 +149,7 @@ class VideoProcessor(
                     }
                 }
             }
+
             var decoderOutputAvailable = true
             while (decoderOutputAvailable) {
                 // Surface経由でデータを貰って保存する
