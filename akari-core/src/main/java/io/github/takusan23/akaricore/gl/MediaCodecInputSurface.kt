@@ -132,6 +132,14 @@ class MediaCodecInputSurface(
         surfaceTexture?.updateTexImage()
     }
 
+    /** 映像のみを描画する */
+    fun drawImage() {
+        val surfaceTexture = surfaceTexture ?: return
+        textureRenderer.prepareDraw()
+        textureRenderer.drawFrame(surfaceTexture)
+        textureRenderer.invokeGlFinish()
+    }
+
     /**
      * フレームが来たら描画する
      *

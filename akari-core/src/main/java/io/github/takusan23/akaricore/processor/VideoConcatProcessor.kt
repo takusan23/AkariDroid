@@ -1,90 +1,68 @@
 package io.github.takusan23.akaricore.processor
 
-import android.graphics.Canvas
 import android.media.*
+import io.github.takusan23.akaricore.common.AudioDecoder
+import io.github.takusan23.akaricore.common.AudioEncoder
 import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * OpenGLを利用して動画にCanvasを重ねる
+ * 複数の動画を連結する
  *
- * @param videoFile フィルターをかけたい動画ファイル
- * @param resultFile エンコードしたファイルの保存先
- * @param bitRate ビットレート。何故か取れなかった
- * @param frameRate フレームレート。何故か取れなかった
- * @param videoCodec エンコード後の動画コーデック [MediaFormat.MIMETYPE_VIDEO_AVC] など
- * @param containerFormat コンテナフォーマット [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
- * @param outputVideoWidth 動画の高さを変える場合は変えられます。16の倍数であることが必須です
- * @param outputVideoHeight 動画の幅を変える場合は変えられます。16の倍数であることが必須です
- * */
-class VideoProcessor(
-    private val videoFile: File,
+ *
+ */
+class VideoConcatProcessor(
+    private val videoFileList: List<File>,
+    private val tempFolder: File,
     private val resultFile: File,
-    private val videoCodec: String? = null,
-    private val containerFormat: Int? = null,
-    private val bitRate: Int? = null,
-    private val frameRate: Int? = null,
+    private val videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
+    private val audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+    private val containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+    private val videoBitRate: Int = 1_000_000,
+    private val frameRate: Int = 30,
     private val outputVideoWidth: Int = 1280,
     private val outputVideoHeight: Int = 720,
+    private val audioBitRate: Int = 128_000,
+    private val samplingRate: Int = 44_100,
 ) {
-    /** データを取り出すやつ */
-    private var currentMediaExtractor: MediaExtractor? = null
 
-    /** エンコード用 [MediaCodec] */
-    private var encodeMediaCodec: MediaCodec? = null
+    /** 処理を開始する */
+    suspend fun start() = withContext(Dispatchers.Default) {
+        val videoFile = async { concatVideo() }.await()
+        //val audioFile = async { concatAudio() }
+        // val videoAndAudioFile = listOf(videoFile, audioFile).awaitAll()
+        // MediaMuxerTool.mixed(
+        //     resultFile = resultFile,
+        //     containerFormat = containerFormat,
+        //     mergeFileList = videoAndAudioFile
+        // )
+        // withContext(Dispatchers.IO) {
+        //     tempFolder.deleteRecursively()
+        // }
+    }
 
-    /** デコード用 [MediaCodec] */
-    private var decodeMediaCodec: MediaCodec? = null
-
-    /** コンテナフォーマットへ格納するやつ */
-    private val mediaMuxer by lazy { MediaMuxer(resultFile.path, containerFormat ?: MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4) }
-
-    /** OpenGL */
-    private var mediaCodecInputSurface: MediaCodecInputSurface? = null
-
-    /**
-     * 処理を始める、終わるまで一時停止します
-     *
-     * @param onCanvasDrawRequest Canvasへ描画リクエストが来た際に呼ばれる。Canvasと再生時間（ミリ秒）が渡されます
-     */
-    @Suppress("BlockingMethodInNonBlockingContext")
-    suspend fun start(
-        onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
-    ) = withContext(Dispatchers.Default) {
+    /** 映像の結合を行う */
+    private suspend fun concatVideo() = withContext(Dispatchers.Default) {
 
         // 動画の情報を読み出す
-        val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) ?: return@withContext
-        currentMediaExtractor = mediaExtractor
+        val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) ?: return@withContext
         // トラックを選択
         mediaExtractor.selectTrack(index)
         mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
-        // 解析結果から各パラメータを取り出す
-        val decodeMimeType = format.getString(MediaFormat.KEY_MIME)!!
-        val encoderMimeType = videoCodec ?: decodeMimeType
-        val videoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
-        val videoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
-        // 画面回転情報
-        val hasRotation = format.getIntegerOrNull(KEY_ROTATION) == 90
-        // 画面回転度がある場合は width / height がそれぞれ入れ替わるので注意（一敗）
-        val originVideoWidth = if (hasRotation) videoHeight else videoWidth
-        val originVideoHeight = if (hasRotation) videoWidth else videoHeight
-        val bitRate = bitRate ?: 1_000_000
-        val frameRate = frameRate ?: 30
-
         var videoTrackIndex = UNDEFINED_TRACK_INDEX
 
         // エンコード用（生データ -> H.264）MediaCodec
-        encodeMediaCodec = MediaCodec.createEncoderByType(encoderMimeType).apply {
+        val encodeMediaCodec = MediaCodec.createEncoderByType(videoCodec).apply {
             // エンコーダーにセットするMediaFormat
             // コーデックが指定されていればそっちを使う
-            val videoMediaFormat = MediaFormat.createVideoFormat(encoderMimeType, outputVideoWidth, outputVideoHeight).apply {
-                setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, INPUT_BUFFER_SIZE)
-                setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
+            val videoMediaFormat = MediaFormat.createVideoFormat(videoCodec, outputVideoWidth, outputVideoHeight).apply {
+                setInteger(MediaFormat.KEY_BIT_RATE, videoBitRate)
                 setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
                 setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
                 setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
@@ -93,37 +71,35 @@ class VideoProcessor(
         }
 
         // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-        mediaCodecInputSurface = MediaCodecInputSurface(
-            encodeMediaCodec!!.createInputSurface(),
+        val mediaCodecInputSurface = MediaCodecInputSurface(
+            encodeMediaCodec.createInputSurface(),
             TextureRenderer(
                 outputVideoWidth = outputVideoWidth,
                 outputVideoHeight = outputVideoHeight,
-                originVideoWidth = originVideoWidth,
-                originVideoHeight = originVideoHeight,
-                videoRotation = if (hasRotation) 270f else 0f
+                originVideoWidth = outputVideoWidth,
+                originVideoHeight = outputVideoHeight,
+                videoRotation = 0f
             )
         )
-        mediaCodecInputSurface?.makeCurrent()
-        encodeMediaCodec!!.start()
+        mediaCodecInputSurface.makeCurrent()
+        encodeMediaCodec.start()
 
         // デコード用（H.264 -> 生データ）MediaCodec
-        mediaCodecInputSurface?.createRender()
-        decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
+        mediaCodecInputSurface.createRender()
+        val decodeMediaCodec = MediaCodec.createDecoderByType(videoCodec).apply {
             // 画面回転データが有った場合にリセットする
             // このままだと回転されたままなので、OpenGL 側で回転させる
             // setInteger をここでやるのは良くない気がするけど面倒なので
-            format.setInteger(KEY_ROTATION, 0)
+            format.setInteger(MediaFormat.KEY_ROTATION, 0)
             configure(format, mediaCodecInputSurface!!.drawSurface, null, 0)
         }
-        decodeMediaCodec?.start()
+        decodeMediaCodec.start()
 
-        // nonNull
-        val decodeMediaCodec = decodeMediaCodec!!
-        val encodeMediaCodec = encodeMediaCodec!!
+        val tempAudioFile = tempFolder.resolve(TEMP_CONCAT_VIDEO_FILE_NAME).apply { createNewFile() }
+        val mediaMuxer = MediaMuxer(tempAudioFile.path, containerFormat)
 
         // メタデータ格納用
         val bufferInfo = MediaCodec.BufferInfo()
-
         var outputDone = false
         var inputDone = false
 
@@ -185,17 +161,15 @@ class VideoProcessor(
                     if (doRender) {
                         var errorWait = false
                         try {
-                            mediaCodecInputSurface?.awaitNewImage()
+                            mediaCodecInputSurface.awaitNewImage()
                         } catch (e: Exception) {
                             errorWait = true
                         }
                         if (!errorWait) {
                             // 映像とCanvasを合成する
-                            mediaCodecInputSurface?.drawImage { canvas ->
-                                onCanvasDrawRequest(canvas, bufferInfo.presentationTimeUs / 1000L)
-                            }
-                            mediaCodecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
-                            mediaCodecInputSurface?.swapBuffers()
+                            mediaCodecInputSurface.drawImage { }
+                            mediaCodecInputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                            mediaCodecInputSurface.swapBuffers()
                         }
                     }
                     if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
@@ -210,7 +184,7 @@ class VideoProcessor(
         decodeMediaCodec.stop()
         decodeMediaCodec.release()
         // OpenGL開放
-        mediaCodecInputSurface?.release()
+        mediaCodecInputSurface.release()
         // エンコーダー終了
         encodeMediaCodec.stop()
         encodeMediaCodec.release()
@@ -219,49 +193,77 @@ class VideoProcessor(
         mediaMuxer.release()
     }
 
-    /** 強制終了時に呼ぶ */
-    fun stop() {
-        // すでにstopしてると例外を投げるので
-        try {
-            decodeMediaCodec?.stop()
-            decodeMediaCodec?.release()
-            mediaCodecInputSurface?.release()
-            encodeMediaCodec?.stop()
-            encodeMediaCodec?.release()
-            currentMediaExtractor?.release()
-            mediaMuxer.stop()
-            mediaMuxer.release()
-        } catch (e: Exception) {
-            e.printStackTrace()
+    /** 音声の結合を行う */
+    private suspend fun concatAudio() = withContext(Dispatchers.Default) {
+        // エンコーダー起動
+        val encodeMediaCodec = MediaCodec.createEncoderByType(audioCodec).apply {
+            val encodeMediaFormat = MediaFormat.createAudioFormat(audioCodec, samplingRate, 2).apply {
+                setInteger(MediaFormat.KEY_BIT_RATE, audioBitRate)
+            }
+            configure(encodeMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
         }
-    }
+        encodeMediaCodec.start()
 
-    /**
-     * [MediaFormat.getInteger]、キーがなければ null を返す
-     *
-     * @param name [MediaFormat.KEY_ROTATION]など
-     */
-    private fun MediaFormat.getIntegerOrNull(name: String): Int? {
-        return if (containsKey(name)) {
-            getInteger(name)
-        } else null
+        // 一時ファイルにする
+        // 最後に音声とミックスするので
+        val tempAudioFile = tempFolder.resolve(TEMP_CONCAT_AUDIO_FILE_NAME).apply { createNewFile() }
+        val mediaMuxer = MediaMuxer(tempAudioFile.path, containerFormat)
+
+        // PCMデータを入れておくファイルパス
+        val tempRawFile = tempFolder.resolve(TEMP_RAW_AUDIO_FILE_NAME).apply { createNewFile() }
+        videoFileList.map { audioFile ->
+            val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(audioFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!
+            mediaExtractor.selectTrack(index)
+            // デコードする
+            val audioDecoder = AudioDecoder()
+            audioDecoder.prepareDecoder(format)
+            audioDecoder.startAudioDecode(
+                readSampleData = { byteBuffer ->
+                    val size = mediaExtractor.readSampleData(byteBuffer, 0)
+                    mediaExtractor.advance()
+                    // 動画時間の方がまだ長い場合は継続。動画のほうが短くても終わる
+                    return@startAudioDecode size to mediaExtractor.sampleTime
+                },
+                onOutputBufferAvailable = { bytes -> tempRawFile.appendBytes(bytes) }
+            )
+            audioDecoder.release()
+        }
+        // 終わったらエンコードする
+        var audioTrackIndex = UNDEFINED_TRACK_INDEX
+        val audioEncoder = AudioEncoder()
+        val tempRawFileInputStream = tempRawFile.inputStream()
+        audioEncoder.prepareEncoder(
+            sampleRate = samplingRate,
+            channelCount = 2,
+            bitRate = audioBitRate,
+            isOpus = false
+        )
+        audioEncoder.startAudioEncode(
+            onRecordInput = { byteArray -> tempRawFileInputStream.read(byteArray) },
+            onOutputBufferAvailable = { byteBuffer, bufferInfo ->
+                if (audioTrackIndex != UNDEFINED_TRACK_INDEX) {
+                    mediaMuxer.writeSampleData(audioTrackIndex, byteBuffer, bufferInfo)
+                }
+            },
+            onOutputFormatAvailable = {
+                audioTrackIndex = mediaMuxer.addTrack(it)
+                mediaMuxer.start()
+            },
+        )
+        tempRawFileInputStream.close()
+        mediaMuxer.stop()
+        mediaMuxer.release()
+        tempRawFile.delete()
+        audioEncoder.release()
+        return@withContext tempAudioFile
     }
 
     companion object {
-        /** タイムアウト */
+        private const val TEMP_CONCAT_VIDEO_FILE_NAME = "temp_concat_video"
+        private const val TEMP_CONCAT_AUDIO_FILE_NAME = "temp_concat_audio"
+        private const val TEMP_RAW_AUDIO_FILE_NAME = "temp_raw_audio"
         private const val TIMEOUT_US = 10000L
-
-        /** MediaCodecでもらえるInputBufferのサイズ */
-        private const val INPUT_BUFFER_SIZE = 655360
-
-        /** トラック番号が空の場合 */
         private const val UNDEFINED_TRACK_INDEX = -1
-
-        /**
-         * [MediaFormat.KEY_ROTATION]
-         * MediaFormat.KEY_ROTATION の定数。Android 6 以上だがフラグ自体は 5 から存在するらしいので
-         */
-        private const val KEY_ROTATION = "rotation-degrees"
     }
 
 }

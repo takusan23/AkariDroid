@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.processor.AudioMixingProcessor
 import io.github.takusan23.akaricore.processor.CanvasProcessor
+import io.github.takusan23.akaricore.processor.VideoConcatProcessor
 import io.github.takusan23.akaricore.processor.VideoProcessor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -96,9 +97,7 @@ class ExampleInstrumentedTest {
     @Test
     fun test_キャンバスの入力から動画を作成() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
-            createNewFile()
-        }
+        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
 
         val canvasProcessor = CanvasProcessor(
             resultFile = resultFile,
@@ -131,6 +130,23 @@ class ExampleInstrumentedTest {
             // true を返している間は動画を作成する
             positionMs < 10 * 1_000
         }
+    }
+
+    @Test
+    fun test_動画の結合ができる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val tempFolder = appContext.getExternalFilesDir(null)!!.resolve("temp").apply {
+            deleteRecursively()
+            mkdir()
+        }
+
+        val iphone = sampleVideoFolder.resolve("iphone.mp4")
+        val cat = sampleVideoFolder.resolve("cat.mp4")
+        val toomo = sampleVideoFolder.resolve("toomo.mp4")
+        val videoConcatProcessor = VideoConcatProcessor(listOf(iphone, cat, toomo), tempFolder, resultFile)
+        videoConcatProcessor.start()
     }
 
     companion object {
