@@ -6,50 +6,28 @@ import io.github.takusan23.akaricore.common.AudioEncoder
 import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
-import io.github.takusan23.akaricore.tool.MediaMuxerTool
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * 複数の動画を連結する
- *
- *
- */
-class VideoConcatProcessor(
-    private val videoFileList: List<File>,
-    private val tempFolder: File,
-    private val resultFile: File,
-    private val videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
-    private val audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
-    private val containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-    private val videoBitRate: Int = 1_000_000,
-    private val frameRate: Int = 30,
-    private val outputVideoWidth: Int = 1280,
-    private val outputVideoHeight: Int = 720,
-    private val audioBitRate: Int = 128_000,
-    private val samplingRate: Int = 44_100,
-) {
+/** 複数の動画を連結する */
+object AudioVideoConcatProcessor {
 
-    /** 処理を開始する */
-    suspend fun start() = withContext(Dispatchers.Default) {
-        val videoFile = async { concatVideo() }
-        val audioFile = async { concatAudio() }
-        val videoAndAudioFile = listOf(videoFile, audioFile).awaitAll()
-        MediaMuxerTool.mixed(
-            resultFile = resultFile,
-            containerFormat = containerFormat,
-            mergeFileList = videoAndAudioFile
-        )
-        withContext(Dispatchers.IO) {
-            tempFolder.deleteRecursively()
-        }
-    }
+    private const val TEMP_RAW_AUDIO_FILE_NAME = "temp_raw_audio"
+    private const val TIMEOUT_US = 10000L
+    private const val UNDEFINED_TRACK_INDEX = -1
 
     /** 映像の結合を行う */
-    private suspend fun concatVideo() = withContext(Dispatchers.Default) {
+    suspend fun concatVideo(
+        videoFileList: List<File>,
+        resultFile: File,
+        videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        videoBitRate: Int = 1_000_000,
+        frameRate: Int = 30,
+        outputVideoWidth: Int = 1280,
+        outputVideoHeight: Int = 720,
+    ) = withContext(Dispatchers.Default) {
         val videoFileIterator = videoFileList.iterator()
         var videoTrackIndex = UNDEFINED_TRACK_INDEX
         var currentMediaExtractor: MediaExtractor? = null
@@ -101,9 +79,9 @@ class VideoConcatProcessor(
         }
         decodeMediaCodec.start()
 
+        // 保存先
         // MediaMuxer でコンテナに格納する
-        val tempVideoFile = tempFolder.resolve(TEMP_CONCAT_VIDEO_FILE_NAME).apply { createNewFile() }
-        val mediaMuxer = MediaMuxer(tempVideoFile.path, containerFormat)
+        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
 
         // 前回の動画ファイルを足した動画時間
         var totalPresentationTime = 0L
@@ -219,12 +197,19 @@ class VideoConcatProcessor(
         // MediaMuxerも終了
         mediaMuxer.stop()
         mediaMuxer.release()
-
-        tempVideoFile
+        return@withContext resultFile
     }
 
     /** 音声の結合を行う */
-    private suspend fun concatAudio() = withContext(Dispatchers.Default) {
+    suspend fun concatAudio(
+        videoFileList: List<File>,
+        tempFolder: File,
+        resultFile: File,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        audioBitRate: Int = 128_000,
+        samplingRate: Int = 44_100,
+    ) = withContext(Dispatchers.Default) {
         // エンコーダー起動
         val encodeMediaCodec = MediaCodec.createEncoderByType(audioCodec).apply {
             val encodeMediaFormat = MediaFormat.createAudioFormat(audioCodec, samplingRate, 2).apply {
@@ -234,10 +219,9 @@ class VideoConcatProcessor(
         }
         encodeMediaCodec.start()
 
-        // 一時ファイルにする
-        // 最後に音声とミックスするので
-        val tempAudioFile = tempFolder.resolve(TEMP_CONCAT_AUDIO_FILE_NAME).apply { createNewFile() }
-        val mediaMuxer = MediaMuxer(tempAudioFile.path, containerFormat)
+        // 保存先
+        // MediaMuxer でコンテナに格納する
+        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
 
         // PCMデータを入れておくファイルパス
         val tempRawFile = tempFolder.resolve(TEMP_RAW_AUDIO_FILE_NAME).apply { createNewFile() }
@@ -256,6 +240,7 @@ class VideoConcatProcessor(
                 },
                 onOutputBufferAvailable = { bytes -> tempRawFile.appendBytes(bytes) }
             )
+            mediaExtractor.release()
             audioDecoder.release()
         }
         // 終わったらエンコードする
@@ -285,15 +270,6 @@ class VideoConcatProcessor(
         mediaMuxer.release()
         tempRawFile.delete()
         audioEncoder.release()
-        return@withContext tempAudioFile
+        return@withContext resultFile
     }
-
-    companion object {
-        private const val TEMP_CONCAT_VIDEO_FILE_NAME = "temp_concat_video"
-        private const val TEMP_CONCAT_AUDIO_FILE_NAME = "temp_concat_audio"
-        private const val TEMP_RAW_AUDIO_FILE_NAME = "temp_raw_audio"
-        private const val TIMEOUT_US = 10000L
-        private const val UNDEFINED_TRACK_INDEX = -1
-    }
-
 }

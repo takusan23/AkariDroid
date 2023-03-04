@@ -5,8 +5,9 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.takusan23.akaricore.processor.AudioVideoConcatProcessor
 import io.github.takusan23.akaricore.processor.CanvasProcessor
-import io.github.takusan23.akaricore.processor.VideoProcessor
+import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
 import io.github.takusan23.akaridroid.data.VideoOutputFormat
 import io.github.takusan23.akaridroid.timeline.TimelineCanvasDraw
 import io.github.takusan23.akaridroid.timeline.TimelineData
@@ -133,11 +134,13 @@ class TimelineDataEncodeTest {
             bitRate = 5_000_000
         )
         // 各チャンクごとにエンコードする
-        val encodedList = timelineData.getTimelineChunkList().mapIndexed { index, chunkData ->
+        val chunkList = timelineData.getTimelineChunkList()
+        val encodeVideoChunkFileList = chunkList.mapIndexed { index, chunkData ->
             val videoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
             val encodedFile = tempFolder.resolve("video_$index.mp4").apply { createNewFile() }
             val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList)
-            val videoProcessor = VideoProcessor(
+            // 音声
+            VideoCanvasProcessor(
                 videoFile = videoFile,
                 resultFile = encodedFile,
                 videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -146,13 +149,13 @@ class TimelineDataEncodeTest {
                 frameRate = outputFormat.frameRate,
                 outputVideoWidth = outputFormat.videoWidth,
                 outputVideoHeight = outputFormat.videoHeight
-            )
-            videoProcessor.start { positionMs ->
-                timelineCanvasDraw.draw(this, positionMs)
+            ).apply {
+                start { positionMs -> timelineCanvasDraw.draw(this, positionMs) }
             }
             encodedFile
         }
-        // TODO 結合処理を書く
+        AudioVideoConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
+        tempFolder.delete()
     }
 
     companion object {

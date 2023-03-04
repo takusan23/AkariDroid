@@ -7,7 +7,7 @@ import io.github.takusan23.akaricore.data.VideoEncoderData
 import io.github.takusan23.akaricore.data.VideoFileInterface
 import io.github.takusan23.akaricore.processor.AudioMixingProcessor
 import io.github.takusan23.akaricore.processor.QtFastStart
-import io.github.takusan23.akaricore.processor.VideoProcessor
+import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
 import io.github.takusan23.akaricore.tool.MediaMuxerTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -39,8 +39,8 @@ class AkariCore(
     }
 
     /** Canvasと映像を合成できる 映像エンコーダー */
-    private val videoProcessor by lazy {
-        VideoProcessor(
+    private val videoCanvasProcessor by lazy {
+        VideoCanvasProcessor(
             videoFile = videoFileData.videoFile,
             resultFile = videoFileData.encodedVideoFile,
             videoCodec = videoEncoderData.codecName,
@@ -61,7 +61,7 @@ class AkariCore(
         onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
     ) = withContext(Dispatchers.Default) {
         videoFileData.prepare()
-        val videoTask = async { videoProcessor.start(onCanvasDrawRequest) }
+        val videoTask = async { videoCanvasProcessor.start(onCanvasDrawRequest) }
         val audioTask = async { audioProcessor.start() }
         // 終わるまで待つ
         videoTask.await()

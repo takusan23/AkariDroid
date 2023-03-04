@@ -7,9 +7,10 @@ import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.processor.AudioMixingProcessor
+import io.github.takusan23.akaricore.processor.AudioVideoConcatProcessor
 import io.github.takusan23.akaricore.processor.CanvasProcessor
-import io.github.takusan23.akaricore.processor.VideoConcatProcessor
-import io.github.takusan23.akaricore.processor.VideoProcessor
+import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
+import io.github.takusan23.akaricore.tool.MediaMuxerTool
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
@@ -81,7 +82,7 @@ class ExampleInstrumentedTest {
         // val videoFile = File(projectFolder, "applehls.mp4")
         // val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
         val videoFile = File(projectFolder, "iphone.mp4")
-        val videoProcessor = VideoProcessor(
+        val videoCanvasProcessor = VideoCanvasProcessor(
             videoFile = videoFile,
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -89,7 +90,7 @@ class ExampleInstrumentedTest {
             outputVideoWidth = 1280,
             outputVideoHeight = 720
         )
-        videoProcessor.start { positionMs ->
+        videoCanvasProcessor.start { positionMs ->
             drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
         }
     }
@@ -141,12 +142,19 @@ class ExampleInstrumentedTest {
             deleteRecursively()
             mkdir()
         }
-
+        // 予め用意している動画
         val iphone = sampleVideoFolder.resolve("iphone.mp4")
         val cat = sampleVideoFolder.resolve("cat.mp4")
         val toomo = sampleVideoFolder.resolve("toomo.mp4")
-        val videoConcatProcessor = VideoConcatProcessor(listOf(iphone, cat, toomo), tempFolder, resultFile)
-        videoConcatProcessor.start()
+        // 音声と映像を一時的なファイルに保存
+        val concatMediaList = listOf(
+            AudioVideoConcatProcessor.concatVideo(listOf(iphone, cat, toomo), tempFolder.resolve("concat_video")),
+            AudioVideoConcatProcessor.concatAudio(listOf(iphone, cat, toomo), tempFolder, tempFolder.resolve("concat_audio"))
+        )
+        // 結合する
+        MediaMuxerTool.mixed(resultFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, concatMediaList)
+        // あとしまつ
+        tempFolder.deleteRecursively()
     }
 
     companion object {

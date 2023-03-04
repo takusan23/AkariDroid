@@ -1,8 +1,18 @@
 # processor
 
-OpenGLで映像へフィルターを掛けたり、エンコードをしたりすつやつ。本題
+映像を加工するクラスがあったりする
+
+- VideoConcatProcessor
+    - 動画を結合する
+- VideoCanvasProcessor
+    - 動画 に Canvas を重ねた動画を作成する
+- CanvasProcessor
+    - Canvas だけで動画を作成する
+- AudioMixingProcessor
+    - 複数の音声を同時に重ねて音声を作成する
 
 ## QtFastStart
+
 `MediaMuxer`が作る`mp4`の`moovブロック`を先頭に移動するためのコードです。
 以下の実装をお借りました、ありがとうございます！
 

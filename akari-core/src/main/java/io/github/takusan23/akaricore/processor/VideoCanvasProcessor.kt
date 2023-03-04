@@ -21,7 +21,7 @@ import java.io.File
  * @param outputVideoWidth 動画の高さを変える場合は変えられます。16の倍数であることが必須です
  * @param outputVideoHeight 動画の幅を変える場合は変えられます。16の倍数であることが必須です
  * */
-class VideoProcessor(
+class VideoCanvasProcessor(
     private val videoFile: File,
     private val resultFile: File,
     private val videoCodec: String? = null,
