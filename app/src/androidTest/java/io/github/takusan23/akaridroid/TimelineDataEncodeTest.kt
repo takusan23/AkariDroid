@@ -5,9 +5,11 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.processor.ConcatProcessor
 import io.github.takusan23.akaricore.processor.CanvasProcessor
+import io.github.takusan23.akaricore.processor.ConcatProcessor
+import io.github.takusan23.akaricore.processor.CutProcessor
 import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
+import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import io.github.takusan23.akaridroid.data.VideoOutputFormat
 import io.github.takusan23.akaridroid.timeline.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,7 +67,10 @@ class TimelineDataEncodeTest {
             frameRate = 30,
             bitRate = 5_000_000
         )
-        val canvasProcessor = CanvasProcessor(
+
+        // タイムラインのデータをもとに Canvas に描画する
+        val canvasDraw = TimelineCanvasDraw(timelineData.timelineItemDataList)
+        CanvasProcessor.start(
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
             containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
@@ -73,11 +78,7 @@ class TimelineDataEncodeTest {
             frameRate = outputFormat.frameRate,
             outputVideoWidth = outputFormat.videoWidth,
             outputVideoHeight = outputFormat.videoHeight,
-        )
-
-        // タイムラインのデータをもとに Canvas に描画する
-        val canvasDraw = TimelineCanvasDraw(timelineData.timelineItemDataList)
-        canvasProcessor.start { positionMs ->
+        ) { positionMs ->
             // 描画する
             canvasDraw.draw(this, positionMs)
             // true を返している間は動画を作成する
@@ -90,21 +91,21 @@ class TimelineDataEncodeTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = File(appContext.getExternalFilesDir(null), "sample")
         val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply { mkdir() }
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_動画のみのタイムラインから動画を作成できる_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
 
         val timelineData = TimelineData(
-            videoDurationMs = 10_000,
+            videoDurationMs = 5_000,
             timelineItemDataList = listOf(
                 TimelineItemData(
-                    xPos = 0f, yPos = 0f, startMs = 0, endMs = 50_000,
+                    xPos = 0f, yPos = 0f, startMs = 0, endMs = 5_000,
                     timelineItemType = TimelineItemType.VideoItem(sampleVideoFolder.resolve("toomo.mp4").path),
                 ),
                 TimelineItemData(
-                    xPos = 100f, yPos = 100f, startMs = 0, endMs = 50_000,
+                    xPos = 100f, yPos = 100f, startMs = 0, endMs = 5_000,
                     timelineItemType = TimelineItemType.TextItem("とーも", Color.WHITE, 80f),
                 ),
                 TimelineItemData(
-                    xPos = 100f, yPos = 300f, startMs = 0, endMs = 50_000,
+                    xPos = 100f, yPos = 300f, startMs = 0, endMs = 5_000,
                     timelineItemType = TimelineItemType.TextItem("ばっくれからおけ", Color.WHITE, 80f),
                 ),
             )
@@ -120,10 +121,17 @@ class TimelineDataEncodeTest {
         // 各チャンクごとにエンコードする
         val chunkList = timelineData.getTimelineChunkList()
         val encodeVideoChunkFileList = chunkList.mapIndexed { index, chunkData ->
-            val videoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
             val encodedFile = tempFolder.resolve("video_$index.mp4").apply { createNewFile() }
             val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList)
-            VideoCanvasProcessor(
+            // 動画がある、探す
+            val originVideoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
+            // 動画を範囲内にカットする
+            val videoFile = tempFolder.resolve("cutFile")
+
+            // TODO カット範囲を入力可能にする
+            CutProcessor.cut(originVideoFile, videoFile, 0..chunkData.durationMs, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+            // えんこーど
+            VideoCanvasProcessor.start(
                 videoFile = videoFile,
                 resultFile = encodedFile,
                 videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -132,20 +140,18 @@ class TimelineDataEncodeTest {
                 frameRate = outputFormat.frameRate,
                 outputVideoWidth = outputFormat.videoWidth,
                 outputVideoHeight = outputFormat.videoHeight
-            ).apply {
-                start { positionMs -> timelineCanvasDraw.draw(this, positionMs) }
-            }
+            ) { positionMs -> timelineCanvasDraw.draw(this, positionMs) }
             encodedFile
         }
         ConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
-        tempFolder.delete()
+        tempFolder.deleteRecursively()
     }
 
     @Test
     fun test_動画とキャンバスのタイムラインから動画を作成できる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = File(appContext.getExternalFilesDir(null), "sample")
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_動画とキャンバスのタイムラインから動画を作成できる_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply {
             deleteRecursively()
             mkdir()
@@ -195,8 +201,13 @@ class TimelineDataEncodeTest {
             val requireVideoCanvasProcessor = chunkData.timelineItemDataList.any { it.timelineItemType is TimelineItemType.VideoItem }
             if (requireVideoCanvasProcessor) {
                 // 動画がある、探す
-                val videoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
-                VideoCanvasProcessor(
+                val originVideoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
+                // 動画を範囲内にカットする
+                val videoFile = tempFolder.resolve("cutFile")
+                // TODO カット範囲を入力可能にする
+                CutProcessor.cut(originVideoFile, videoFile, 0..chunkData.durationMs, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+                // えんこーど
+                VideoCanvasProcessor.start(
                     videoFile = videoFile,
                     resultFile = encodedFile,
                     videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -205,12 +216,10 @@ class TimelineDataEncodeTest {
                     frameRate = outputFormat.frameRate,
                     outputVideoWidth = outputFormat.videoWidth,
                     outputVideoHeight = outputFormat.videoHeight
-                ).apply {
-                    start { positionMs -> timelineCanvasDraw.draw(this, chunkData.startMs + positionMs) }
-                }
+                ) { positionMs -> timelineCanvasDraw.draw(this, chunkData.startMs + positionMs) }
             } else {
                 // 動画ない
-                CanvasProcessor(
+                CanvasProcessor.start(
                     resultFile = encodedFile,
                     videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
                     containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
@@ -218,19 +227,18 @@ class TimelineDataEncodeTest {
                     frameRate = outputFormat.frameRate,
                     outputVideoWidth = outputFormat.videoWidth,
                     outputVideoHeight = outputFormat.videoHeight
-                ).apply {
-                    start { positionMs ->
-                        // TODO オフセットなしにしたい
-                        timelineCanvasDraw.draw(this, chunkData.startMs + positionMs)
-                        // true を返している間は動画を作成する
-                        positionMs < chunkData.endMs
-                    }
+                ) { positionMs ->
+                    // TODO オフセットの計算が面倒すぎる
+                    val includePositionMs = chunkData.startMs + positionMs
+                    timelineCanvasDraw.draw(this, includePositionMs)
+                    // true を返している間は動画を作成する
+                    includePositionMs <= chunkData.endMs
                 }
             }
             return@mapIndexed encodedFile
         }
         ConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
-        tempFolder.delete()
+        tempFolder.deleteRecursively()
     }
 
     companion object {
