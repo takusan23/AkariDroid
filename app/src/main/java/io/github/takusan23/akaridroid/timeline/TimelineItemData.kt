@@ -2,29 +2,85 @@ package io.github.takusan23.akaridroid.timeline
 
 import kotlinx.serialization.Serializable
 
-/**
- * タイムライン上のアイテム
- * 仮
- *
- * @param id 識別するために使われる
- * @param xPos X座標
- * @param yPos Y座標
- * @param startMs 描画開始時間（ミリ秒）
- * @param endMs 描画終了時間（ミリ秒）
- * @param timelineItemType タイムライン上のアイテムの種類
- */
-@Serializable
-data class TimelineItemData(
-    val id: Long = System.currentTimeMillis(),
-    val xPos: Float,
-    val yPos: Float,
-    val startMs: Long,
-    val endMs: Long,
-    val timelineItemType: TimelineItemType
-)
+/** タイムライン上のアイテム */
+sealed interface TimelineItemData {
 
-val TimelineItemData.timeRange: LongRange
-    get() = startMs..endMs
+    /** 各タイムラインのアイテムを識別するために使われる */
+    val id: Long
 
-val TimelineItemData.durationMs: Long
-    get() = endMs - startMs
+    /** タイムラインのアイテム開始時間（ミリ秒） */
+    val startMs: Long
+
+    /** タイムラインのアイテム終了時間（ミリ秒） */
+    val endMs: Long
+
+    /**
+     * Canvas で描画可能なタイムラインのアイテム
+     *
+     * @param id 識別するために使われる
+     * @param xPos X座標
+     * @param yPos Y座標
+     * @param startMs 描画開始時間（ミリ秒）
+     * @param endMs 描画終了時間（ミリ秒）
+     * @param timelineDrawItemType タイムライン上のアイテムの種類
+     */
+    @Serializable
+    data class CanvasData(
+        override val id: Long = System.currentTimeMillis(),
+        override val startMs: Long,
+        override val endMs: Long,
+        val xPos: Float,
+        val yPos: Float,
+        val timelineDrawItemType: TimelineDrawItemType
+    ) : TimelineItemData
+
+    /**
+     * 動画を描画する
+     * akari-core では動画は別処理なので
+     *
+     * @param id 識別するために使われる
+     * @param startMs 開始位置（ミリ秒）
+     * @param endMs 終了位置（ミリ秒）
+     * @param videoFilePath 動画パス
+     * @param videoCutStartMs 動画を切り取る場合の位置（ミリ秒）
+     * @param videoCutEndMs 動画を切り取る場合の位置（ミリ秒）
+     */
+    @Serializable
+    data class VideoData(
+        override val id: Long = System.currentTimeMillis(),
+        override val startMs: Long,
+        override val endMs: Long,
+        val videoFilePath: String,
+        val videoCutStartMs: Long? = null,
+        val videoCutEndMs: Long? = null,
+    ) : TimelineItemData {
+
+        /** 切り取り範囲を LongRange にする */
+        val videoCutRange: LongRange?
+            get() = if (videoCutStartMs != null && videoCutEndMs != null) {
+                videoCutStartMs..videoCutEndMs
+            } else null
+    }
+
+    /**
+     * 音声素材
+     */
+    @Serializable
+    data class AudioData(
+        override val id: Long = System.currentTimeMillis(),
+        override val startMs: Long,
+        override val endMs: Long,
+        val audioFilePath: String,
+        val videoStartMs: Long? = null,
+        val videoEndMs: Long? = null,
+    ) : TimelineItemData
+
+    /** 開始、終了の LongRange。シリアライズの都合で Range はできない */
+    val timeRange: LongRange
+        get() = startMs..endMs
+
+    /** アイテムの描画時間 */
+    val durationMs: Long
+        get() = endMs - startMs
+
+}

@@ -12,8 +12,10 @@ data class TimelineChunkData(
     val startMs: Long,
     val endMs: Long,
     val timelineItemDataList: List<TimelineItemData> = emptyList()
-)
+) {
 
-/** チャンクの時間 */
-val TimelineChunkData.durationMs: Long
-    get() = endMs - startMs
+    /** チャンクの時間 */
+    val durationMs: Long
+        get() = endMs - startMs
+
+}

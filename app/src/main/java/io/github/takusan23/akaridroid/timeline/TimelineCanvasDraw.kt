@@ -8,7 +8,7 @@ import android.graphics.Paint
  *
  * @param timelineData タイムラインのデータ
  */
-class TimelineCanvasDraw(private val timelineItemList: List<TimelineItemData>) {
+class TimelineCanvasDraw(private val timelineItemList: List<TimelineItemData.CanvasData>) {
 
     private val paint = Paint().apply {
         isAntiAlias = true
@@ -23,18 +23,15 @@ class TimelineCanvasDraw(private val timelineItemList: List<TimelineItemData>) {
     fun draw(canvas: Canvas, positionMs: Long) {
         val drawList = timelineItemList.filter { positionMs in it.timeRange }
         drawList.forEach { item ->
-            when (val type = item.timelineItemType) {
-                is TimelineItemType.TextItem -> {
+            when (val type = item.timelineDrawItemType) {
+                is TimelineDrawItemType.TextItem -> {
                     paint.color = type.color
                     paint.textSize = type.fontSize
                     canvas.drawText(type.text, item.xPos, item.yPos, paint)
                 }
-                is TimelineItemType.RectItem -> {
+                is TimelineDrawItemType.RectItem -> {
                     paint.color = type.color
                     canvas.drawRect(item.xPos, item.yPos, type.width, type.height, paint)
-                }
-                is TimelineItemType.VideoItem -> {
-                    // 動画の描画は Canvas ではしない
                 }
             }
         }

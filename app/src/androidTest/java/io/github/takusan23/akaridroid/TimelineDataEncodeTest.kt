@@ -33,29 +33,29 @@ class TimelineDataEncodeTest {
             videoDurationMs = 10_000,
             timelineItemDataList = listOf(
                 // 背景
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 0f, yPos = 0f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.RectItem(1280f, 720f, Color.WHITE),
+                    timelineDrawItemType = TimelineDrawItemType.RectItem(1280f, 720f, Color.WHITE),
                 ),
                 // テキスト
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 100f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.TextItem("前半戦", Color.CYAN, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("前半戦", Color.CYAN, 80f),
                 ),
                 // 背景
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 0f, yPos = 0f, startMs = 5_000, endMs = 10_000,
-                    timelineItemType = TimelineItemType.RectItem(1280f, 720f, Color.CYAN),
+                    timelineDrawItemType = TimelineDrawItemType.RectItem(1280f, 720f, Color.CYAN),
                 ),
                 // テキスト
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 100f, startMs = 5_000, endMs = 10_000,
-                    timelineItemType = TimelineItemType.TextItem("後半戦", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("後半戦", Color.WHITE, 80f),
                 ),
                 // テキスト
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 500f, yPos = 500f, startMs = 0, endMs = 10_000,
-                    timelineItemType = TimelineItemType.TextItem("エンコードテスト", Color.RED, 20f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("エンコードテスト", Color.RED, 20f),
                 )
             )
         )
@@ -69,7 +69,7 @@ class TimelineDataEncodeTest {
         )
 
         // タイムラインのデータをもとに Canvas に描画する
-        val canvasDraw = TimelineCanvasDraw(timelineData.timelineItemDataList)
+        val canvasDraw = TimelineCanvasDraw(timelineData.timelineItemDataList.filterIsInstance<TimelineItemData.CanvasData>())
         CanvasProcessor.start(
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -96,17 +96,17 @@ class TimelineDataEncodeTest {
         val timelineData = TimelineData(
             videoDurationMs = 5_000,
             timelineItemDataList = listOf(
-                TimelineItemData(
-                    xPos = 0f, yPos = 0f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.VideoItem(sampleVideoFolder.resolve("toomo.mp4").path),
+                TimelineItemData.VideoData(
+                    startMs = 0, endMs = 5_000, videoCutStartMs = 0, videoCutEndMs = 5_000,
+                    videoFilePath = sampleVideoFolder.resolve("toomo.mp4").path,
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 100f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.TextItem("とーも", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("とーも", Color.WHITE, 80f),
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 300f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.TextItem("ばっくれからおけ", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("ばっくれからおけ", Color.WHITE, 80f),
                 ),
             )
         )
@@ -122,14 +122,17 @@ class TimelineDataEncodeTest {
         val chunkList = timelineData.getTimelineChunkList()
         val encodeVideoChunkFileList = chunkList.mapIndexed { index, chunkData ->
             val encodedFile = tempFolder.resolve("video_$index.mp4").apply { createNewFile() }
-            val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList)
+            val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList.filterIsInstance<TimelineItemData.CanvasData>())
             // 動画がある、探す
-            val originVideoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
+            val originVideoData = chunkData.timelineItemDataList.filterIsInstance<TimelineItemData.VideoData>().first()
             // 動画を範囲内にカットする
-            val videoFile = tempFolder.resolve("cutFile")
+            val videoFile = originVideoData.videoCutRange?.let { cutRange ->
+                tempFolder.resolve("cutFile").also { result ->
+                    // TODO カット範囲を入力可能にする
+                    CutProcessor.cut(File(originVideoData.videoFilePath), result, cutRange, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+                }
+            } ?: File(originVideoData.videoFilePath)
 
-            // TODO カット範囲を入力可能にする
-            CutProcessor.cut(originVideoFile, videoFile, 0..chunkData.durationMs, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
             // えんこーど
             VideoCanvasProcessor.start(
                 videoFile = videoFile,
@@ -160,29 +163,29 @@ class TimelineDataEncodeTest {
         val timelineData = TimelineData(
             videoDurationMs = 10_000,
             timelineItemDataList = listOf(
-                TimelineItemData(
-                    xPos = 0f, yPos = 0f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.VideoItem(sampleVideoFolder.resolve("toomo.mp4").path),
+                TimelineItemData.VideoData(
+                    startMs = 0, endMs = 5_000, videoCutStartMs = 0, videoCutEndMs = 5_000,
+                    videoFilePath = sampleVideoFolder.resolve("toomo.mp4").path,
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 100f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.TextItem("とーも", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("とーも", Color.WHITE, 80f),
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 300f, startMs = 0, endMs = 5_000,
-                    timelineItemType = TimelineItemType.TextItem("ばっくれからおけ", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("ばっくれからおけ", Color.WHITE, 80f),
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 0f, yPos = 0f, startMs = 5_000, endMs = 10_000,
-                    timelineItemType = TimelineItemType.RectItem(1280f, 720f, Color.BLACK),
+                    timelineDrawItemType = TimelineDrawItemType.RectItem(1280f, 720f, Color.BLACK),
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 100f, startMs = 5_000, endMs = 10_000,
-                    timelineItemType = TimelineItemType.TextItem("ダーク尺余り", Color.WHITE, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("ダーク尺余り", Color.WHITE, 80f),
                 ),
-                TimelineItemData(
+                TimelineItemData.CanvasData(
                     xPos = 100f, yPos = 500f, startMs = 0, endMs = 10_000,
-                    timelineItemType = TimelineItemType.TextItem("エンコードのテスト中", Color.RED, 80f),
+                    timelineDrawItemType = TimelineDrawItemType.TextItem("エンコードのテスト中", Color.RED, 80f),
                 ),
             )
         )
@@ -197,15 +200,16 @@ class TimelineDataEncodeTest {
         // 各チャンクごとにエンコードする
         val encodeVideoChunkFileList = timelineData.getTimelineChunkList().mapIndexed { index, chunkData ->
             val encodedFile = tempFolder.resolve("video_$index.mp4").apply { createNewFile() }
-            val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList)
-            val requireVideoCanvasProcessor = chunkData.timelineItemDataList.any { it.timelineItemType is TimelineItemType.VideoItem }
-            if (requireVideoCanvasProcessor) {
-                // 動画がある、探す
-                val originVideoFile = File((chunkData.timelineItemDataList.first { it.timelineItemType is TimelineItemType.VideoItem }.timelineItemType as TimelineItemType.VideoItem).videoPath)
-                // 動画を範囲内にカットする
-                val videoFile = tempFolder.resolve("cutFile")
-                // TODO カット範囲を入力可能にする
-                CutProcessor.cut(originVideoFile, videoFile, 0..chunkData.durationMs, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+            val timelineCanvasDraw = TimelineCanvasDraw(chunkData.timelineItemDataList.filterIsInstance<TimelineItemData.CanvasData>())
+            val videoFileOrNull = chunkData.timelineItemDataList.filterIsInstance<TimelineItemData.VideoData>().firstOrNull()
+            if (videoFileOrNull != null) {
+                // 動画がある
+                val videoFile = videoFileOrNull.videoCutRange?.let { cutRange ->
+                    // 動画を範囲内にカットする必要があればする
+                    tempFolder.resolve("cutFile").also { resultFile ->
+                        CutProcessor.cut(File(videoFileOrNull.videoFilePath), resultFile, cutRange, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+                    }
+                } ?: File(videoFileOrNull.videoFilePath)
                 // えんこーど
                 VideoCanvasProcessor.start(
                     videoFile = videoFile,

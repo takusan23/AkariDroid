@@ -23,7 +23,7 @@ data class TimelineData(
      */
     fun getTimelineChunkList(): List<TimelineChunkData> {
         // 動画がある
-        val videoItemOnlyList = timelineItemDataList.filter { it.timelineItemType is TimelineItemType.VideoItem }
+        val videoItemOnlyList = timelineItemDataList.filterIsInstance<TimelineItemData.VideoData>()
         if (videoItemOnlyList.isEmpty()) {
             // すべて Canvas で描画可能
             // そのまま返す
