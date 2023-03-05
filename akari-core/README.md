@@ -15,6 +15,11 @@ implementation("io.github.takusan23:akaricore:1.0.0-alpha01")
 
 https://takusan.negitoro.dev/posts/android_add_canvas_text_to_video/
 
+# つかいかた
+`ExampleInstrumentedTest.kt` を見てください。
+
+![image](https://user-images.githubusercontent.com/32033405/222954361-c1efe7a4-60ad-4e05-b83b-2969cdf0faf1.png)
+
 # special thanks
 - moovブロックを先頭に移動する (mp4ファイルをストリーミング可能にする)
   - https://github.com/ypresto/qtfaststart-java
