@@ -2,7 +2,7 @@
 
 映像を加工するクラスがあったりする
 
-- VideoConcatProcessor
+- ConcatProcessor
     - 動画を結合する
 - VideoCanvasProcessor
     - 動画 に Canvas を重ねた動画を作成する
@@ -10,6 +10,8 @@
     - Canvas だけで動画を作成する
 - AudioMixingProcessor
     - 複数の音声を同時に重ねて音声を作成する
+- CutProcessor
+  - 動画を切り取る
 
 ## QtFastStart
 

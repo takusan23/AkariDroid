@@ -6,10 +6,8 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.processor.AudioMixingProcessor
-import io.github.takusan23.akaricore.processor.AudioVideoConcatProcessor
-import io.github.takusan23.akaricore.processor.CanvasProcessor
-import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
+import io.github.takusan23.akaricore.processor.*
+import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import io.github.takusan23.akaricore.tool.MediaMuxerTool
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -148,13 +146,23 @@ class ExampleInstrumentedTest {
         val toomo = sampleVideoFolder.resolve("toomo.mp4")
         // 音声と映像を一時的なファイルに保存
         val concatMediaList = listOf(
-            AudioVideoConcatProcessor.concatVideo(listOf(iphone, cat, toomo), tempFolder.resolve("concat_video")),
-            AudioVideoConcatProcessor.concatAudio(listOf(iphone, cat, toomo), tempFolder, tempFolder.resolve("concat_audio"))
+            ConcatProcessor.concatVideo(listOf(iphone, cat, toomo), tempFolder.resolve("concat_video")),
+            ConcatProcessor.concatAudio(listOf(iphone, cat, toomo), tempFolder, tempFolder.resolve("concat_audio"))
         )
         // 結合する
         MediaMuxerTool.mixed(resultFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, concatMediaList)
         // あとしまつ
         tempFolder.deleteRecursively()
+    }
+
+    @Test
+    fun test_動画の切り取りが出来る() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_動画の切り取りが出来る_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val toomo = sampleVideoFolder.resolve("toomo.mp4")
+        // カットしてみる
+        CutProcessor.cut(toomo, resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
     }
 
     companion object {

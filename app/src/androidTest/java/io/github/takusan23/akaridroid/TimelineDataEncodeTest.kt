@@ -5,7 +5,7 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.processor.AudioVideoConcatProcessor
+import io.github.takusan23.akaricore.processor.ConcatProcessor
 import io.github.takusan23.akaricore.processor.CanvasProcessor
 import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
 import io.github.takusan23.akaridroid.data.VideoOutputFormat
@@ -137,7 +137,7 @@ class TimelineDataEncodeTest {
             }
             encodedFile
         }
-        AudioVideoConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
+        ConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
         tempFolder.delete()
     }
 
@@ -229,7 +229,7 @@ class TimelineDataEncodeTest {
             }
             return@mapIndexed encodedFile
         }
-        AudioVideoConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
+        ConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
         tempFolder.delete()
     }
 

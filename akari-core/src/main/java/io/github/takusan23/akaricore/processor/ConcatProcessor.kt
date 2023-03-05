@@ -11,7 +11,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** 複数の動画を連結する */
-object AudioVideoConcatProcessor {
+object ConcatProcessor {
 
     private const val TEMP_RAW_AUDIO_FILE_NAME = "temp_raw_audio"
     private const val TIMEOUT_US = 10000L

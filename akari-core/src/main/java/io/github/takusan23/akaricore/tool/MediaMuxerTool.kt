@@ -5,6 +5,7 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaMuxer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.nio.ByteBuffer
@@ -49,7 +50,7 @@ object MediaMuxerTool {
             val byteBuffer = ByteBuffer.allocate(1024 * 4096)
             val bufferInfo = MediaCodec.BufferInfo()
             // データが無くなるまで回す
-            while (true) {
+            while (isActive) {
                 // データを読み出す
                 val offset = byteBuffer.arrayOffset()
                 bufferInfo.size = extractor.readSampleData(byteBuffer, offset)
