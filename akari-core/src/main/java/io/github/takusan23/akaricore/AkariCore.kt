@@ -22,36 +22,9 @@ import kotlinx.coroutines.withContext
  */
 class AkariCore(
     private val videoFileData: VideoFileInterface,
-    videoEncoderData: VideoEncoderData,
-    audioEncoderData: AudioEncoderData,
+    private val videoEncoderData: VideoEncoderData,
+    private val audioEncoderData: AudioEncoderData,
 ) {
-
-    /** 合成機能がついた 音声エンコーダー */
-    private val audioProcessor by lazy {
-        AudioMixingProcessor(
-            audioFileList = listOf(videoFileData.videoFile) + videoFileData.audioAssetFileList,
-            resultFile = videoFileData.encodedAudioFile,
-            tempWorkFolder = videoFileData.tempWorkFolder,
-            audioCodec = audioEncoderData.codecName,
-            bitRate = audioEncoderData.bitRate,
-            mixingVolume = audioEncoderData.mixingVolume
-        )
-    }
-
-    /** Canvasと映像を合成できる 映像エンコーダー */
-    private val videoCanvasProcessor by lazy {
-        VideoCanvasProcessor(
-            videoFile = videoFileData.videoFile,
-            resultFile = videoFileData.encodedVideoFile,
-            videoCodec = videoEncoderData.codecName,
-            containerFormat = videoFileData.containerFormat,
-            bitRate = videoEncoderData.bitRate,
-            frameRate = videoEncoderData.frameRate,
-            outputVideoWidth = videoEncoderData.width ?: 1280,
-            outputVideoHeight = videoEncoderData.height ?: 720
-        )
-    }
-
     /**
      * 処理を始める
      *
@@ -61,8 +34,29 @@ class AkariCore(
         onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
     ) = withContext(Dispatchers.Default) {
         videoFileData.prepare()
-        val videoTask = async { videoCanvasProcessor.start(onCanvasDrawRequest) }
-        val audioTask = async { audioProcessor.start() }
+        val videoTask = async {
+            VideoCanvasProcessor.start(
+                videoFile = videoFileData.videoFile,
+                resultFile = videoFileData.encodedVideoFile,
+                videoCodec = videoEncoderData.codecName,
+                containerFormat = videoFileData.containerFormat,
+                bitRate = videoEncoderData.bitRate,
+                frameRate = videoEncoderData.frameRate,
+                outputVideoWidth = videoEncoderData.width,
+                outputVideoHeight = videoEncoderData.height,
+                onCanvasDrawRequest = onCanvasDrawRequest
+            )
+        }
+        val audioTask = async {
+            AudioMixingProcessor.start(
+                audioFileList = listOf(videoFileData.videoFile) + videoFileData.audioAssetFileList,
+                resultFile = videoFileData.encodedAudioFile,
+                tempFolder = videoFileData.tempWorkFolder,
+                audioCodec = audioEncoderData.codecName,
+                bitRate = audioEncoderData.bitRate,
+                mixingVolume = audioEncoderData.mixingVolume
+            )
+        }
         // 終わるまで待つ
         videoTask.await()
         audioTask.await()

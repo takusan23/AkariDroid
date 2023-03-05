@@ -11,6 +11,6 @@ package io.github.takusan23.akaricore.data
  */
 data class AudioEncoderData(
     val codecName: String,
-    val bitRate: Int? = null,
+    val bitRate: Int = 128_000,
     val mixingVolume: Float = 0.10f
 )

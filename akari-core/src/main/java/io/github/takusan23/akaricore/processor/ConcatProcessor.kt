@@ -7,17 +7,34 @@ import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /** 複数の動画を連結する */
 object ConcatProcessor {
 
+    /** 一時ファイルの名前 */
     private const val TEMP_RAW_AUDIO_FILE_NAME = "temp_raw_audio"
+
+    /** タイムアウト */
     private const val TIMEOUT_US = 10000L
+
+    /** トラック番号が空の場合 */
     private const val UNDEFINED_TRACK_INDEX = -1
 
-    /** 映像の結合を行う */
+    /**
+     * 映像の結合を行う
+     *
+     * @param videoFileList 結合する動画ファイル
+     * @param resultFile 出力ファイル
+     * @param videoCodec 動画コーデック
+     * @param containerFormat コンテナフォーマット
+     * @param videoBitRate ビットレート
+     * @param frameRate フレームレート
+     * @param outputVideoWidth 出力動画の幅
+     * @param outputVideoHeight 出力動画の高さ
+     */
     suspend fun concatVideo(
         videoFileList: List<File>,
         resultFile: File,
@@ -94,6 +111,9 @@ object ConcatProcessor {
 
         while (!outputDone) {
 
+            // コルーチンキャンセル時は強制終了
+            if (!isActive) break
+
             if (!inputDone) {
                 val inputBufferId = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
                 if (inputBufferId >= 0) {
@@ -133,6 +153,10 @@ object ConcatProcessor {
 
             var decoderOutputAvailable = true
             while (decoderOutputAvailable) {
+
+                // コルーチンキャンセル時は強制終了
+                if (!isActive) break
+
                 // Surface経由でデータを貰って保存する
                 val encoderStatus = encodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 if (encoderStatus >= 0) {
@@ -197,7 +221,6 @@ object ConcatProcessor {
         // MediaMuxerも終了
         mediaMuxer.stop()
         mediaMuxer.release()
-        return@withContext resultFile
     }
 
     /** 音声の結合を行う */
@@ -205,8 +228,8 @@ object ConcatProcessor {
         videoFileList: List<File>,
         tempFolder: File,
         resultFile: File,
-        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         audioBitRate: Int = 128_000,
         samplingRate: Int = 44_100,
     ) = withContext(Dispatchers.Default) {
@@ -248,10 +271,10 @@ object ConcatProcessor {
         val audioEncoder = AudioEncoder()
         val tempRawFileInputStream = tempRawFile.inputStream()
         audioEncoder.prepareEncoder(
+            codec = audioCodec,
             sampleRate = samplingRate,
             channelCount = 2,
             bitRate = audioBitRate,
-            isOpus = false
         )
         audioEncoder.startAudioEncode(
             onRecordInput = { byteArray -> tempRawFileInputStream.read(byteArray) },
@@ -270,6 +293,5 @@ object ConcatProcessor {
         mediaMuxer.release()
         tempRawFile.delete()
         audioEncoder.release()
-        return@withContext resultFile
     }
 }

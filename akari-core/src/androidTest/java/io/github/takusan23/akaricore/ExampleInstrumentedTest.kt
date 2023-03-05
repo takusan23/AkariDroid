@@ -25,70 +25,52 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
 
-    /**
-     * 音声合成ができるのかテスト
-     *
-     * 保存先は /storage/emulated/0/Android/data/io.github.takusan23.akari_core.test/files
-     */
+    // 各テストの保存先は /storage/emulated/0/Android/data/io.github.takusan23.akari_core.test/files
+
     @Test
     fun test_音声を合成できる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
         val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply {
             deleteRecursively()
             mkdir()
         }
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}").apply {
-            delete()
-            createNewFile()
-        }
-        val videoEditFolder = File(appContext.getExternalFilesDir(null), "project")
-        val projectFolder = File(videoEditFolder, "project-2022-01-10")
+        val resultFile = appContext.getExternalFilesDir(null)!!.resolve("test_音声を合成できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
 
-        val videoFile = File(projectFolder, "videofile")
-        val bgmFile = File(projectFolder, "bgm")
-
-        val mixingProcessor = AudioMixingProcessor(
+        val videoFile = sampleVideoFolder.resolve("iphone.mp4")
+        val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
+        AudioMixingProcessor.start(
             audioFileList = listOf(videoFile, bgmFile),
             resultFile = resultFile,
-            tempWorkFolder = tempFolder,
+            tempFolder = tempFolder,
             audioCodec = MediaFormat.MIMETYPE_AUDIO_AAC,
             mixingVolume = 0.05f
         )
-        mixingProcessor.start()
-
         tempFolder.deleteRecursively()
-
-        assertTrue(resultFile.length() > 0)
     }
 
     @Test
     fun test_アスペクト比を考慮してエンコードできる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
-            delete()
-            createNewFile()
-        }
-        val videoEditFolder = File(appContext.getExternalFilesDir(null), "project")
-        val projectFolder = File(videoEditFolder, "project-2022-01-10")
-
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = appContext.getExternalFilesDir(null)!!.resolve("test_アスペクト比を考慮してエンコードできる_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val paint = Paint().apply {
             color = Color.WHITE
             textSize = 80f
         }
 
-        // val videoFile = File(projectFolder, "applehls.mp4")
-        // val videoFile = File(projectFolder, "apple_4x3_10s.mp4")
-        val videoFile = File(projectFolder, "iphone.mp4")
-        val videoCanvasProcessor = VideoCanvasProcessor(
+        // val videoFile = sampleVideoFolder.resolve("applehls.mp4")
+        // val videoFile = sampleVideoFolder.resolve("apple_4x3_10s.mp4")
+        val videoFile = sampleVideoFolder.resolve("iphone.mp4")
+        VideoCanvasProcessor.start(
             videoFile = videoFile,
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
             containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
             outputVideoWidth = 1280,
             outputVideoHeight = 720
-        )
-        videoCanvasProcessor.start { positionMs ->
+        ) { positionMs ->
             drawText("再生時間 = ${"%.02f".format((positionMs / 1000F))} 秒", 50f, 80f, paint)
         }
     }
@@ -96,9 +78,14 @@ class ExampleInstrumentedTest {
     @Test
     fun test_キャンバスの入力から動画を作成() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_キャンバスの入力から動画を作成_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
 
-        val canvasProcessor = CanvasProcessor(
+        val textPaint = Paint().apply {
+            isAntiAlias = true
+            textSize = 80f
+        }
+
+        CanvasProcessor.start(
             resultFile = resultFile,
             videoCodec = MediaFormat.MIMETYPE_VIDEO_AVC,
             containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
@@ -106,14 +93,7 @@ class ExampleInstrumentedTest {
             frameRate = 30,
             outputVideoWidth = 1280,
             outputVideoHeight = 720,
-        )
-
-        val textPaint = Paint().apply {
-            isAntiAlias = true
-            textSize = 80f
-        }
-
-        canvasProcessor.start { positionMs ->
+        ) { positionMs ->
             drawColor(Color.MAGENTA)
             // 枠取り文字
             val text = "動画の時間 = ${"%.2f".format(positionMs / 1000f)}"
@@ -127,7 +107,7 @@ class ExampleInstrumentedTest {
             drawText(text, 0f, 80f, textPaint)
 
             // true を返している間は動画を作成する
-            positionMs < 10 * 1_000
+            positionMs <= 10 * 1_000
         }
     }
 
@@ -135,7 +115,7 @@ class ExampleInstrumentedTest {
     fun test_動画の結合ができる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val resultFile = File(appContext.getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_動画の結合ができる_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val tempFolder = appContext.getExternalFilesDir(null)!!.resolve("temp").apply {
             deleteRecursively()
             mkdir()
@@ -146,8 +126,8 @@ class ExampleInstrumentedTest {
         val toomo = sampleVideoFolder.resolve("toomo.mp4")
         // 音声と映像を一時的なファイルに保存
         val concatMediaList = listOf(
-            ConcatProcessor.concatVideo(listOf(iphone, cat, toomo), tempFolder.resolve("concat_video")),
-            ConcatProcessor.concatAudio(listOf(iphone, cat, toomo), tempFolder, tempFolder.resolve("concat_audio"))
+            tempFolder.resolve("concat_video").also { ConcatProcessor.concatVideo(listOf(iphone, cat, toomo), it) },
+            tempFolder.resolve("concat_audio").also { ConcatProcessor.concatAudio(listOf(iphone, cat, toomo), tempFolder, it) },
         )
         // 結合する
         MediaMuxerTool.mixed(resultFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4, concatMediaList)

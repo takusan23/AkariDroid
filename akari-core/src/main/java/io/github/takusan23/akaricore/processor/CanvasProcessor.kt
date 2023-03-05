@@ -8,42 +8,45 @@ import android.media.MediaMuxer
 import io.github.takusan23.akaricore.gl.CanvasInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * Canvasの入力から動画を作成する
- */
-class CanvasProcessor(
-    private val resultFile: File,
-    private val videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
-    private val containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-    private val bitRate: Int = 1_000_000,
-    private val frameRate: Int = 30,
-    private val outputVideoWidth: Int = 1280,
-    private val outputVideoHeight: Int = 720,
-) {
-    /** エンコード用 [MediaCodec] */
-    private var encodeMediaCodec: MediaCodec? = null
+/** Canvasの入力から動画を作成する */
+object CanvasProcessor {
 
-    /** コンテナフォーマットへ格納するやつ */
-    private val mediaMuxer by lazy { MediaMuxer(resultFile.path, containerFormat) }
+    /** タイムアウト */
+    private const val TIMEOUT_US = 10000L
 
-    /** OpenGL */
-    private var canvasInputSurface: CanvasInputSurface? = null
+    /** トラック番号が空の場合 */
+    private const val UNDEFINED_TRACK_INDEX = -1
 
     /**
      * 処理を始める、終わるまで一時停止します
      *
+     * @param resultFile 出力ファイル
+     * @param videoCodec コーデック
+     * @param containerFormat コンテナフォーマット
+     * @param bitRate ビットレート
+     * @param frameRate フレームレート
+     * @param outputVideoWidth エンコードした動画の幅
+     * @param outputVideoHeight エンコードした動画の高さ
      * @param onCanvasDrawRequest Canvasへ描画リクエストが来た際に呼ばれる。Canvasと再生時間（ミリ秒）が渡されます
      */
     @Suppress("BlockingMethodInNonBlockingContext")
     suspend fun start(
+        resultFile: File,
+        videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        bitRate: Int = 1_000_000,
+        frameRate: Int = 30,
+        outputVideoWidth: Int = 1280,
+        outputVideoHeight: Int = 720,
         onCanvasDrawRequest: Canvas.(positionMs: Long) -> Boolean,
     ) = withContext(Dispatchers.Default) {
 
         // エンコード用（生データ -> H.264）MediaCodec
-        encodeMediaCodec = MediaCodec.createEncoderByType(videoCodec).apply {
+        val encodeMediaCodec = MediaCodec.createEncoderByType(videoCodec).apply {
             // エンコーダーにセットするMediaFormat
             // コーデックが指定されていればそっちを使う
             val videoMediaFormat = MediaFormat.createVideoFormat(videoCodec, outputVideoWidth, outputVideoHeight).apply {
@@ -54,11 +57,10 @@ class CanvasProcessor(
             }
             configure(videoMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
         }
-        var videoTrackIndex = UNDEFINED_TRACK_INDEX
 
         // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-        canvasInputSurface = CanvasInputSurface(
-            encodeMediaCodec!!.createInputSurface(),
+        val canvasInputSurface = CanvasInputSurface(
+            encodeMediaCodec.createInputSurface(),
             TextureRenderer(
                 outputVideoWidth = outputVideoWidth,
                 outputVideoHeight = outputVideoHeight,
@@ -67,19 +69,24 @@ class CanvasProcessor(
                 videoRotation = 0f
             )
         )
-        canvasInputSurface?.makeCurrent()
-        encodeMediaCodec!!.start()
-        canvasInputSurface?.createRender()
+        canvasInputSurface.makeCurrent()
+        encodeMediaCodec.start()
+        canvasInputSurface.createRender()
 
-        // nonNull
-        val encodeMediaCodec = encodeMediaCodec!!
+        // 保存先
+        var videoTrackIndex = UNDEFINED_TRACK_INDEX
+        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
+
         // メタデータ格納用
         val bufferInfo = MediaCodec.BufferInfo()
         var outputDone = false
-
         val startMs = System.currentTimeMillis()
 
         while (!outputDone) {
+
+            // コルーチンキャンセル時は強制終了
+            if (!isActive) break
+
             // Surface経由でデータを貰って保存する
             val encoderStatus = encodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
             if (encoderStatus >= 0) {
@@ -107,11 +114,11 @@ class CanvasProcessor(
             val presentationTimeUs = (System.currentTimeMillis() - startMs) * 1000
             // Canvas の入力をする
             var isRunning = false
-            canvasInputSurface?.drawImage { canvas ->
+            canvasInputSurface.drawImage { canvas ->
                 isRunning = onCanvasDrawRequest(canvas, presentationTimeUs / 1000L)
             }
-            canvasInputSurface?.setPresentationTime(presentationTimeUs * 1000)
-            canvasInputSurface?.swapBuffers()
+            canvasInputSurface.setPresentationTime(presentationTimeUs * 1000)
+            canvasInputSurface.swapBuffers()
             if (!isRunning) {
                 outputDone = true
                 encodeMediaCodec.signalEndOfInputStream()
@@ -119,20 +126,12 @@ class CanvasProcessor(
         }
 
         // OpenGL開放
-        canvasInputSurface?.release()
+        canvasInputSurface.release()
         // エンコーダー終了
         encodeMediaCodec.stop()
         encodeMediaCodec.release()
         // MediaMuxerも終了
         mediaMuxer.stop()
         mediaMuxer.release()
-    }
-
-    companion object {
-        /** タイムアウト */
-        private const val TIMEOUT_US = 10000L
-
-        /** トラック番号が空の場合 */
-        private const val UNDEFINED_TRACK_INDEX = -1
     }
 }

@@ -6,59 +6,56 @@ import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
 import io.github.takusan23.akaricore.gl.TextureRenderer
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * OpenGLを利用して動画にCanvasを重ねる
- *
- * @param videoFile フィルターをかけたい動画ファイル
- * @param resultFile エンコードしたファイルの保存先
- * @param bitRate ビットレート。何故か取れなかった
- * @param frameRate フレームレート。何故か取れなかった
- * @param videoCodec エンコード後の動画コーデック [MediaFormat.MIMETYPE_VIDEO_AVC] など
- * @param containerFormat コンテナフォーマット [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
- * @param outputVideoWidth 動画の高さを変える場合は変えられます。16の倍数であることが必須です
- * @param outputVideoHeight 動画の幅を変える場合は変えられます。16の倍数であることが必須です
- * */
-class VideoCanvasProcessor(
-    private val videoFile: File,
-    private val resultFile: File,
-    private val videoCodec: String? = null,
-    private val containerFormat: Int? = null,
-    private val bitRate: Int? = null,
-    private val frameRate: Int? = null,
-    private val outputVideoWidth: Int = 1280,
-    private val outputVideoHeight: Int = 720,
-) {
-    /** データを取り出すやつ */
-    private var currentMediaExtractor: MediaExtractor? = null
+/** OpenGLを利用して動画にCanvasを重ねる */
+object VideoCanvasProcessor {
 
-    /** エンコード用 [MediaCodec] */
-    private var encodeMediaCodec: MediaCodec? = null
+    /** タイムアウト */
+    private const val TIMEOUT_US = 10000L
 
-    /** デコード用 [MediaCodec] */
-    private var decodeMediaCodec: MediaCodec? = null
+    /** MediaCodecでもらえるInputBufferのサイズ */
+    private const val INPUT_BUFFER_SIZE = 655360
 
-    /** コンテナフォーマットへ格納するやつ */
-    private val mediaMuxer by lazy { MediaMuxer(resultFile.path, containerFormat ?: MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4) }
+    /** トラック番号が空の場合 */
+    private const val UNDEFINED_TRACK_INDEX = -1
 
-    /** OpenGL */
-    private var mediaCodecInputSurface: MediaCodecInputSurface? = null
+    /**
+     * [MediaFormat.KEY_ROTATION]
+     * MediaFormat.KEY_ROTATION の定数。Android 6 以上だがフラグ自体は 5 から存在するらしいので
+     */
+    private const val KEY_ROTATION = "rotation-degrees"
 
     /**
      * 処理を始める、終わるまで一時停止します
      *
+     * @param videoFile フィルターをかけたい動画ファイル
+     * @param resultFile 出力ファイル
+     * @param bitRate ビットレート
+     * @param frameRate フレームレート
+     * @param videoCodec エンコード後の動画コーデック [MediaFormat.MIMETYPE_VIDEO_AVC] など
+     * @param containerFormat コンテナフォーマット [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
+     * @param outputVideoWidth 動画の高さを変える場合は変えられます。16の倍数であることが必須です
+     * @param outputVideoHeight 動画の幅を変える場合は変えられます。16の倍数であることが必須です
      * @param onCanvasDrawRequest Canvasへ描画リクエストが来た際に呼ばれる。Canvasと再生時間（ミリ秒）が渡されます
      */
     @Suppress("BlockingMethodInNonBlockingContext")
     suspend fun start(
+        videoFile: File,
+        resultFile: File,
+        videoCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        bitRate: Int = 1_000_000,
+        frameRate: Int = 30,
+        outputVideoWidth: Int = 1280,
+        outputVideoHeight: Int = 720,
         onCanvasDrawRequest: Canvas.(positionMs: Long) -> Unit,
     ) = withContext(Dispatchers.Default) {
 
         // 動画の情報を読み出す
         val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(videoFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) ?: return@withContext
-        currentMediaExtractor = mediaExtractor
         // トラックを選択
         mediaExtractor.selectTrack(index)
         mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
@@ -73,13 +70,9 @@ class VideoCanvasProcessor(
         // 画面回転度がある場合は width / height がそれぞれ入れ替わるので注意（一敗）
         val originVideoWidth = if (hasRotation) videoHeight else videoWidth
         val originVideoHeight = if (hasRotation) videoWidth else videoHeight
-        val bitRate = bitRate ?: 1_000_000
-        val frameRate = frameRate ?: 30
-
-        var videoTrackIndex = UNDEFINED_TRACK_INDEX
 
         // エンコード用（生データ -> H.264）MediaCodec
-        encodeMediaCodec = MediaCodec.createEncoderByType(encoderMimeType).apply {
+        val encodeMediaCodec = MediaCodec.createEncoderByType(encoderMimeType).apply {
             // エンコーダーにセットするMediaFormat
             // コーデックが指定されていればそっちを使う
             val videoMediaFormat = MediaFormat.createVideoFormat(encoderMimeType, outputVideoWidth, outputVideoHeight).apply {
@@ -93,8 +86,8 @@ class VideoCanvasProcessor(
         }
 
         // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-        mediaCodecInputSurface = MediaCodecInputSurface(
-            encodeMediaCodec!!.createInputSurface(),
+        val mediaCodecInputSurface = MediaCodecInputSurface(
+            encodeMediaCodec.createInputSurface(),
             TextureRenderer(
                 outputVideoWidth = outputVideoWidth,
                 outputVideoHeight = outputVideoHeight,
@@ -103,31 +96,33 @@ class VideoCanvasProcessor(
                 videoRotation = if (hasRotation) 270f else 0f
             )
         )
-        mediaCodecInputSurface?.makeCurrent()
-        encodeMediaCodec!!.start()
+        mediaCodecInputSurface.makeCurrent()
+        encodeMediaCodec.start()
 
         // デコード用（H.264 -> 生データ）MediaCodec
-        mediaCodecInputSurface?.createRender()
-        decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
+        mediaCodecInputSurface.createRender()
+        val decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
             // 画面回転データが有った場合にリセットする
             // このままだと回転されたままなので、OpenGL 側で回転させる
             // setInteger をここでやるのは良くない気がするけど面倒なので
             format.setInteger(KEY_ROTATION, 0)
-            configure(format, mediaCodecInputSurface!!.drawSurface, null, 0)
+            configure(format, mediaCodecInputSurface.drawSurface, null, 0)
         }
-        decodeMediaCodec?.start()
+        decodeMediaCodec.start()
 
-        // nonNull
-        val decodeMediaCodec = decodeMediaCodec!!
-        val encodeMediaCodec = encodeMediaCodec!!
+        // 保存
+        var videoTrackIndex = UNDEFINED_TRACK_INDEX
+        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat ?: MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
 
         // メタデータ格納用
         val bufferInfo = MediaCodec.BufferInfo()
-
         var outputDone = false
         var inputDone = false
 
         while (!outputDone) {
+
+            // コルーチンキャンセル時は強制終了
+            if (!isActive) break
 
             if (!inputDone) {
                 val inputBufferId = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
@@ -186,17 +181,17 @@ class VideoCanvasProcessor(
                     if (doRender) {
                         var errorWait = false
                         try {
-                            mediaCodecInputSurface?.awaitNewImage()
+                            mediaCodecInputSurface.awaitNewImage()
                         } catch (e: Exception) {
                             errorWait = true
                         }
                         if (!errorWait) {
                             // 映像とCanvasを合成する
-                            mediaCodecInputSurface?.drawImage { canvas ->
+                            mediaCodecInputSurface.drawImage { canvas ->
                                 onCanvasDrawRequest(canvas, bufferInfo.presentationTimeUs / 1000L)
                             }
-                            mediaCodecInputSurface?.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
-                            mediaCodecInputSurface?.swapBuffers()
+                            mediaCodecInputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                            mediaCodecInputSurface.swapBuffers()
                         }
                     }
                     if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
@@ -211,30 +206,13 @@ class VideoCanvasProcessor(
         decodeMediaCodec.stop()
         decodeMediaCodec.release()
         // OpenGL開放
-        mediaCodecInputSurface?.release()
+        mediaCodecInputSurface.release()
         // エンコーダー終了
         encodeMediaCodec.stop()
         encodeMediaCodec.release()
         // MediaMuxerも終了
         mediaMuxer.stop()
         mediaMuxer.release()
-    }
-
-    /** 強制終了時に呼ぶ */
-    fun stop() {
-        // すでにstopしてると例外を投げるので
-        try {
-            decodeMediaCodec?.stop()
-            decodeMediaCodec?.release()
-            mediaCodecInputSurface?.release()
-            encodeMediaCodec?.stop()
-            encodeMediaCodec?.release()
-            currentMediaExtractor?.release()
-            mediaMuxer.stop()
-            mediaMuxer.release()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     /**
@@ -247,22 +225,4 @@ class VideoCanvasProcessor(
             getInteger(name)
         } else null
     }
-
-    companion object {
-        /** タイムアウト */
-        private const val TIMEOUT_US = 10000L
-
-        /** MediaCodecでもらえるInputBufferのサイズ */
-        private const val INPUT_BUFFER_SIZE = 655360
-
-        /** トラック番号が空の場合 */
-        private const val UNDEFINED_TRACK_INDEX = -1
-
-        /**
-         * [MediaFormat.KEY_ROTATION]
-         * MediaFormat.KEY_ROTATION の定数。Android 6 以上だがフラグ自体は 5 から存在するらしいので
-         */
-        private const val KEY_ROTATION = "rotation-degrees"
-    }
-
 }

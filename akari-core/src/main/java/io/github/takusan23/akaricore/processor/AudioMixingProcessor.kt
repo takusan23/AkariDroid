@@ -18,30 +18,45 @@ import java.io.File
  *
  * 音の合成ですが、難しいことはなく、波の音を重ねることで音がミックスされます。
  * 実装的には、AACをPCMにして（AudacityのRawデータのように）、バイト配列から同じ位置のByteを足すことでできます。
- *
- * @param mixingVolume 動画以外の音声素材の音量調整をする場合は 0..1f までの値を入れる（BGMうるさい場合など）
  */
-class AudioMixingProcessor(
-    private val audioFileList: List<File>,
-    private val resultFile: File,
-    private val tempWorkFolder: File,
-    private val audioCodec: String? = null,
-    private val audioDurationMs: Int? = null,
-    private val bitRate: Int? = null,
-    private val samplingRate: Int? = null,
-    private val mixingVolume: Float = 0.25f
-) {
+object AudioMixingProcessor {
 
-    /** 処理を始める、終わるまで一時停止します */
-    suspend fun start() = withContext(Dispatchers.Default) {
+    private val TAG = AudioMixingProcessor::class.java.simpleName
+
+    /** 仮のファイルの名前のプレフィックス */
+    private const val TEMP_FILE_NAME_PREFIX = "raw_audio_file_"
+
+    /**
+     * 処理を始める、終わるまで一時停止します
+     *
+     * @param audioFileList 重ねる素材ファイル
+     * @param resultFile 出力ファイル
+     * @param tempFolder 一時ファイル置き場
+     * @param audioCodec 音声コーデック
+     * @param containerFormat コンテナフォーマット
+     * @param audioDurationMs 時間。していなければ最初のファイルの時間
+     * @param bitRate ビットレート
+     * @param samplingRate サンプリングレート
+     * @param mixingVolume ミックスする素材の音量。二番目以降のファイルに適用される
+     */
+    suspend fun start(
+        audioFileList: List<File>,
+        resultFile: File,
+        tempFolder: File,
+        audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        audioDurationMs: Int? = null,
+        bitRate: Int = 128_000,
+        samplingRate: Int = 44_100,
+        mixingVolume: Float = 0.25f
+    ) = withContext(Dispatchers.Default) {
         // 特に時間が指定されていない場合は最初のファイルの時間を取り出す
         // 単位はマイクロ秒
-        val audioDurationUs = (audioDurationMs?.times(1000L)) ?: MediaExtractorTool.extractMedia(audioFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)?.let { (mediaExtractor, _, format) ->
+        val audioDurationUs = audioDurationMs?.let { it * 1000L } ?: MediaExtractorTool.extractMedia(audioFileList.first().path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!.let { (mediaExtractor, _, format) ->
             val durationUs = format.getLong(MediaFormat.KEY_DURATION)
             mediaExtractor.release()
             return@let durationUs
-        } ?: return@withContext
-
+        }
         // それぞれのファイルをデコードして PCM にする
         // TODO MediaCodec の起動上限に引っかかりそう
         Log.d(TAG, "PCMへデコード開始")
@@ -51,7 +66,7 @@ class AudioMixingProcessor(
                 val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(audioFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!
                 mediaExtractor.selectTrack(index)
                 // 仮の保存先を作成
-                val rawTempFile = createTempFile("$TEMP_FILE_NAME_PREFIX$fileIndex")
+                val rawTempFile = tempFolder.resolve("$TEMP_FILE_NAME_PREFIX$fileIndex")
                 // デコーダー起動
                 val audioDecoder = AudioDecoder()
                 audioDecoder.prepareDecoder(format)
@@ -82,7 +97,7 @@ class AudioMixingProcessor(
         // -------------------------
         // Result 0x03 0x03 0x03 ...
         Log.d(TAG, "ミキシング開始")
-        val mixingRawFile = createTempFile("${TEMP_FILE_NAME_PREFIX}mixed_raw_file")
+        val mixingRawFile = tempFolder.resolve("${TEMP_FILE_NAME_PREFIX}mixed_raw_file")
         val inputStreamList = pcmDecodedFileList.map { it.inputStream() }
         while (isActive) {
             val fileToByteArray = withContext(Dispatchers.IO) {
@@ -118,18 +133,15 @@ class AudioMixingProcessor(
         Log.d(TAG, "AACにエンコード開始")
         val mixedRawAudioInputStream = mixingRawFile.inputStream()
         // コンテナフォーマット
-        val isOpus = audioCodec == MediaFormat.MIMETYPE_AUDIO_OPUS
-        val containerFormat = if (isOpus) MediaMuxer.OutputFormat.MUXER_OUTPUT_WEBM else MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4
         val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
         var trackIndex = -1
         // エンコーダー起動
         val audioEncoder = AudioEncoder()
-        val samplingRate = samplingRate ?: if (isOpus) 48_000 else 44_100
         audioEncoder.prepareEncoder(
+            codec = audioCodec,
             sampleRate = samplingRate,
             channelCount = 2,
-            bitRate = bitRate ?: 192_000,
-            isOpus = isOpus
+            bitRate = bitRate,
         )
         audioEncoder.startAudioEncode(
             onRecordInput = { byteArray -> mixedRawAudioInputStream.read(byteArray) },
@@ -148,23 +160,5 @@ class AudioMixingProcessor(
         withContext(Dispatchers.IO) {
             mixedRawAudioInputStream.close()
         }
-    }
-
-    /**
-     * 一時ファイルを作成する
-     *
-     * @param fileName ファイル名
-     */
-    private suspend fun createTempFile(fileName: String) = withContext(Dispatchers.IO) {
-        return@withContext File(tempWorkFolder, fileName).apply {
-            createNewFile()
-        }
-    }
-
-    companion object {
-        private val TAG = AudioMixingProcessor::class.java.simpleName
-
-        /** 仮のファイルの名前のプレフィックス */
-        private const val TEMP_FILE_NAME_PREFIX = "raw_audio_file_"
     }
 }

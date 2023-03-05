@@ -18,9 +18,8 @@ object CutProcessor {
      * 動画、音声を指定時間で切り抜いて返す
      *
      * @param targetVideoFile 対象のファイル
-     * @param resultFile 結果
+     * @param resultFile 出力ファイル
      * @param timeRangeMs
-     * @return [resultFile]
      */
     @SuppressLint("WrongConstant")
     suspend fun cut(
@@ -61,7 +60,6 @@ object CutProcessor {
         mediaExtractor.release()
         mediaMuxer.stop()
         mediaMuxer.release()
-        return@withContext resultFile
     }
 
 }
