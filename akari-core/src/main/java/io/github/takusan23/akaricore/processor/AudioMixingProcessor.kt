@@ -26,6 +26,9 @@ object AudioMixingProcessor {
     /** 仮のファイルの名前のプレフィックス */
     private const val TEMP_FILE_NAME_PREFIX = "raw_audio_file_"
 
+    /** トラック番号が空の場合 */
+    private const val UNDEFINED_TRACK_INDEX = -1
+
     /**
      * 処理を始める、終わるまで一時停止します
      *
@@ -134,7 +137,7 @@ object AudioMixingProcessor {
         val mixedRawAudioInputStream = mixingRawFile.inputStream()
         // コンテナフォーマット
         val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
-        var trackIndex = -1
+        var trackIndex = UNDEFINED_TRACK_INDEX
         // エンコーダー起動
         val audioEncoder = AudioEncoder()
         audioEncoder.prepareEncoder(

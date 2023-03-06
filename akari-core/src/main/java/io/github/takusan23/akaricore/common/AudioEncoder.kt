@@ -12,7 +12,7 @@ import java.nio.ByteBuffer
  * 音声エンコーダー
  * MediaCodecを使いやすくしただけ
  *
- * 内部音声が生のまま（PCM）送られてくるので、 AAC / Opus にエンコードする。
+ * 生（意味深）の音声（PCM）送られてくるので、 AAC / Opus にエンコードして圧縮する。
  */
 class AudioEncoder {
 

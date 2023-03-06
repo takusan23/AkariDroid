@@ -33,7 +33,7 @@ class AudioDecoder {
     /**
      * デコーダーを開始する
      *
-     * @param readSampleData ByteArrayを渡すので、音声データを入れて、サイズと再生時間を返してください
+     * @param readSampleData ByteArrayを渡すので、音声データを入れて、サイズと再生時間（マイクロ秒）を返してください
      * @param onOutputBufferAvailable デコードされたデータが流れてきます
      */
     suspend fun startAudioDecode(

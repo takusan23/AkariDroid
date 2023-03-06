@@ -145,6 +145,14 @@ class ExampleInstrumentedTest {
         CutProcessor.cut(toomo, resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
     }
 
+    @Test
+    fun test_無音の音声が作成できる() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_無音の音声が作成できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        // 10 秒間の無音の音声ファイルを作る
+        SilenceAudioProcessor.start(resultFile, 10_000)
+    }
+
     companion object {
         /** runTest デフォルトタイムアウト */
         private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
