@@ -2,7 +2,7 @@
 
 ![Maven Central](https://img.shields.io/maven-central/v/io.github.takusan23/akaricore)
 
-↑ shields.io で作ったバッジ
+↑ shields.io で作ったバッジ。最新バージョンは↑です。
 
 前作った conecocore ( https://github.com/takusan23/Coneco/tree/master/conecocore ) から実装をパクってます。
 
@@ -16,7 +16,8 @@ implementation("io.github.takusan23:akaricore:1.0.0-alpha01")
 https://takusan.negitoro.dev/posts/android_add_canvas_text_to_video/
 
 # つかいかた
-`ExampleInstrumentedTest.kt` を見てください。
+`ExampleInstrumentedTest.kt`を見てください。  
+`processor`パッケージ内のユーティリティ関数が利用可能です（`VideoCanvasProcessor`など）。詳しくは README で。
 
 ![image](https://user-images.githubusercontent.com/32033405/222954361-c1efe7a4-60ad-4e05-b83b-2969cdf0faf1.png)
 

@@ -2,6 +2,8 @@
 
 映像を加工するクラスがあったりする
 
+- SilenceAudioProcessor
+  - 指定した時間で無音の音声ファイルを作成します
 - ConcatProcessor
     - 動画を結合する
 - VideoCanvasProcessor
