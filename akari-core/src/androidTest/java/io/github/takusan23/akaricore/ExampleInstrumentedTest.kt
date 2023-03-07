@@ -40,12 +40,15 @@ class ExampleInstrumentedTest {
 
         val videoFile = sampleVideoFolder.resolve("iphone.mp4")
         val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
+        val mixingVideo = AudioMixingProcessor.MixingFileData(videoFile, 0..10_000L, volume = 1f)
+        val mixingBgm = AudioMixingProcessor.MixingFileData(bgmFile, 0..10_000L, volume = 0.05f)
+
         AudioMixingProcessor.start(
-            audioFileList = listOf(videoFile, bgmFile),
+            audioFileList = listOf(mixingVideo, mixingBgm),
             resultFile = resultFile,
             tempFolder = tempFolder,
             audioCodec = MediaFormat.MIMETYPE_AUDIO_AAC,
-            mixingVolume = 0.05f
+            audioDurationMs = 10_000L
         )
         tempFolder.deleteRecursively()
     }

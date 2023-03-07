@@ -64,6 +64,13 @@ sealed interface TimelineItemData {
 
     /**
      * 音声素材
+     *
+     * @param id 識別するために使われる
+     * @param startMs 開始位置（ミリ秒）
+     * @param endMs 終了位置（ミリ秒）
+     * @param videoFilePath 動画パス
+     * @param videoCutStartMs 動画を切り取る場合の位置（ミリ秒）
+     * @param videoCutEndMs 動画を切り取る場合の位置（ミリ秒）
      */
     @Serializable
     data class AudioData(
@@ -71,9 +78,17 @@ sealed interface TimelineItemData {
         override val startMs: Long,
         override val endMs: Long,
         val audioFilePath: String,
-        val videoStartMs: Long? = null,
-        val videoEndMs: Long? = null,
-    ) : TimelineItemData
+        val audioCutStartMs: Long? = null,
+        val audioCutEndMs: Long? = null,
+    ) : TimelineItemData {
+
+        /** 切り取り範囲を LongRange にする */
+        val audioCutRange: LongRange?
+            get() = if (audioCutStartMs != null && audioCutEndMs != null) {
+                audioCutStartMs..audioCutEndMs
+            } else null
+
+    }
 
     /** 開始、終了の LongRange。シリアライズの都合で Range はできない */
     val timeRange: LongRange

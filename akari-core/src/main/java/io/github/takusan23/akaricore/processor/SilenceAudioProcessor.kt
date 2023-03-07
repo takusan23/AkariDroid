@@ -25,7 +25,7 @@ object SilenceAudioProcessor {
      */
     suspend fun start(
         resultFile: File,
-        durationMs: Int,
+        durationMs: Long,
         audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         bitRate: Int = 128_000,

@@ -5,10 +5,7 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.processor.CanvasProcessor
-import io.github.takusan23.akaricore.processor.ConcatProcessor
-import io.github.takusan23.akaricore.processor.CutProcessor
-import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
+import io.github.takusan23.akaricore.processor.*
 import io.github.takusan23.akaricore.tool.MediaExtractorTool
 import io.github.takusan23.akaridroid.data.VideoOutputFormat
 import io.github.takusan23.akaridroid.timeline.*
@@ -242,6 +239,47 @@ class TimelineDataEncodeTest {
             return@mapIndexed encodedFile
         }
         ConcatProcessor.concatVideo(encodeVideoChunkFileList, resultFile)
+        tempFolder.deleteRecursively()
+    }
+
+    @Test
+    fun test_タイムラインから音声のミキシングが出来る() = runTest(dispatchTimeoutMs = DEFAULT_DISPATCH_TIMEOUT_MS * 10) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = File(appContext.getExternalFilesDir(null), "sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_タイムラインから音声のミキシングが出来る_${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply {
+            deleteRecursively()
+            mkdir()
+        }
+
+        val timelineData = TimelineData(
+            videoDurationMs = 10_000,
+            timelineItemDataList = listOf(
+                TimelineItemData.AudioData(
+                    startMs = 0, endMs = 10_000,
+                    audioFilePath = sampleVideoFolder.resolve("famipop.mp3").path,
+                ),
+                TimelineItemData.VideoData(
+                    startMs = 0, endMs = 10_000,
+                    videoFilePath = sampleVideoFolder.resolve("iphone.mp4").path,
+                ),
+                TimelineItemData.AudioData(
+                    startMs = 0, endMs = 2_000,
+                    audioFilePath = sampleVideoFolder.resolve("yukkuri.mp3").path,
+                ),
+                TimelineItemData.AudioData(
+                    startMs = 5_000, endMs = 7_000,
+                    audioFilePath = sampleVideoFolder.resolve("yukkuri.mp3").path,
+                ),
+            )
+        )
+        // 音声と動画のみ
+        val mixingList = timelineData.timelineItemDataList.filterIsInstance<TimelineItemData.VideoData>().map { itemData ->
+            AudioMixingProcessor.MixingFileData(File(itemData.videoFilePath), itemData.timeRange, volume = 1f)
+        } + timelineData.timelineItemDataList.filterIsInstance<TimelineItemData.AudioData>().map { itemData ->
+            AudioMixingProcessor.MixingFileData(File(itemData.audioFilePath), itemData.timeRange, volume = 0.05f)
+        }
+        AudioMixingProcessor.start(mixingList, resultFile, tempFolder, timelineData.videoDurationMs)
         tempFolder.deleteRecursively()
     }
 

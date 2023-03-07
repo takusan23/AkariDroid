@@ -91,6 +91,10 @@ limitations under the License.
 
 `build.gradle.kts`の`version = "1.0.0-alpha01"`を +1 します。
 
+## 更新内容を書く
+
+CORE_RELEASE_NORE.md を書く
+
 ## GitHub Actions を利用する
 `GitHub Actions`の`publish-library-maven-central.yml`を利用することで、ライブラリを`MavenCentral`までアップロードしてくれます。  
 手動実行ボタンを押してしばらく待ちます。  

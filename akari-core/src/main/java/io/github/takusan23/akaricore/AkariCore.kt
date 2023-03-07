@@ -48,13 +48,14 @@ class AkariCore(
             )
         }
         val audioTask = async {
+            // TODO 動かない
             AudioMixingProcessor.start(
-                audioFileList = listOf(videoFileData.videoFile) + videoFileData.audioAssetFileList,
+                audioFileList = emptyList(),
                 resultFile = videoFileData.encodedAudioFile,
                 tempFolder = videoFileData.tempWorkFolder,
                 audioCodec = audioEncoderData.codecName,
                 bitRate = audioEncoderData.bitRate,
-                mixingVolume = audioEncoderData.mixingVolume
+                audioDurationMs = 0L
             )
         }
         // 終わるまで待つ
