@@ -86,7 +86,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "io.github.takusan23"
                 artifactId = "akaricore"
-                version = "1.0.0-alpha02"
+                version = "1.0.0-alpha03"
                 if (project.plugins.hasPlugin("com.android.library")) {
                     from(components["release"])
                 } else {

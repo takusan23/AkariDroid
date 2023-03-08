@@ -45,7 +45,7 @@ object VideoCanvasProcessor {
     suspend fun start(
         videoFile: File,
         resultFile: File,
-        videoCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        videoCodec: String = MediaFormat.MIMETYPE_VIDEO_AVC,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         bitRate: Int = 1_000_000,
         frameRate: Int = 30,
@@ -61,8 +61,6 @@ object VideoCanvasProcessor {
         mediaExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
         // 解析結果から各パラメータを取り出す
-        val decodeMimeType = format.getString(MediaFormat.KEY_MIME)!!
-        val encoderMimeType = videoCodec ?: decodeMimeType
         val videoWidth = format.getInteger(MediaFormat.KEY_WIDTH)
         val videoHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
         // 画面回転情報
@@ -72,10 +70,10 @@ object VideoCanvasProcessor {
         val originVideoHeight = if (hasRotation) videoWidth else videoHeight
 
         // エンコード用（生データ -> H.264）MediaCodec
-        val encodeMediaCodec = MediaCodec.createEncoderByType(encoderMimeType).apply {
+        val encodeMediaCodec = MediaCodec.createEncoderByType(videoCodec).apply {
             // エンコーダーにセットするMediaFormat
             // コーデックが指定されていればそっちを使う
-            val videoMediaFormat = MediaFormat.createVideoFormat(encoderMimeType, outputVideoWidth, outputVideoHeight).apply {
+            val videoMediaFormat = MediaFormat.createVideoFormat(videoCodec, outputVideoWidth, outputVideoHeight).apply {
                 setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, INPUT_BUFFER_SIZE)
                 setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
                 setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
@@ -101,7 +99,7 @@ object VideoCanvasProcessor {
 
         // デコード用（H.264 -> 生データ）MediaCodec
         mediaCodecInputSurface.createRender()
-        val decodeMediaCodec = MediaCodec.createDecoderByType(decodeMimeType).apply {
+        val decodeMediaCodec = MediaCodec.createDecoderByType(videoCodec).apply {
             // 画面回転データが有った場合にリセットする
             // このままだと回転されたままなので、OpenGL 側で回転させる
             // setInteger をここでやるのは良くない気がするけど面倒なので
