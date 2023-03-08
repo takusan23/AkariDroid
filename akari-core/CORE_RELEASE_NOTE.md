@@ -2,6 +2,10 @@
 更新忘れたらごめん
 
 - akaricore:1.0.0-alpha02
+  - 2023/03/09
+  - VideoCanvasProcessor の修正
+
+- akaricore:1.0.0-alpha02
   - 2023/03/07
   - 以下のクラスを追加
     - CanvasProcessor
