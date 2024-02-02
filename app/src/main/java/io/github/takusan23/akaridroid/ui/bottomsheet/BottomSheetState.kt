@@ -1,8 +1,8 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,12 +29,17 @@ fun rememberBottomSheetState(onResult: (BottomSheetResultData) -> Unit): BottomS
  * @param scope コルーチンスコープ
  * @param onResult ボトムシートで作業すると[BottomSheetResultData]が流れてきます
  */
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 class BottomSheetState(private val scope: CoroutineScope, private val onResult: (BottomSheetResultData) -> Unit) {
     private val _bottomSheetInitData = MutableStateFlow<BottomSheetInitData?>(null)
 
     /** Compose ボトムシート の状態管理 */
-    val modalBottomSheetState = ModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden, confirmStateChange = { true })
+    val modalBottomSheetState = SheetState(
+        initialValue = SheetValue.Hidden,
+        confirmValueChange = { true },
+        skipHiddenState = false,
+        skipPartiallyExpanded = false
+    )
 
     /** ボトムシートを開くための初期データ */
     val bottomSheetInitData = _bottomSheetInitData.asStateFlow()
@@ -44,7 +49,7 @@ class BottomSheetState(private val scope: CoroutineScope, private val onResult: 
         scope.launch {
             snapshotFlow { modalBottomSheetState.currentValue }
                 .collect {
-                    if (it == ModalBottomSheetValue.Hidden) {
+                    if (it == SheetValue.Hidden) {
                         close()
                     }
                 }

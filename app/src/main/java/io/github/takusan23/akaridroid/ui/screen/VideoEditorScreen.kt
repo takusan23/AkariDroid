@@ -5,12 +5,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -22,13 +29,19 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditMenuBottomSheetMen
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetInitData
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetResultData
 import io.github.takusan23.akaridroid.ui.bottomsheet.rememberBottomSheetState
-import io.github.takusan23.akaridroid.ui.component.*
+import io.github.takusan23.akaridroid.ui.component.AkariCanvasCompose
+import io.github.takusan23.akaridroid.ui.component.EditorMenuBar
+import io.github.takusan23.akaridroid.ui.component.ModalSheetScaffold
+import io.github.takusan23.akaridroid.ui.component.TempEncodingMessage
+import io.github.takusan23.akaridroid.ui.component.Timeline
+import io.github.takusan23.akaridroid.ui.component.VideoPlayer
+import io.github.takusan23.akaridroid.ui.component.VideoPlayerController
 import io.github.takusan23.akaridroid.ui.tool.rememberVideoPlayerState
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 import kotlinx.coroutines.launch
 
 /** 編集画面 */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VideoEditorScreen(viewModel: VideoEditorViewModel) {
     val scope = rememberCoroutineScope()
@@ -71,10 +84,12 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel) {
                             encoderService.value?.encodeAkariProject(projectData)
                         }
                     }
+
                     VideoEditMenuBottomSheetMenu.EncoderFormatSetting -> {
                         // エンコーダー設定。まだ
                         Toast.makeText(context, "未実装", Toast.LENGTH_SHORT).show()
                     }
+
                     VideoEditMenuBottomSheetMenu.SaveMenu -> {
                         scope.launch { viewModel.saveEncodeData() }
                     }
@@ -107,11 +122,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel) {
             )
         }
     ) {
-        Column(
-            modifier = Modifier
-                .padding(it)
-                .fillMaxSize()
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
             // エンコード中用表示。かり
             if (isRunningEncode?.value == true) {
