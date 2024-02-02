@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** OpenGLを利用して動画にCanvasを重ねる */
+@Deprecated(message = "v2")
 object VideoCanvasProcessor {
 
     /** タイムアウト */

@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Canvasの入力から動画を作成する */
+@Deprecated(message = "v2")
 object CanvasProcessor {
 
     /** タイムアウト */

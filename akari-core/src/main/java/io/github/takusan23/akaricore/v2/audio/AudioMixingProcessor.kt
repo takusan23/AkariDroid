@@ -1,9 +1,8 @@
-package io.github.takusan23.akaricore.v1.processor
+package io.github.takusan23.akaricore.v2.audio
 
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.util.Log
-import io.github.takusan23.akaricore.v1.common.AudioDecoder
 import io.github.takusan23.akaricore.v1.common.AudioEncoder
 import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +19,6 @@ import java.io.InputStream
  * 音の合成ですが、難しいことはなく、波の音を重ねることで音がミックスされます。
  * 実装的には、AACをPCMにして（AudacityのRawデータのように）、バイト配列から同じ位置のByteを足すことでできます。
  */
-@Deprecated(message = "v2")
 object AudioMixingProcessor {
 
     private val TAG = AudioMixingProcessor::class.java.simpleName
@@ -77,7 +75,6 @@ object AudioMixingProcessor {
                     },
                     onOutputBufferAvailable = { bytes -> rawTempFile.appendBytes(bytes) }
                 )
-                audioDecoder.release()
                 // コピーしてファイルパスを デコードしたPCM にする
                 return@async mixData.copy(audioFile = rawTempFile)
             }

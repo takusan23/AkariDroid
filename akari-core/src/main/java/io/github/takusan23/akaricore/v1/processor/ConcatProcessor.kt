@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** 複数の動画を連結する */
+@Deprecated(message = "v2")
 object ConcatProcessor {
 
     /** 一時ファイルの名前 */

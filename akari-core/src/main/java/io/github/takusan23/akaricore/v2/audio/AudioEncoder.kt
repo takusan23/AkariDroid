@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.v1.common
+package io.github.takusan23.akaricore.v2.audio
 
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
@@ -14,8 +14,7 @@ import java.nio.ByteBuffer
  *
  * 生（意味深）の音声（PCM）送られてくるので、 AAC / Opus にエンコードして圧縮する。
  */
-@Deprecated("v2")
-class AudioEncoder {
+internal class AudioEncoder {
 
     /** MediaCodec エンコーダー */
     private var mediaCodec: MediaCodec? = null
@@ -85,7 +84,8 @@ class AudioEncoder {
                 val outputBufferId = mediaCodec!!.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 if (outputBufferId >= 0) {
                     val outputBuffer = mediaCodec!!.getOutputBuffer(outputBufferId)!!
-                    if (bufferInfo.size > 1) {
+                    // size > 0 とか BUFFER_FLAG_CODEC_CONFIG を消すと、MediaMuxer 周りで時間がおかしくなる
+                    if (bufferInfo.size > 0) {
                         if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                             // ファイルに書き込む...
                             onOutputBufferAvailable(outputBuffer, bufferInfo)
@@ -101,16 +101,14 @@ class AudioEncoder {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    /** リソースを開放する */
-    fun release() {
-        try {
-            mediaCodec?.stop()
-            mediaCodec?.release()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } finally {
+            // リソースを開放する
+            try {
+                mediaCodec?.stop()
+                mediaCodec?.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

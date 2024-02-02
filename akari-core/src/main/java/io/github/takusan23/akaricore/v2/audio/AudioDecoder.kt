@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.v1.common
+package io.github.takusan23.akaricore.v2.audio
 
 import android.media.MediaCodec
 import android.media.MediaFormat
@@ -8,12 +8,12 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
 /**
- * 音声デコーダー
+ * 音声エンコーダー
+ * MediaCodecを使いやすくしただけ
  *
- * 圧縮されたデータ（AAC）から PCM にする。
+ * 生（意味深）の音声（PCM）送られてくるので、 AAC / Opus にエンコードして圧縮する。
  */
-@Deprecated("v2")
-class AudioDecoder {
+internal class AudioDecoder {
 
     /** MediaCodec デコーダー */
     private var mediaCodec: MediaCodec? = null
@@ -32,12 +32,14 @@ class AudioDecoder {
     }
 
     /**
-     * デコーダーを開始する
+     * 音声のデコードをする
      *
+     * @param onOutputFormat MediaFormat が確定したときに呼ばれる
      * @param readSampleData ByteArrayを渡すので、音声データを入れて、サイズと再生時間（マイクロ秒）を返してください
      * @param onOutputBufferAvailable デコードされたデータが流れてきます
      */
     suspend fun startAudioDecode(
+        onOutputFormat: (MediaFormat) -> Unit = {},
         readSampleData: (ByteBuffer) -> Pair<Int, Long>,
         onOutputBufferAvailable: (ByteArray) -> Unit,
     ) = withContext(Dispatchers.Default) {
@@ -72,20 +74,24 @@ class AudioDecoder {
                     onOutputBufferAvailable(outData)
                     // 返却
                     mediaCodec!!.releaseOutputBuffer(outputBufferId, false)
+                } else if (outputBufferId == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    // HE-AAC を MediaExtractor で解析すると、サンプリングレートが半分になる現象があった。
+                    // 調べると、デコーダーが吐き出す MediaFormat を見る必要があった模様。
+                    // ドキュメントに書いとけ
+                    // https://stackoverflow.com/questions/33609775/
+                    onOutputFormat(mediaCodec!!.outputFormat)
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    /** リソースを開放する */
-    fun release() {
-        try {
-            mediaCodec?.stop()
-            mediaCodec?.release()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } finally {
+            // リソースを開放する
+            try {
+                mediaCodec?.stop()
+                mediaCodec?.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

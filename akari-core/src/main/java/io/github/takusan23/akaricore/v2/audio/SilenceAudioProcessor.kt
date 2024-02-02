@@ -1,14 +1,12 @@
-package io.github.takusan23.akaricore.v1.processor
+package io.github.takusan23.akaricore.v2.audio
 
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.v1.common.AudioEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /** 無音の音声ファイルを作成する */
-@Deprecated(message = "v2")
 object SilenceAudioProcessor {
 
     /** トラック番号が空の場合 */
@@ -37,7 +35,7 @@ object SilenceAudioProcessor {
         var trackIndex = UNDEFINED_TRACK_INDEX
 
         // 空の音声を用意する
-        // PCMは 2 バイト利用する
+        // 大抵の動画ファイルの音声の量子化ビット数は 16bit なので、2 バイト使う
         // ステレオなので 2 チャンネル
         // それをサンプリングレートでかけると、1秒間に必要なバイトサイズが出る
         // そして最後に秒をかけて、無音のPCMデータを作成する
@@ -67,7 +65,6 @@ object SilenceAudioProcessor {
             },
         )
         mediaMuxer.release()
-        audioEncoder.release()
     }
 
 }

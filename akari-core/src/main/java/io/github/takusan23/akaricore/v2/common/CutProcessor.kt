@@ -1,10 +1,9 @@
-package io.github.takusan23.akaricore.v1.processor
+package io.github.takusan23.akaricore.v2.common
 
 import android.annotation.SuppressLint
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -12,7 +11,6 @@ import java.io.File
 import java.nio.ByteBuffer
 
 /** 動画、音声を指定時間でカットする処理 */
-@Deprecated(message = "v2")
 object CutProcessor {
 
     /**
