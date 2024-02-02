@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
@@ -23,11 +24,16 @@ object ServiceBroadcastReceiver {
                 intent?.action?.also { action -> trySend(action) }
             }
         }
-        context.registerReceiver(broadcastReceiver, IntentFilter().apply {
-            actionList.forEach {
-                addAction(it)
-            }
-        })
+        ContextCompat.registerReceiver(
+            context,
+            broadcastReceiver,
+            IntentFilter().apply {
+                actionList.forEach {
+                    addAction(it)
+                }
+            },
+            ContextCompat.RECEIVER_EXPORTED
+        )
         awaitClose { context.unregisterReceiver(broadcastReceiver) }
     }
 
