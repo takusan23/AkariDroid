@@ -1,6 +1,9 @@
 # akari-core リリースノート
 更新忘れたらごめん
 
+## 1.0.0 時代
+作り直そうと思ったので、1系はこれが最後
+
 - akaricore:1.0.0-alpha02
   - 2023/03/09
   - VideoCanvasProcessor の修正
