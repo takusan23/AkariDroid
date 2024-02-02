@@ -1,8 +1,8 @@
-package io.github.takusan23.akaricore.processor
+package io.github.takusan23.akaricore.v1.processor
 
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.common.AudioEncoder
+import io.github.takusan23.akaricore.v1.common.AudioEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

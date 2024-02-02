@@ -16,10 +16,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import io.github.takusan23.akaricore.AkariCore
-import io.github.takusan23.akaricore.data.AudioEncoderData
-import io.github.takusan23.akaricore.data.VideoEncoderData
-import io.github.takusan23.akaricore.data.VideoFileData
+import io.github.takusan23.akaricore.v1.AkariCore
+import io.github.takusan23.akaricore.v1.data.AudioEncoderData
+import io.github.takusan23.akaricore.v1.data.VideoEncoderData
+import io.github.takusan23.akaricore.v1.data.VideoFileData
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.data.AkariProjectData
 import io.github.takusan23.akaridroid.service.tool.ServiceBroadcastReceiver

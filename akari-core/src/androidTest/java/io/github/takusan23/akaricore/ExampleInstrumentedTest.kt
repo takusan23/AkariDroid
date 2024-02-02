@@ -7,8 +7,14 @@ import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.processor.*
-import io.github.takusan23.akaricore.tool.MediaExtractorTool
-import io.github.takusan23.akaricore.tool.MediaMuxerTool
+import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v1.tool.MediaMuxerTool
+import io.github.takusan23.akaricore.v1.processor.AudioMixingProcessor
+import io.github.takusan23.akaricore.v1.processor.CanvasProcessor
+import io.github.takusan23.akaricore.v1.processor.ConcatProcessor
+import io.github.takusan23.akaricore.v1.processor.CutProcessor
+import io.github.takusan23.akaricore.v1.processor.SilenceAudioProcessor
+import io.github.takusan23.akaricore.v1.processor.VideoCanvasProcessor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*

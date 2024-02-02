@@ -1,11 +1,11 @@
-package io.github.takusan23.akaricore.processor
+package io.github.takusan23.akaricore.v1.processor
 
 import android.media.*
-import io.github.takusan23.akaricore.common.AudioDecoder
-import io.github.takusan23.akaricore.common.AudioEncoder
-import io.github.takusan23.akaricore.gl.MediaCodecInputSurface
-import io.github.takusan23.akaricore.gl.TextureRenderer
-import io.github.takusan23.akaricore.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v1.common.AudioDecoder
+import io.github.takusan23.akaricore.v1.common.AudioEncoder
+import io.github.takusan23.akaricore.v1.gl.MediaCodecInputSurface
+import io.github.takusan23.akaricore.v1.gl.TextureRenderer
+import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext

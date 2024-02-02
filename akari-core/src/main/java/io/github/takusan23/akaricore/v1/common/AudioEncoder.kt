@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.common
+package io.github.takusan23.akaricore.v1.common
 
 import android.media.MediaCodec
 import android.media.MediaCodecInfo

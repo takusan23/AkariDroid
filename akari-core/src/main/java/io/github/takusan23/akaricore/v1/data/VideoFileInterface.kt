@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.data
+package io.github.takusan23.akaricore.v1.data
 
 import java.io.File
 

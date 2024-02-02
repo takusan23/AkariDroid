@@ -1,10 +1,10 @@
-package io.github.takusan23.akaricore.processor
+package io.github.takusan23.akaricore.v1.processor
 
 import android.annotation.SuppressLint
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext

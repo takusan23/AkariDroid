@@ -1,14 +1,14 @@
-package io.github.takusan23.akaricore
+package io.github.takusan23.akaricore.v1
 
 import android.graphics.Canvas
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.data.AudioEncoderData
-import io.github.takusan23.akaricore.data.VideoEncoderData
-import io.github.takusan23.akaricore.data.VideoFileInterface
-import io.github.takusan23.akaricore.processor.AudioMixingProcessor
-import io.github.takusan23.akaricore.processor.QtFastStart
-import io.github.takusan23.akaricore.processor.VideoCanvasProcessor
-import io.github.takusan23.akaricore.tool.MediaMuxerTool
+import io.github.takusan23.akaricore.v1.data.AudioEncoderData
+import io.github.takusan23.akaricore.v1.data.VideoEncoderData
+import io.github.takusan23.akaricore.v1.data.VideoFileInterface
+import io.github.takusan23.akaricore.v1.processor.AudioMixingProcessor
+import io.github.takusan23.akaricore.v1.processor.QtFastStart
+import io.github.takusan23.akaricore.v1.processor.VideoCanvasProcessor
+import io.github.takusan23.akaricore.v1.tool.MediaMuxerTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext

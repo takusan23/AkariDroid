@@ -86,7 +86,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "io.github.takusan23"
                 artifactId = "akaricore"
-                version = "1.0.0-alpha03"
+                version = "2.0.0-alpha01"
                 if (project.plugins.hasPlugin("com.android.library")) {
                     from(components["release"])
                 } else {
@@ -97,7 +97,7 @@ afterEvaluate {
                 pom {
                     // ライブラリ情報
                     name.set("akaricore")
-                    description.set("AkariDroid core library")
+                    description.set("AkariDroid is Video editor app in Android. AkariDroid core library")
                     url.set("https://github.com/takusan23/AkariDroid/")
                     // ライセンス
                     licenses {

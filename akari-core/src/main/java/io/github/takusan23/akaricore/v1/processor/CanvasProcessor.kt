@@ -1,12 +1,12 @@
-package io.github.takusan23.akaricore.processor
+package io.github.takusan23.akaricore.v1.processor
 
 import android.graphics.Canvas
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.gl.CanvasInputSurface
-import io.github.takusan23.akaricore.gl.TextureRenderer
+import io.github.takusan23.akaricore.v1.gl.CanvasInputSurface
+import io.github.takusan23.akaricore.v1.gl.TextureRenderer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext

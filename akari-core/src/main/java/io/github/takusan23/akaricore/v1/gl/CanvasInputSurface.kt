@@ -1,55 +1,19 @@
-package io.github.takusan23.akaricore.gl
+package io.github.takusan23.akaricore.v1.gl
 
 import android.graphics.Canvas
-import android.graphics.SurfaceTexture
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
 import android.view.Surface
 
-/*
- * https://android.googlesource.com/platform/cts/+/jb-mr2-release/tests/tests/media/src/android/media/cts/InputSurface.java
- *
- * Copyright (C) 2013 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
- * MediaCodecで使うOpenGLを管理するクラス
- *
- * Holds state associated with a Surface used for MediaCodec encoder input.
- * The constructor takes a Surface obtained from MediaCodec.createInputSurface(), and uses that
- * to create an EGL window surface.  Calls to eglSwapBuffers() cause a frame of data to be sent
- * to the video encoder.
- *
- * @param surface MediaCodecでもらえるcreateInputSurface
- */
-class MediaCodecInputSurface(
+/** 動画無しで Canvas のみを入力として利用する */
+class CanvasInputSurface(
     private val surface: Surface,
     private val textureRenderer: TextureRenderer,
-) : SurfaceTexture.OnFrameAvailableListener {
-
+) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
     private var mEGLContext = EGL14.EGL_NO_CONTEXT
     private var mEGLSurface = EGL14.EGL_NO_SURFACE
-    private val mFrameSyncObject = Object()
-    private var mFrameAvailable = false
-    private var surfaceTexture: SurfaceTexture? = null
-
-    /** MediaCodecのデコーダーSurfaceとしてこれを使う */
-    var drawSurface: Surface? = null
-        private set
 
     init {
         eglSetup()
@@ -57,10 +21,6 @@ class MediaCodecInputSurface(
 
     fun createRender() {
         textureRenderer.surfaceCreated()
-        surfaceTexture = SurfaceTexture(textureRenderer.videoTextureID).also { surfaceTexture ->
-            surfaceTexture.setOnFrameAvailableListener(this)
-        }
-        drawSurface = Surface(surfaceTexture)
     }
 
     /**
@@ -109,58 +69,15 @@ class MediaCodecInputSurface(
         checkEglError("eglCreateWindowSurface")
     }
 
-    fun changeFragmentShader(fragmentShader: String) {
-        textureRenderer.changeFragmentShader(fragmentShader)
-    }
-
-    fun awaitNewImage() {
-        val TIMEOUT_MS = 5000
-        synchronized(mFrameSyncObject) {
-            while (!mFrameAvailable) {
-                try {
-                    mFrameSyncObject.wait(TIMEOUT_MS.toLong())
-                    if (!mFrameAvailable) {
-                        throw RuntimeException("Surface frame wait timed out")
-                    }
-                } catch (ie: InterruptedException) {
-                    throw RuntimeException(ie)
-                }
-            }
-            mFrameAvailable = false
-        }
-        textureRenderer.checkGlError("before updateTexImage")
-        surfaceTexture?.updateTexImage()
-    }
-
-    /** 映像のみを描画する */
-    fun drawImage() {
-        val surfaceTexture = surfaceTexture ?: return
-        textureRenderer.prepareDraw()
-        textureRenderer.drawFrame(surfaceTexture)
-        textureRenderer.invokeGlFinish()
-    }
-
     /**
      * フレームが来たら描画する
      *
      * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
      */
     fun drawImage(onCanvasDrawRequest: (Canvas) -> Unit) {
-        val surfaceTexture = surfaceTexture ?: return
         textureRenderer.prepareDraw()
-        textureRenderer.drawFrame(surfaceTexture)
         textureRenderer.drawCanvas(onCanvasDrawRequest)
         textureRenderer.invokeGlFinish()
-    }
-
-    override fun onFrameAvailable(st: SurfaceTexture) {
-        synchronized(mFrameSyncObject) {
-            if (mFrameAvailable) {
-                throw RuntimeException("mFrameAvailable already set, frame could be dropped")
-            }
-            mFrameAvailable = true
-            mFrameSyncObject.notifyAll()
-        }
     }
 
     /**
@@ -219,5 +136,4 @@ class MediaCodecInputSurface(
     companion object {
         private const val EGL_RECORDABLE_ANDROID = 0x3142
     }
-
 }

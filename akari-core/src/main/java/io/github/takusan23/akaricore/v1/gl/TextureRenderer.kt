@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.gl
+package io.github.takusan23.akaricore.v1.gl
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -248,7 +248,7 @@ class TextureRenderer(
 
     fun changeFragmentShader(fragmentShader: String) {
         GLES20.glDeleteProgram(mProgram)
-        mProgram = createProgram(Companion.VERTEX_SHADER, fragmentShader)
+        mProgram = createProgram(VERTEX_SHADER, fragmentShader)
         if (mProgram == 0) {
             throw RuntimeException("failed creating program")
         }

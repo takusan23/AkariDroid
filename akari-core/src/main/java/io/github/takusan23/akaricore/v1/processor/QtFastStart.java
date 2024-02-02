@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.github.takusan23.akaricore.processor;
+package io.github.takusan23.akaricore.v1.processor;
 
 import java.io.Closeable;
 import java.io.File;

@@ -1,11 +1,11 @@
-package io.github.takusan23.akaricore.processor
+package io.github.takusan23.akaricore.v1.processor
 
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.util.Log
-import io.github.takusan23.akaricore.common.AudioDecoder
-import io.github.takusan23.akaricore.common.AudioEncoder
-import io.github.takusan23.akaricore.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v1.common.AudioDecoder
+import io.github.takusan23.akaricore.v1.common.AudioEncoder
+import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.isActive

@@ -1,4 +1,4 @@
-package io.github.takusan23.akaricore.tool
+package io.github.takusan23.akaricore.v1.tool
 
 import android.annotation.SuppressLint
 import android.media.MediaCodec
