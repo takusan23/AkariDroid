@@ -5,7 +5,6 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.processor.*
 import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import io.github.takusan23.akaricore.v1.processor.AudioMixingProcessor
 import io.github.takusan23.akaricore.v1.processor.CanvasProcessor
