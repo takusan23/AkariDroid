@@ -11,92 +11,40 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
+import kotlin.math.min
 
 /**
  * 音声をエンコードする。
  * 複数ファイルを指定すると音声を重ねてエンコードする。
  *
  * 音の合成ですが、難しいことはなく、波の音を重ねることで音がミックスされます。
- * 実装的には、AACをPCMにして（AudacityのRawデータのように）、バイト配列から同じ位置のByteを足すことでできます。
+ * 実装的には、AAC を PCM にして（ Audacity の Raw データのように）、バイト配列から同じ位置の Byte を足すことでできます。
  */
 object AudioMixingProcessor {
+    // TODO このアプリでは、音声は サンプリングレート=44100 チャンネル数=2 量子化ビット数=16bit にする必要あり
 
-    private val TAG = AudioMixingProcessor::class.java.simpleName
-
-    /** ByteArray のサイズ */
-    private const val READ_BYTE_SIZE = 8192
-
-    /** 仮のファイルの名前のプレフィックス */
-    private const val TEMP_FILE_NAME_PREFIX = "raw_audio_file_"
-
-    /** トラック番号が空の場合 */
-    private const val UNDEFINED_TRACK_INDEX = -1
+    private const val CHANNEL_COUNT = 2
+    private const val SAMPLING_RATE = 44_100
+    private const val BIT_DEPTH = 2 // 16bit -> 2byte
 
     /**
-     * 処理を始める、終わるまで一時停止します
+     * 音声 PCM を合成する
      *
-     * @param audioFileList 重ねる音声ファイル。ファイルと音声再生位置
-     * @param tempFolder 一時ファイル置き場
-     * @param audioCodec 音声コーデック
-     * @param containerFormat コンテナフォーマット
-     * @param audioDurationMs 音声ファイルの時間
-     * @param bitRate ビットレート
-     * @param samplingRate サンプリングレート
-     * @param mixingVolume ミックスする素材の音量。二番目以降のファイルに適用される
+     * @param outPcmFile 合成したファイルの出力先
+     * @param mixList 合成したい PCM ファイル
+     * @param durationMs 合計の長さ
      */
     suspend fun start(
-        audioFileList: List<MixingFileData>,
-        resultFile: File,
-        tempFolder: File,
-        audioDurationMs: Long,
-        audioCodec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
-        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-        bitRate: Int = 128_000,
-        samplingRate: Int = 44_100
-    ) = withContext(Dispatchers.Default) {
-        // それぞれのファイルをデコードして PCM にする
-        // TODO MediaCodec の起動上限に引っかかりそう
-        Log.d(TAG, "PCMへデコード開始")
-        val pcmDecodedFileList = audioFileList.mapIndexed { fileIndex, mixData ->
-            async {
-                // 情報を読み出す
-                val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(mixData.audioFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!
-                mediaExtractor.selectTrack(index)
-                // 仮の保存先を作成
-                val rawTempFile = tempFolder.resolve("$TEMP_FILE_NAME_PREFIX$fileIndex")
-                // デコーダー起動
-                val audioDecoder = AudioDecoder()
-                audioDecoder.prepareDecoder(format)
-                audioDecoder.startAudioDecode(
-                    readSampleData = { byteBuffer ->
-                        val size = mediaExtractor.readSampleData(byteBuffer, 0)
-                        mediaExtractor.advance()
-                        return@startAudioDecode size to mediaExtractor.sampleTime
-                    },
-                    onOutputBufferAvailable = { bytes -> rawTempFile.appendBytes(bytes) }
-                )
-                // コピーしてファイルパスを デコードしたPCM にする
-                return@async mixData.copy(audioFile = rawTempFile)
-            }
-        }.map { it.await() }.toMutableList()
-
-        // 音声の時間だけ無音のPCM音声ファイルを作る
-        // この何もない音声ファイルに対して音声を足していく
-        val silenceAudioFile = tempFolder.resolve("${TEMP_FILE_NAME_PREFIX}_silence_audio_file")
-        val second = (audioDurationMs / 1_000f).toInt()
-        val pcmByteSize = 2 * 2 * samplingRate
-        ByteArray(pcmByteSize * second).inputStream().use { inputStream ->
-            silenceAudioFile.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
+        outPcmFile: File,
+        durationMs: Long,
+        mixList: List<MixAudioData>
+    ) = withContext(Dispatchers.IO) {
+        // 出力先ファイルの OutputStream
+        val outputStream = outPcmFile.outputStream()
+        // InputStream を作る
+        val mixAudioStreamDataList = mixList.map {
+            MixAudioStreamData(it, it.inPcmFile.inputStream())
         }
-        pcmDecodedFileList.add(MixingFileData(silenceAudioFile, 0..audioDurationMs, 1f))
-
-        // PCM の 1秒間に必要なサイズ
-        // PCM は 1 チャンネルで 2 バイト利用する。
-        // ステレオなので 2 チャンネルにする。
-        // あとはサンプリングレートをかけて完成。
-        val pcmSecondByteSize = 2 * 2 * samplingRate
 
         // 音声を合成する
         // 以下のように、同じ位置のバイトを各ファイル取得して、全部足していく
@@ -105,110 +53,89 @@ object AudioMixingProcessor {
         // File-3 0x02 0x02 0x02 ...
         // -------------------------
         // Result 0x03 0x03 0x03 ...
-        Log.d(TAG, "ミキシング開始")
-        val mixingRawFile = tempFolder.resolve("${TEMP_FILE_NAME_PREFIX}mixed_raw_file")
-        val mixingRawDataList = pcmDecodedFileList.map { mixData ->
-            // timeRange はミリ秒だったので秒にする
-            val durationSec = (mixData.timeRange.last - mixData.timeRange.first) / 1_000f
-            val startSec = mixData.timeRange.first / 1_000f
-            // 開始時間を先頭から何バイト分あるかに変換する
-            val skipByteSize = (pcmSecondByteSize * startSec).toLong()
-            // 同様に時間も何バイト分かどうか
-            val mixingByteSize = (pcmSecondByteSize * durationSec).toLong()
 
-            MixingRawData(mixData.audioFile.inputStream(), skipByteSize, mixingByteSize, mixData.volume)
-        }
+        // 音を重ねていく
+        // サンプリングレートの分だけ
+        val durationSec = (durationMs / 1000).toInt()
+        repeat(durationSec) { sec ->
 
-        var prevReadByteSize = 0L
-        while (isActive) {
-            // 重ねるファイルの個数だけ PCM を ByteArray で取得し配列に入れる
-            val mixingRawByteArrayList = mixingRawDataList.filter {
-                // 書き込み済みバイトサイズをもとにミックス対象のファイルを見つける
-                prevReadByteSize in it.skipByteSize..(it.skipByteSize + it.mixingByteSize)
-            }.map { rawData ->
-                ByteArray(READ_BYTE_SIZE)
-                    .also { bytes -> rawData.inputStream.read(bytes) }
-                    // 音量調整をする
-                    .map { (it * rawData.volume).toInt().toByte() }
-            }
-            // もうミックス対象がない場合は終了にする
-            if (mixingRawByteArrayList.isEmpty()) {
-                break
-            }
+            // 同時に再生する音を取得
+            val inputStreamList = mixAudioStreamDataList
+                .filter { (sec * 1000) in it.mixAudioData.playPositionMs }
 
-            // 音を重ねていく
-            val mixingRawAudio = (0 until READ_BYTE_SIZE)
-                .map { index ->
-                    // ここで複数の PCM 音声 を重ねている
-                    // 音声は波で、波の合成は単純な足し算らしい（物理分からん）
-                    mixingRawByteArrayList
-                        // 範囲外になるタイミングがあるので
-                        .map { byteArray -> byteArray.getOrNull(index) ?: 0x00 }
-                        .sum()
-                        .toByte()
+            repeat(SAMPLING_RATE) {
+                // サンプリングレートの回数分呼ばれる
+                // 音を作ります
+                // 2 チャンネル、量子化ビット数 16bit なので、2 + 2 = 4 byte 必要です
+                if (inputStreamList.isEmpty()) {
+                    // 無い場合は、無音を書き込む
+                    val left = ByteArray(BIT_DEPTH)
+                    val right = ByteArray(BIT_DEPTH)
+                    outputStream.write(left)
+                    outputStream.write(right)
+                } else {
+                    // 音がある場合、しかも複数ある場合は足す
+                    // 音は波らしい。波は足し算できる
+                    val (leftList, rightList) = inputStreamList.map { (mixAudioData, inputStream) ->
+                        // 右と左の音を取り出す
+                        val leftByteArray = ByteArray(BIT_DEPTH)
+                        inputStream.read(leftByteArray)
+                        val rightByteArray = ByteArray(BIT_DEPTH)
+                        inputStream.read(rightByteArray)
+
+                        // ボリューム調整と、音の合成のために Int にする
+                        val leftInt = (leftByteArray.toShort().toInt() * mixAudioData.volume).toInt()
+                        val rightInt = (rightByteArray.toShort().toInt() * mixAudioData.volume).toInt()
+                        // map の返り値
+                        leftInt to rightInt
+                    }.let { readAudioList ->
+                        // 右と左でそれぞれ配列を分ける
+                        readAudioList.map { it.first } to readAudioList.map { it.second }
+                    }
+
+                    // 合成する
+                    // ただし 16bit を超えないように
+                    val sumLeftByteArray = min(Short.MAX_VALUE.toInt(), leftList.sum()).toShort().toByteArray()
+                    val sumRightByteArray = min(Short.MAX_VALUE.toInt(), rightList.sum()).toShort().toByteArray()
+                    // ByteArray に戻して、書き込む
+                    outputStream.write(sumLeftByteArray)
+                    outputStream.write(sumRightByteArray)
                 }
-                .toByteArray()
-            mixingRawFile.appendBytes(mixingRawAudio)
-            prevReadByteSize += READ_BYTE_SIZE
-        }
-        withContext(Dispatchers.IO) {
-            mixingRawDataList.forEach { it.inputStream.close() }
+            }
         }
 
-        // 生ファイルをエンコードする
-        Log.d(TAG, "AACにエンコード開始")
-        val mixedRawAudioInputStream = mixingRawFile.inputStream()
-        // コンテナフォーマット
-        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
-        var trackIndex = UNDEFINED_TRACK_INDEX
-        // エンコーダー起動
-        val audioEncoder = AudioEncoder()
-        audioEncoder.prepareEncoder(
-            codec = audioCodec,
-            sampleRate = samplingRate,
-            channelCount = 2,
-            bitRate = bitRate,
-        )
-        audioEncoder.startAudioEncode(
-            onRecordInput = { byteArray -> mixedRawAudioInputStream.read(byteArray) },
-            onOutputBufferAvailable = { byteBuffer, bufferInfo ->
-                if (trackIndex != -1) {
-                    mediaMuxer.writeSampleData(trackIndex, byteBuffer, bufferInfo)
-                }
-            },
-            onOutputFormatAvailable = {
-                trackIndex = mediaMuxer.addTrack(it)
-                mediaMuxer.start()
-            },
-        )
-        mediaMuxer.release()
-        audioEncoder.release()
-        withContext(Dispatchers.IO) {
-            mixedRawAudioInputStream.close()
-        }
+        // リソース開放
+        mixAudioStreamDataList.forEach { it.inputStream.close() }
+        outputStream.close()
     }
 
     /**
-     * ミックスするファイルの情報
+     * 音声を合成する際に必要な値
+     * PCM ファイルは、サンプリングレート 44100 、2 チャンネル、量子化ビット数 16bit である必要があります。
      *
-     * @param audioFile ファイル
-     * @param timeRange 再生開始位置から終了位置
-     * @param volume ボリューム 0..1 まで
+     * @param inPcmFile PCM ファイルのパス
+     * @param startMs 合成する再生開始位置
+     * @param volume 音量。0..1 まで
      */
-    data class MixingFileData(
-        val audioFile: File,
-        val timeRange: LongRange,
+    data class MixAudioData(
+        val inPcmFile: File,
+        val startMs: Long,
         val volume: Float = 1f
-    )
+    ) {
 
-    /**
-     * ミックス処理の際に内部で利用するデータクラス
-     */
-    private data class MixingRawData(
-        val inputStream: InputStream,
-        val skipByteSize: Long,
-        val mixingByteSize: Long,
-        val volume: Float
-    )
+        /** 音声ファイルの長さ（秒） */
+        val durationSec: Long
+            get() = inPcmFile.length() / (SAMPLING_RATE * CHANNEL_COUNT * BIT_DEPTH)
 
+        /** 再生すべき位置の範囲を返す。開始位置から、開始位置 + ファイルの長さ */
+        val playPositionMs: LongRange
+            get() = startMs..(startMs + (durationSec * 1000))
+
+    }
+
+    /** 内部で使う */
+    private data class MixAudioStreamData(
+        val mixAudioData: MixAudioData,
+        val inputStream: InputStream
+    )
 }

@@ -1,19 +1,24 @@
 package io.github.takusan23.akaricore
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Paint
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.system.Os.mkdir
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,7 +30,6 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(AndroidJUnit4::class)
 class ExampleInstrumentedTest {
 
@@ -36,27 +40,30 @@ class ExampleInstrumentedTest {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply {
-            deleteRecursively()
-            mkdir()
-        }
-        val resultFile = appContext.getExternalFilesDir(null)!!.resolve("test_音声を合成できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
 
+        val resultFile = appContext.getExternalFilesDir(null)!!.resolve("test_音声を合成できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
         val videoFile = sampleVideoFolder.resolve("iphone.mp4")
         val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
-        val mixingVideo = AudioMixingProcessor.MixingFileData(videoFile, 0..10_000L, volume = 1f)
-        val mixingBgm = AudioMixingProcessor.MixingFileData(bgmFile, 0..10_000L, volume = 0.05f)
 
-        try {
+        provideTempFolder { tempFolder ->
+            val videoPcm = tempFolder.resolve("video_pcm")
+            val bgmPcm = tempFolder.resolve("bgm_pcm")
+            val outPcm = tempFolder.resolve("out_pcm")
+            // デコード
+            AudioEncodeDecodeProcessor.decode(videoFile, videoPcm)
+            AudioEncodeDecodeProcessor.decode(bgmFile, bgmPcm)
+
+            // 合成する
             AudioMixingProcessor.start(
-                audioFileList = listOf(mixingVideo, mixingBgm),
-                resultFile = resultFile,
-                tempFolder = tempFolder,
-                audioCodec = MediaFormat.MIMETYPE_AUDIO_AAC,
-                audioDurationMs = 10_000L
+                outPcmFile = outPcm,
+                durationMs = 10_000,
+                mixList = listOf(
+                    AudioMixingProcessor.MixAudioData(videoPcm, 0, 1f),
+                    AudioMixingProcessor.MixAudioData(bgmPcm, 0, 0.05f)
+                )
             )
-        } finally {
-            tempFolder.deleteRecursively()
+            // エンコード
+            AudioEncodeDecodeProcessor.encode(outPcm, resultFile)
         }
     }
 
@@ -115,25 +122,43 @@ class ExampleInstrumentedTest {
     }
 
     @Test
-    fun test_サンプリングレートを44000から48000に変換できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+    fun test_サンプリングレートを8000から48000に変換できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_サンプリングレートを8000から48000に変換できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        val bgmFile = sampleVideoFolder.resolve("voice.wav")
+
+        provideTempFolder { tempFolder ->
+            val pcmFile = tempFolder.resolve("pcm_file")
+            val resamplingPcmFile = tempFolder.resolve("resampling_pcm_file")
+            // デコード
+            AudioEncodeDecodeProcessor.decode(bgmFile, pcmFile)
+            // アップサンプリング
+            ReSamplingRateProcessor.reSamplingBySonic(
+                inPcmFile = pcmFile,
+                outPcmFile = resamplingPcmFile,
+                channelCount = 1,
+                inSamplingRate = 8_000,
+                outSamplingRate = 44_100
+            )
+            // エンコード
+            AudioEncodeDecodeProcessor.encode(
+                inPcmFile = resamplingPcmFile,
+                outAudioFile = resultFile,
+                channelCount = 1
+            )
+        }
+    }
+
+    /** 一時的なファイル置き場を作る。ブロックを抜けたら削除されます。 */
+    private suspend fun provideTempFolder(action: suspend (tempFolder: File) -> Unit) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val tempFolder = File(appContext.getExternalFilesDir(null), "temp").apply {
             deleteRecursively()
             mkdir()
         }
-        val resultFile = File(appContext.getExternalFilesDir(null), "test_サンプリングレートを44000から48000に変換できる_${System.currentTimeMillis()}.webm").apply { createNewFile() }
-        val bgmFile = sampleVideoFolder.resolve("voice.wav")
-
         try {
-            ReSamplingRateProcessor.start(
-                audioFile = bgmFile,
-                resultFile = resultFile,
-                tempFolder = tempFolder,
-                resultSamplingRate = 48_000,
-                codecName = MediaFormat.MIMETYPE_AUDIO_OPUS,
-                containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_WEBM
-            )
+            action(tempFolder)
         } finally {
             tempFolder.deleteRecursively()
         }
