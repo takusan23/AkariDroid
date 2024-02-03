@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.v2.render
+package io.github.takusan23.akaridroid.v2.canvasrender
 
 import kotlinx.serialization.Serializable
 
@@ -36,8 +36,8 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             val text: String,
-            val textSize: Float,
-            val fontColor: Int
+            val textSize: Float? = null,
+            val fontColor: Int? = null
         ) : RenderItem
 
         /** 画像 */
@@ -47,7 +47,7 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             val filePath: String,
-            val size: Size
+            val size: Size? = null
         ) : RenderItem
 
         /** 動画 */
@@ -57,8 +57,9 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             val filePath: String,
-            val size: Size,
-            val cropTimeCrop: TimeCrop? = null
+            val size: Size? = null,
+            val cropTimeCrop: TimeCrop? = null,
+            val chromaKeyColor: Int? = null
         ) : RenderItem
     }
 
@@ -78,8 +79,8 @@ data class RenderData(
      */
     @Serializable
     data class Position(
-        val x: Int,
-        val y: Int
+        val x: Float,
+        val y: Float
     )
 
     /**
@@ -104,11 +105,17 @@ data class RenderData(
     data class DisplayTime(
         val startMs: Long,
         val stopMs: Long
-    )
+    ) : ClosedRange<Long> {
+        // ClosedRange<Long> を実装することで、 in が使えるようになる
+        override val endInclusive: Long
+            get() = startMs
+        override val start: Long
+            get() = startMs
+    }
 
     /**
      * カットできる素材の場合（一部分のみを使う）
-     * [io.github.takusan23.akaridroid.v2.render.RenderData.RenderItem.Video]と[AudioItem]くらい？
+     * [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.RenderItem.Video]と[AudioItem]くらい？
      */
     @Serializable
     data class TimeCrop(
