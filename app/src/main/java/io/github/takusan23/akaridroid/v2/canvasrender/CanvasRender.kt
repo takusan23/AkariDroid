@@ -2,7 +2,6 @@ package io.github.takusan23.akaridroid.v2.canvasrender
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Paint
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ImageRender
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ItemRenderInterface
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.TextRender
@@ -10,8 +9,6 @@ import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.VideoRender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CanvasRender(private val context: Context) {
@@ -55,9 +52,10 @@ class CanvasRender(private val context: Context) {
      * @param currentPositionMs 再生位置
      */
     suspend fun draw(canvas: Canvas, currentPositionMs: Long) {
-        itemRenderList
-            .filter { currentPositionMs in it.displayTime }
-            .forEach { itemRender -> itemRender.draw(canvas, currentPositionMs) }
+        // 黒埋めする
+        // canvas.drawColor(Color.BLACK)
+        // 描画する
+        itemRenderList.forEach { itemRender -> itemRender.draw(canvas, currentPositionMs) }
     }
 
 }

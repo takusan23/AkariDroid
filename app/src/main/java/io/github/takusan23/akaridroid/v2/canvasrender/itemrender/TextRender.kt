@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.v2.canvasrender.itemrender
 
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
 
@@ -23,12 +24,8 @@ class TextRender(
         if (currentPositionMs !in text.displayTime) {
             return
         }
-        if (text.fontColor != null) {
-            paint.color = text.fontColor
-        }
-        if (text.textSize != null) {
-            paint.textSize = text.textSize
-        }
+        paint.color = Color.parseColor(text.fontColor)
+        paint.textSize = text.textSize
         val (x, y) = text.position
         canvas.drawText(text.text, x, y, paint)
     }

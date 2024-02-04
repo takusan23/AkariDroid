@@ -45,7 +45,7 @@ object CanvasVideoProcessor {
         outputVideoHeight: Int = 720,
         codecName: String = MediaFormat.MIMETYPE_VIDEO_AVC,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-        onCanvasDrawRequest: Canvas.(positionMs: Long) -> Boolean,
+        onCanvasDrawRequest: suspend Canvas.(positionMs: Long) -> Boolean,
     ) = withContext(Dispatchers.Default) {
         val encodeMediaCodec = MediaCodec.createEncoderByType(codecName).apply {
             // エンコーダーにセットするMediaFormat

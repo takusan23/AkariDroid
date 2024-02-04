@@ -94,7 +94,7 @@ internal class TextureRenderer(
      *
      * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
      */
-    fun drawCanvas(onCanvasDrawRequest: (Canvas) -> Unit) {
+    suspend fun drawCanvas(onCanvasDrawRequest: suspend (Canvas) -> Unit) {
         checkGlError("drawCanvas start")
         // コンテキストをCanvasのテクスチャIDに切り替える
         // テクスチャ設定

@@ -40,8 +40,8 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             val text: String,
-            val textSize: Float? = null,
-            val fontColor: Int? = null
+            val textSize: Float = 24f,
+            val fontColor: String = "#ffffff"
         ) : CanvasItem
 
         /** 画像 */
@@ -118,9 +118,9 @@ data class RenderData(
         val stopMs: Long
     ) : ClosedRange<Long> {
         // ClosedRange<Long> を実装することで、 in が使えるようになる
-        override val endInclusive: Long
-            get() = startMs
         override val start: Long
+            get() = startMs
+        override val endInclusive: Long
             get() = stopMs
     }
 
@@ -134,9 +134,9 @@ data class RenderData(
         val cropStopMs: Long
     ) : ClosedRange<Long> {
         // ClosedRange<Long> を実装することで、 in が使えるようになる
-        override val endInclusive: Long
-            get() = cropStartMs
         override val start: Long
+            get() = cropStartMs
+        override val endInclusive: Long
             get() = cropStopMs
     }
 }

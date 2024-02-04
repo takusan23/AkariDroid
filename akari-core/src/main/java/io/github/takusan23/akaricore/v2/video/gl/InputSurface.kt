@@ -95,7 +95,7 @@ internal class InputSurface(
      *
      * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
      */
-    fun drawCanvas(onCanvasDrawRequest: (Canvas) -> Unit) {
+    suspend fun drawCanvas(onCanvasDrawRequest: suspend (Canvas) -> Unit) {
         textureRenderer.prepareDraw()
         textureRenderer.drawCanvas(onCanvasDrawRequest)
         textureRenderer.invokeGlFinish()

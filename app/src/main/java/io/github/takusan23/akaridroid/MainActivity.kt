@@ -6,8 +6,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import io.github.takusan23.akaridroid.ui.component.AkariDroidMainScreen
+import androidx.lifecycle.lifecycleScope
+import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -50,8 +53,23 @@ class MainActivity : ComponentActivity() {
                 }
         */
 
+        lifecycleScope.launch {
+            val file = getExternalFilesDir(null)!!.resolve("hello.mp4")
+            CanvasVideoProcessor.start(
+                resultFile = file,
+                outputVideoHeight = 720,
+                outputVideoWidth = 1280,
+                onCanvasDrawRequest = { positionMs ->
+                    drawText("Hello world", 100f, 100f, paint)
+                    positionMs < 10_000
+                }
+            )
+            // なんかしらんけど getExternalFilesDir 消えるので MediaStore にブチこむ
+            MediaStoreTool.copyToVideoFolder(this@MainActivity, file)
+        }
+
         setContent {
-            AkariDroidMainScreen()
+            // AkariDroidMainScreen()
         }
     }
 
