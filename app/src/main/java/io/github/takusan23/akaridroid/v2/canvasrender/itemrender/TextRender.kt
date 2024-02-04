@@ -6,7 +6,7 @@ import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
 
 /** 文字を描画する */
 class TextRender(
-    private val text: RenderData.RenderItem.Text
+    private val text: RenderData.CanvasItem.Text
 ) : ItemRenderInterface {
 
     /** 文字の大きさとか */
@@ -20,6 +20,9 @@ class TextRender(
     }
 
     override suspend fun draw(canvas: Canvas, currentPositionMs: Long) {
+        if (currentPositionMs !in text.displayTime) {
+            return
+        }
         if (text.fontColor != null) {
             paint.color = text.fontColor
         }
@@ -34,7 +37,7 @@ class TextRender(
         // do nothing
     }
 
-    override suspend fun isEquals(renderItem: RenderData.RenderItem): Boolean {
+    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
         return text != renderItem
     }
 }

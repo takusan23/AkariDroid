@@ -24,7 +24,7 @@ class CanvasRender(private val context: Context) {
      *
      * @param canvasRenderItem 描画する
      */
-    suspend fun setRenderData(canvasRenderItem: List<RenderData.RenderItem>) = withContext(Dispatchers.IO) {
+    suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>) = withContext(Dispatchers.IO) {
         itemRenderList = canvasRenderItem.map { renderItem ->
             // 描画するやつを用意する
             // 並列で初期化をする
@@ -37,9 +37,9 @@ class CanvasRender(private val context: Context) {
 
                 // 無ければ作る
                 val newItem = when (renderItem) {
-                    is RenderData.RenderItem.Text -> TextRender(renderItem)
-                    is RenderData.RenderItem.Image -> ImageRender(context, renderItem)
-                    is RenderData.RenderItem.Video -> VideoRender(renderItem)
+                    is RenderData.CanvasItem.Text -> TextRender(renderItem)
+                    is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
+                    is RenderData.CanvasItem.Video -> VideoRender(renderItem)
                 }
                 // 初期化も
                 newItem.prepare()

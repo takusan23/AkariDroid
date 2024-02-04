@@ -1,13 +1,6 @@
 package io.github.takusan23.akaricore.v2.audio
 
-import android.media.MediaFormat
-import android.media.MediaMuxer
-import android.util.Log
-import io.github.takusan23.akaricore.v1.common.AudioEncoder
-import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
@@ -21,11 +14,6 @@ import kotlin.math.min
  * 実装的には、AAC を PCM にして（ Audacity の Raw データのように）、バイト配列から同じ位置の Byte を足すことでできます。
  */
 object AudioMixingProcessor {
-    // TODO このアプリでは、音声は サンプリングレート=44100 チャンネル数=2 量子化ビット数=16bit にする必要あり
-
-    private const val CHANNEL_COUNT = 2
-    private const val SAMPLING_RATE = 44_100
-    private const val BIT_DEPTH = 2 // 16bit -> 2byte
 
     /**
      * 音声 PCM を合成する
@@ -63,14 +51,14 @@ object AudioMixingProcessor {
             val inputStreamList = mixAudioStreamDataList
                 .filter { (sec * 1000) in it.mixAudioData.playPositionMs }
 
-            repeat(SAMPLING_RATE) {
+            repeat(AkariCoreAudioProperties.SAMPLING_RATE) {
                 // サンプリングレートの回数分呼ばれる
                 // 音を作ります
                 // 2 チャンネル、量子化ビット数 16bit なので、2 + 2 = 4 byte 必要です
                 if (inputStreamList.isEmpty()) {
                     // 無い場合は、無音を書き込む
-                    val left = ByteArray(BIT_DEPTH)
-                    val right = ByteArray(BIT_DEPTH)
+                    val left = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
+                    val right = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
                     outputStream.write(left)
                     outputStream.write(right)
                 } else {
@@ -78,14 +66,14 @@ object AudioMixingProcessor {
                     // 音は波らしい。波は足し算できる
                     val (leftList, rightList) = inputStreamList.map { (mixAudioData, inputStream) ->
                         // 右と左の音を取り出す
-                        val leftByteArray = ByteArray(BIT_DEPTH)
+                        val leftByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
                         inputStream.read(leftByteArray)
-                        val rightByteArray = ByteArray(BIT_DEPTH)
+                        val rightByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
                         inputStream.read(rightByteArray)
 
-                        // ボリューム調整と、音の合成のために Int にする
-                        val leftInt = (leftByteArray.toShort().toInt() * mixAudioData.volume).toInt()
-                        val rightInt = (rightByteArray.toShort().toInt() * mixAudioData.volume).toInt()
+                        // ボリューム調整のために Int にする
+                        val leftInt = leftByteArray.toShort().toInt()
+                        val rightInt = rightByteArray.toShort().toInt()
                         // map の返り値
                         leftInt to rightInt
                     }.let { readAudioList ->
@@ -115,17 +103,15 @@ object AudioMixingProcessor {
      *
      * @param inPcmFile PCM ファイルのパス
      * @param startMs 合成する再生開始位置
-     * @param volume 音量。0..1 まで
      */
     data class MixAudioData(
         val inPcmFile: File,
-        val startMs: Long,
-        val volume: Float = 1f
+        val startMs: Long
     ) {
 
         /** 音声ファイルの長さ（秒） */
         val durationSec: Long
-            get() = inPcmFile.length() / (SAMPLING_RATE * CHANNEL_COUNT * BIT_DEPTH)
+            get() = inPcmFile.length() / (AkariCoreAudioProperties.SAMPLING_RATE * AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH)
 
         /** 再生すべき位置の範囲を返す。開始位置から、開始位置 + ファイルの長さ */
         val playPositionMs: LongRange

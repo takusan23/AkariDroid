@@ -21,10 +21,10 @@ object CutProcessor {
      * @param timeRangeMs
      */
     @SuppressLint("WrongConstant")
-    suspend fun cut(
+    suspend fun start(
         targetVideoFile: File,
         resultFile: File,
-        timeRangeMs: LongRange,
+        timeRangeMs: ClosedRange<Long>,
         extractMimeType: MediaExtractorTool.ExtractMimeType,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
     ) = withContext(Dispatchers.Default) {
@@ -35,7 +35,7 @@ object CutProcessor {
         val mixerIndex = mediaMuxer.addTrack(format)
         mediaMuxer.start()
         // シークする
-        mediaExtractor.seekTo(timeRangeMs.first * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+        mediaExtractor.seekTo(timeRangeMs.start * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
         val byteBuffer = ByteBuffer.allocate(1024 * 4096)
         val bufferInfo = MediaCodec.BufferInfo()
@@ -48,7 +48,7 @@ object CutProcessor {
             bufferInfo.presentationTimeUs = mediaExtractor.sampleTime
             bufferInfo.flags = mediaExtractor.sampleFlags // Lintがキレるけど黙らせる
             // 時間超えた場合は終了
-            if (bufferInfo.presentationTimeUs > timeRangeMs.last * 1000) break
+            if (bufferInfo.presentationTimeUs > timeRangeMs.endInclusive * 1000) break
             // 書き込む
             mediaMuxer.writeSampleData(mixerIndex, byteBuffer, bufferInfo)
             // 次のデータに進める

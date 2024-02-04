@@ -1,24 +1,20 @@
 package io.github.takusan23.akaricore
 
-import android.content.Context
 import android.graphics.Color
 import android.graphics.Paint
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import android.system.Os.mkdir
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,8 +54,8 @@ class ExampleInstrumentedTest {
                 outPcmFile = outPcm,
                 durationMs = 10_000,
                 mixList = listOf(
-                    AudioMixingProcessor.MixAudioData(videoPcm, 0, 1f),
-                    AudioMixingProcessor.MixAudioData(bgmPcm, 0, 0.05f)
+                    AudioMixingProcessor.MixAudioData(videoPcm, 0),
+                    AudioMixingProcessor.MixAudioData(bgmPcm, 0)
                 )
             )
             // エンコード
@@ -110,7 +106,7 @@ class ExampleInstrumentedTest {
         val resultFile = File(appContext.getExternalFilesDir(null), "test_動画の切り取りが出来る_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val toomo = sampleVideoFolder.resolve("iphone.mp4")
         // カットしてみる
-        CutProcessor.cut(toomo, resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+        CutProcessor.start(toomo, resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
     }
 
     @Test
@@ -147,6 +143,26 @@ class ExampleInstrumentedTest {
                 outAudioFile = resultFile,
                 channelCount = 1
             )
+        }
+    }
+
+    @Test
+    fun test_PCMファイルの音量調整ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_PCMファイルの音量調整ができる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        // TODO 音声カットしような
+        val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
+
+        provideTempFolder { tempFolder ->
+            val pcmFile = tempFolder.resolve("pcm_file")
+            val applyVolumePcmFile = tempFolder.resolve("apply_volume_pcm_file")
+            // デコード
+            AudioEncodeDecodeProcessor.decode(bgmFile, pcmFile)
+            // 音量調整
+            AudioVolumeProcessor.start(pcmFile, applyVolumePcmFile, 0.05f)
+            // エンコード
+            AudioEncodeDecodeProcessor.encode(applyVolumePcmFile, resultFile)
         }
     }
 

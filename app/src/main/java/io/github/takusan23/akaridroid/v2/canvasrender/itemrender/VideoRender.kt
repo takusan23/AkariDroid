@@ -9,7 +9,7 @@ import kotlinx.coroutines.withContext
 
 /** 動画を描画する */
 class VideoRender(
-    private val video: RenderData.RenderItem.Video
+    private val video: RenderData.CanvasItem.Video
 ) : ItemRenderInterface {
 
     /** Bitmap を取り出す */
@@ -27,9 +27,23 @@ class VideoRender(
     }
 
     override suspend fun draw(canvas: Canvas, currentPositionMs: Long) = withContext(Dispatchers.Default) {
-        val framePosition = video.displayTime.startMs - currentPositionMs
         val (x, y) = video.position
-        val bitmap = mediaMetadataRetriever?.getFrameAtTime(framePosition * 1_000) ?: return@withContext
+
+        // 範囲内にいること
+        if (currentPositionMs !in video.displayTime) {
+            return@withContext
+        }
+        val framePositionMs = currentPositionMs - video.displayTime.startMs
+
+        // 動画をカットする場合で、カットした時間外の場合
+        if (video.cropTimeCrop != null && framePositionMs !in video.cropTimeCrop) {
+            return@withContext
+        }
+
+        // カットする場合は考慮した時間を
+        val cropIncludedFramePositionMs = framePositionMs - (video.cropTimeCrop?.cropStartMs ?: 0)
+
+        val bitmap = mediaMetadataRetriever?.getFrameAtTime(framePositionMs * 1_000) ?: return@withContext
         canvas.drawBitmap(bitmap, x, y, paint)
     }
 
@@ -37,7 +51,7 @@ class VideoRender(
         mediaMetadataRetriever?.release()
     }
 
-    override suspend fun isEquals(renderItem: RenderData.RenderItem): Boolean {
+    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
         return renderItem != video
     }
 }

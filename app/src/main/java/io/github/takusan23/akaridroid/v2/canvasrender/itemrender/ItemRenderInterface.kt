@@ -31,8 +31,8 @@ interface ItemRenderInterface {
 
     /**
      * データが一緒かどうか返す
-     * [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.RenderItem]を比較して、変化していれば更新してね
+     * [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.CanvasItem]を比較して、変化していれば更新してね
      */
-    suspend fun isEquals(renderItem: RenderData.RenderItem): Boolean
+    suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean
 
 }

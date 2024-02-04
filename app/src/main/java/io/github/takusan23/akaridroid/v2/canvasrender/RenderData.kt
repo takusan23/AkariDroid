@@ -3,7 +3,7 @@ package io.github.takusan23.akaridroid.v2.canvasrender
 import kotlinx.serialization.Serializable
 
 /**
- * Bitmap に描画するために必要なデータ
+ * 動画の素材
  *
  * @param durationMs トータル時間
  * @param videoSize 動画の縦横
@@ -14,20 +14,24 @@ import kotlinx.serialization.Serializable
 data class RenderData(
     val durationMs: Long,
     val videoSize: Size,
-    val canvasRenderItem: List<RenderItem>,
-    val audioRenderItem: List<RenderItem>
+    val canvasRenderItem: List<CanvasItem>,
+    val audioRenderItem: List<AudioItem>
 ) {
 
-    sealed interface RenderItem {
-
+    /** 映像、音声で共通している */
+    interface RenderItem {
         /** アイテムを識別する一意の値 */
         val id: Long
 
-        /** 描画する位置 */
-        val position: Position
-
         /** 時間 */
         val displayTime: DisplayTime
+    }
+
+    /** Canvas に書く */
+    sealed interface CanvasItem : RenderItem {
+
+        /** 描画する位置 */
+        val position: Position
 
         /** テキスト */
         @Serializable
@@ -38,7 +42,7 @@ data class RenderData(
             val text: String,
             val textSize: Float? = null,
             val fontColor: Int? = null
-        ) : RenderItem
+        ) : CanvasItem
 
         /** 画像 */
         @Serializable
@@ -48,9 +52,9 @@ data class RenderData(
             override val displayTime: DisplayTime,
             val filePath: String,
             val size: Size? = null
-        ) : RenderItem
+        ) : CanvasItem
 
-        /** 動画 */
+        /** 動画（映像トラック） */
         @Serializable
         data class Video(
             override val id: Long = System.currentTimeMillis(),
@@ -60,16 +64,23 @@ data class RenderData(
             val size: Size? = null,
             val cropTimeCrop: TimeCrop? = null,
             val chromaKeyColor: Int? = null
-        ) : RenderItem
+        ) : CanvasItem
     }
 
-    /** 音声素材 */
-    @Serializable
-    data class AudioItem(
-        val id: Long = System.currentTimeMillis(),
-        val displayTime: DisplayTime,
-        val cropTimeCrop: TimeCrop? = null
-    )
+    /** 音声 */
+    interface AudioItem : RenderItem {
+
+        /** 音声素材と、動画（音声トラック） */
+        @Serializable
+        data class Audio(
+            override val id: Long = System.currentTimeMillis(),
+            override val displayTime: DisplayTime,
+            val filePath: String,
+            val cropTimeCrop: TimeCrop? = null,
+            val volume: Float = 1f
+        ) : AudioItem
+    }
+
 
     /**
      * 位置
@@ -110,7 +121,7 @@ data class RenderData(
         override val endInclusive: Long
             get() = startMs
         override val start: Long
-            get() = startMs
+            get() = stopMs
     }
 
     /**
@@ -121,5 +132,11 @@ data class RenderData(
     data class TimeCrop(
         val cropStartMs: Long,
         val cropStopMs: Long
-    )
+    ) : ClosedRange<Long> {
+        // ClosedRange<Long> を実装することで、 in が使えるようになる
+        override val endInclusive: Long
+            get() = cropStartMs
+        override val start: Long
+            get() = cropStopMs
+    }
 }
