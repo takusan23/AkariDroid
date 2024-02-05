@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.v2.canvasrender
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ImageRender
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ItemRenderInterface
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.TextRender
@@ -9,6 +10,8 @@ import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.VideoRender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class CanvasRender(private val context: Context) {
@@ -49,13 +52,32 @@ class CanvasRender(private val context: Context) {
      * 描画する
      *
      * @param canvas [Canvas]
+     * @param durationMs 動画の合計時間
      * @param currentPositionMs 再生位置
      */
-    suspend fun draw(canvas: Canvas, currentPositionMs: Long) {
+    suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
         // 黒埋めする
-        // canvas.drawColor(Color.BLACK)
+        canvas.drawColor(Color.BLACK)
+        // 描画すべきリスト
+        val displayPositionItemList = itemRenderList.filter { it.isDisplayPosition(currentPositionMs) }
+        // preDraw を並列で呼び出す
+        displayPositionItemList.map { itemRender ->
+            launch {
+                itemRender.preDraw(
+                    canvas = canvas,
+                    durationMs = durationMs,
+                    currentPositionMs = currentPositionMs
+                )
+            }
+        }.joinAll()
         // 描画する
-        itemRenderList.forEach { itemRender -> itemRender.draw(canvas, currentPositionMs) }
+        displayPositionItemList.forEach { itemRender ->
+            itemRender.draw(
+                canvas = canvas,
+                durationMs = durationMs,
+                currentPositionMs = currentPositionMs
+            )
+        }
     }
 
 }

@@ -39,12 +39,8 @@ class ImageRender(
         }
     }
 
-    override suspend fun draw(canvas: Canvas, currentPositionMs: Long) = withContext(Dispatchers.Default) {
+    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         val bitmap = bitmap ?: return@withContext
-        if (currentPositionMs !in image.displayTime) {
-            return@withContext
-        }
-
         val (x, y) = image.position
         canvas.drawBitmap(bitmap, x, y, paint)
     }
@@ -55,6 +51,10 @@ class ImageRender(
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
         return image != renderItem
+    }
+
+    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
+        return currentPositionMs in image.displayTime
     }
 
 }

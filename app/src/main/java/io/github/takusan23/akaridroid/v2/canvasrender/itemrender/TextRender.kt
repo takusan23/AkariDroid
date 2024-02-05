@@ -20,10 +20,7 @@ class TextRender(
         // do nothing
     }
 
-    override suspend fun draw(canvas: Canvas, currentPositionMs: Long) {
-        if (currentPositionMs !in text.displayTime) {
-            return
-        }
+    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
         paint.color = Color.parseColor(text.fontColor)
         paint.textSize = text.textSize
         val (x, y) = text.position
@@ -36,5 +33,9 @@ class TextRender(
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
         return text != renderItem
+    }
+
+    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
+        return currentPositionMs in text.displayTime
     }
 }
