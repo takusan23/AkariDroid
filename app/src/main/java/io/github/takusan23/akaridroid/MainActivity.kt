@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,12 +70,12 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val composeBitmap = remember { mutableStateOf<ImageBitmap?>(null) }
             val videoFrameBitmapExtractor = remember { VideoFrameBitmapExtractor() }
-            var currentPositionMs = 1000L
+            val currentPositionMs = remember { mutableLongStateOf(3000) }
 
             fun nextFrame() {
                 scope.launch {
-                    currentPositionMs += 50
-                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs)
+                    currentPositionMs.longValue += 16
+                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
                     composeBitmap.value = bitmap.asImageBitmap()
                 }
             }
@@ -97,6 +98,7 @@ class MainActivity : ComponentActivity() {
                 if (composeBitmap.value != null) {
                     Image(bitmap = composeBitmap.value!!, contentDescription = null)
                 }
+                Text(text = "${currentPositionMs.value} ms")
                 Button(onClick = { nextFrame() }) {
                     Text(text = "進める")
                 }

@@ -31,9 +31,10 @@ class VideoFrameBitmapExtractor {
     /** 映像デコーダーから Bitmap として取り出すための ImageReader */
     private var imageReader: ImageReader? = null
 
-    /** 現在再生している位置 */
-    private val currentPositionMs: Long
-        get() = mediaExtractor?.let { it.sampleTime / 1000 } ?: 0
+    /** 最後の[getVideoFrameBitmap]で取得したフレームの位置 */
+    private var latestDecodePositionMs: Long = 0
+
+    private var prevBitmap: Bitmap? = null
 
     /**
      * デコーダーを初期化する
@@ -53,7 +54,7 @@ class VideoFrameBitmapExtractor {
         val videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
 
         // Surface 経由で Bitmap が取れる ImageReader つくる
-        imageReader = ImageReader.newInstance(videoWidth, videoHeight, ImageFormat.YUV_420_888, 1)
+        imageReader = ImageReader.newInstance(videoWidth, videoHeight, ImageFormat.YUV_420_888, 2)
 
         // 映像デコーダー起動
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
@@ -66,6 +67,7 @@ class VideoFrameBitmapExtractor {
     fun destroy() {
         decodeMediaCodec?.release()
         mediaExtractor?.release()
+        imageReader?.close()
     }
 
     /**
@@ -77,13 +79,25 @@ class VideoFrameBitmapExtractor {
     suspend fun getVideoFrameBitmap(
         seekToMs: Long
     ): Bitmap = withContext(Dispatchers.Default) {
-        if (currentPositionMs < seekToMs) {
-            // デコーダーが途中の状態で持っているかもしれないので
-            awaitSeekToNextDecode(seekToMs)
-        } else {
-            // 現在再生している位置より前にシークする場合は戻る
-            awaitSeekToPrevDecode(seekToMs)
+        println("seekToMs = $seekToMs / currentPositionMs = $latestDecodePositionMs")
+
+        // シーク不要
+        // 例えば 30fps なら 33ms 毎なら新しい Bitmap を返す必要があるが、 16ms 毎に要求されたら Bitmap 変化しないので
+        // 前回取得した Bitmap がそのまま使い回せる
+        if (seekToMs < latestDecodePositionMs && prevBitmap != null) {
+            return@withContext prevBitmap!!
         }
+
+        // デコーダーが途中の状態で持っているかもしれないので
+        awaitSeekToNextDecode(seekToMs)
+
+//        if (currentPositionMs < seekToMs) {
+//            // デコーダーが途中の状態で持っているかもしれないので
+//            awaitSeekToNextDecode(seekToMs)
+//        } else {
+//            // 現在再生している位置より前にシークする場合は戻る
+//            awaitSeekToPrevDecode(seekToMs)
+//        }
         // Bitmap を取り出す
         return@withContext getImageReaderBitmap()
     }
@@ -111,6 +125,7 @@ class VideoFrameBitmapExtractor {
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
             if (inputBufferIndex >= 0) {
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
+                mediaExtractor.advance()
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
                 // 欲しいフレームが前回の呼び出しと連続していないときの処理
                 // つまり、欲しいフレームが来るよりも先にキーフレームが来てしまった
@@ -118,11 +133,8 @@ class VideoFrameBitmapExtractor {
                 if ((mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
                     mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                 }
-                if (size > 0) {
-                    // デコーダーへ流す
-                    decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
-                    mediaExtractor.advance()
-                }
+                // デコーダーへ流す
+                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
             }
 
             // デコーダーから映像を受け取る部分
@@ -140,9 +152,12 @@ class VideoFrameBitmapExtractor {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
-                        // 目標の時間になっている場合、デコーダーのメインループを一旦切る
-                        if (seekToMs <= bufferInfo.presentationTimeUs / 1000) {
+                        // 欲しいフレームの時間に到達した場合、ループを抜ける
+                        val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                        println("latestDecodePositionMs = ${presentationTimeMs}")
+                        if (seekToMs <= presentationTimeMs) {
                             isRunning = false
+                            latestDecodePositionMs = presentationTimeMs
                         }
                     }
                 }
@@ -199,9 +214,11 @@ class VideoFrameBitmapExtractor {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
-                        // 目標の時間になっている場合、デコーダーのメインループを一旦切る
-                        if (seekToMs <= bufferInfo.presentationTimeUs / 1000) {
+                        // 欲しいフレームの時間に到達した場合、ループを抜ける
+                        val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                        if (seekToMs <= presentationTimeMs) {
                             isRunning = false
+                            latestDecodePositionMs = presentationTimeMs
                         }
                     }
                 }
@@ -232,6 +249,7 @@ class VideoFrameBitmapExtractor {
         // JPEG から Bitmap へ
         val jpegByteArray = byteArrayOutputStream.toByteArray()
         val bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.size)
+        prevBitmap = bitmap
         // Image を close する
         image.close()
         return@withContext bitmap
