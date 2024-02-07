@@ -146,7 +146,7 @@ class CanvasRenderTest {
                         ),
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(0, 10_000),
-                            position = RenderData.Position(640f, 360f),
+                            position = RenderData.Position(640f, 500f),
                             text = "こんにちは",
                             fontColor = "#ffffff",
                             textSize = 100f

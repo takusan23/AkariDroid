@@ -6,9 +6,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.lifecycle.lifecycleScope
-import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
@@ -53,22 +65,43 @@ class MainActivity : ComponentActivity() {
                 }
         */
 
-        lifecycleScope.launch {
-            val file = getExternalFilesDir(null)!!.resolve("hello.mp4")
-            CanvasVideoProcessor.start(
-                resultFile = file,
-                outputVideoHeight = 720,
-                outputVideoWidth = 1280,
-                onCanvasDrawRequest = { positionMs ->
-                    drawText("Hello world", 100f, 100f, paint)
-                    positionMs < 10_000
-                }
-            )
-            // なんかしらんけど getExternalFilesDir 消えるので MediaStore にブチこむ
-            MediaStoreTool.copyToVideoFolder(this@MainActivity, file)
-        }
-
         setContent {
+            val scope = rememberCoroutineScope()
+            val composeBitmap = remember { mutableStateOf<ImageBitmap?>(null) }
+            val videoFrameBitmapExtractor = remember { VideoFrameBitmapExtractor() }
+            var currentPositionMs = 1000L
+
+            fun nextFrame() {
+                scope.launch {
+                    currentPositionMs += 50
+                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs)
+                    composeBitmap.value = bitmap.asImageBitmap()
+                }
+            }
+
+            DisposableEffect(key1 = Unit) {
+                scope.launch {
+                    val videoFile = getExternalFilesDir(null)!!.resolve("apple.ts")
+                    videoFrameBitmapExtractor.prepareDecoder(videoFile)
+                    nextFrame()
+                }
+                onDispose { videoFrameBitmapExtractor.destroy() }
+            }
+
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (composeBitmap.value != null) {
+                    Image(bitmap = composeBitmap.value!!, contentDescription = null)
+                }
+                Button(onClick = { nextFrame() }) {
+                    Text(text = "進める")
+                }
+            }
+
             // AkariDroidMainScreen()
         }
     }

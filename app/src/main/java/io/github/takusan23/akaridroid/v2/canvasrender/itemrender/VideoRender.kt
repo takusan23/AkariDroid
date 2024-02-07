@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.media.MediaMetadataRetriever
-import android.os.Build
 import androidx.core.graphics.scale
 import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
 import kotlinx.coroutines.Dispatchers
@@ -18,10 +17,7 @@ class VideoRender(
     /** Bitmap を取り出す */
     private var mediaMetadataRetriever: MediaMetadataRetriever? = null
 
-    /** 動画の総フレーム数 */
-    private var videoTotalFrameCount: Int? = null
-
-    /**  */
+    /** [preDraw]したときに取得する Bitmap */
     private var preLoadBitmap: Bitmap? = null
 
     private val paint = Paint()
@@ -33,14 +29,10 @@ class VideoRender(
         mediaMetadataRetriever = MediaMetadataRetriever().apply {
             setDataSource(video.filePath)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            videoTotalFrameCount = mediaMetadataRetriever?.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_FRAME_COUNT)?.toInt()
-        }
     }
 
     override suspend fun preDraw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         super.preDraw(canvas, durationMs, currentPositionMs)
-        println("currentPositionMs = $currentPositionMs")
         // 動画のフレーム取得は時間がかかるので、preDraw で取得する
         val mediaMetadataRetriever = mediaMetadataRetriever ?: return@withContext
 
@@ -48,15 +40,7 @@ class VideoRender(
         val framePositionMs = currentPositionMs - video.displayTime.startMs
         val cropIncludedFramePositionMs = framePositionMs - (video.cropTimeCrop?.cropStartMs ?: 0)
 
-        // getFrameAtIndex が使える場合は使う。こっちのほうが高速
-        preLoadBitmap = if (videoTotalFrameCount != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            // 表示すべきフレームを計算する
-            val currentFrameIndex = ((cropIncludedFramePositionMs.toFloat() / durationMs.toFloat()) * videoTotalFrameCount!!).toInt()
-            mediaMetadataRetriever.getFrameAtIndex(currentFrameIndex, MediaMetadataRetriever.BitmapParams())
-        } else {
-            // 使えない場合は遅いけどこっちで
-            mediaMetadataRetriever.getFrameAtTime(cropIncludedFramePositionMs * 1_000)
-        }?.let { origin ->
+        preLoadBitmap = mediaMetadataRetriever.getFrameAtTime(cropIncludedFramePositionMs * 1_000, MediaMetadataRetriever.OPTION_CLOSEST)?.let { origin ->
             // リサイズする場合
             if (video.size != null) {
                 val (width, height) = video.size
