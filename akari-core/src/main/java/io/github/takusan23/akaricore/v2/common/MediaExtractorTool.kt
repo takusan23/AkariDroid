@@ -4,6 +4,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.FileDescriptor
 
 /**
  * [MediaExtractor]を簡単に扱えるようにしたもの
@@ -19,6 +20,15 @@ object MediaExtractorTool {
      * */
     suspend fun extractMedia(videoPath: String, mimeType: ExtractMimeType): Triple<MediaExtractor, Int, MediaFormat>? = withContext(Dispatchers.IO) {
         val mediaExtractor = MediaExtractor().apply { setDataSource(videoPath) }
+        // 映像トラックとインデックス番号のPairを作って返す
+        val (index, track) = (0 until mediaExtractor.trackCount)
+            .map { index -> index to mediaExtractor.getTrackFormat(index) }
+            .firstOrNull { (_, track) -> track.getString(MediaFormat.KEY_MIME)?.startsWith(mimeType.startWidth) == true } ?: return@withContext null
+        return@withContext Triple(mediaExtractor, index, track)
+    }
+
+    suspend fun extractMedia(fileDescriptor: FileDescriptor, mimeType: ExtractMimeType): Triple<MediaExtractor, Int, MediaFormat>? = withContext(Dispatchers.IO) {
+        val mediaExtractor = MediaExtractor().apply { setDataSource(fileDescriptor) }
         // 映像トラックとインデックス番号のPairを作って返す
         val (index, track) = (0 until mediaExtractor.trackCount)
             .map { index -> index to mediaExtractor.getTrackFormat(index) }

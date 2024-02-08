@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val composeBitmap = remember { mutableStateOf<ImageBitmap?>(null) }
             val videoFrameBitmapExtractor = remember { VideoFrameBitmapExtractor() }
-            val currentPositionMs = remember { mutableLongStateOf(3000) }
+            val currentPositionMs = remember { mutableLongStateOf(9100) }
 
             fun nextFrame() {
                 scope.launch {
@@ -80,9 +80,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            fun prevFrame() {
+                scope.launch {
+                    currentPositionMs.longValue -= 16
+                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
+                    composeBitmap.value = bitmap.asImageBitmap()
+                }
+            }
+
             DisposableEffect(key1 = Unit) {
                 scope.launch {
-                    val videoFile = getExternalFilesDir(null)!!.resolve("apple.ts")
+                    val videoFile = getExternalFilesDir(null)!!.resolve("apple.mp4")
                     videoFrameBitmapExtractor.prepareDecoder(videoFile)
                     nextFrame()
                 }
@@ -98,9 +106,13 @@ class MainActivity : ComponentActivity() {
                 if (composeBitmap.value != null) {
                     Image(bitmap = composeBitmap.value!!, contentDescription = null)
                 }
-                Text(text = "${currentPositionMs.value} ms")
+                Text(text = "${currentPositionMs.longValue} ms")
+
                 Button(onClick = { nextFrame() }) {
                     Text(text = "進める")
+                }
+                Button(onClick = { prevFrame() }) {
+                    Text(text = "巻き戻す")
                 }
             }
 

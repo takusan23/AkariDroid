@@ -32,8 +32,12 @@ class VideoFrameBitmapExtractor {
     private var imageReader: ImageReader? = null
 
     /** 最後の[getVideoFrameBitmap]で取得したフレームの位置 */
-    private var latestDecodePositionMs: Long = 0
+    private var latestDecodePositionMs = 0L
 
+    /** 前回のシーク位置 */
+    private var prevSeekToMs = -1L
+
+    /** 前回[getImageReaderBitmap]で作成した Bitmap */
     private var prevBitmap: Bitmap? = null
 
     /**
@@ -79,27 +83,34 @@ class VideoFrameBitmapExtractor {
     suspend fun getVideoFrameBitmap(
         seekToMs: Long
     ): Bitmap = withContext(Dispatchers.Default) {
-        println("seekToMs = $seekToMs / currentPositionMs = $latestDecodePositionMs")
+        println("seekToMs = $seekToMs / currentPositionMs = $latestDecodePositionMs / prevSeekToMs = $prevSeekToMs")
 
-        // シーク不要
-        // 例えば 30fps なら 33ms 毎なら新しい Bitmap を返す必要があるが、 16ms 毎に要求されたら Bitmap 変化しないので
-        // 前回取得した Bitmap がそのまま使い回せる
-        if (seekToMs < latestDecodePositionMs && prevBitmap != null) {
-            return@withContext prevBitmap!!
+        val videoFrameBitmap = when {
+            // 現在の再生位置よりも戻る方向に（巻き戻し）した場合
+            seekToMs < prevSeekToMs -> {
+                println("awaitSeekToPrevDecode")
+                awaitSeekToPrevDecode(seekToMs)
+                getImageReaderBitmap()
+            }
+
+            // シーク不要
+            // 例えば 30fps なら 33ms 毎なら新しい Bitmap を返す必要があるが、 16ms 毎に要求されたら Bitmap 変化しないので
+            // つまり映像のフレームレートよりも高頻度で Bitmap が要求されたら、前回取得した Bitmap がそのまま使い回せる
+            seekToMs < latestDecodePositionMs && prevBitmap != null -> {
+                println("prevBitmap!!")
+                prevBitmap!!
+            }
+
+            else -> {
+                // 巻き戻しでも無く、フレームを取り出す必要がある
+                println("awaitSeekToNextDecode")
+                awaitSeekToNextDecode(seekToMs)
+                getImageReaderBitmap()
+            }
         }
 
-        // デコーダーが途中の状態で持っているかもしれないので
-        awaitSeekToNextDecode(seekToMs)
-
-//        if (currentPositionMs < seekToMs) {
-//            // デコーダーが途中の状態で持っているかもしれないので
-//            awaitSeekToNextDecode(seekToMs)
-//        } else {
-//            // 現在再生している位置より前にシークする場合は戻る
-//            awaitSeekToPrevDecode(seekToMs)
-//        }
-        // Bitmap を取り出す
-        return@withContext getImageReaderBitmap()
+        prevSeekToMs = seekToMs
+        return@withContext videoFrameBitmap
     }
 
     /**
@@ -125,16 +136,16 @@ class VideoFrameBitmapExtractor {
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
             if (inputBufferIndex >= 0) {
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
-                mediaExtractor.advance()
+                // デコーダーへ流す
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
+                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
+                mediaExtractor.advance()
                 // 欲しいフレームが前回の呼び出しと連続していないときの処理
                 // つまり、欲しいフレームが来るよりも先にキーフレームが来てしまった
                 // この場合は一気にシーク市に一番近いキーフレームまで戻る
                 if ((mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
                     mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                 }
-                // デコーダーへ流す
-                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
             }
 
             // デコーダーから映像を受け取る部分
@@ -154,7 +165,6 @@ class VideoFrameBitmapExtractor {
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
                         val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
-                        println("latestDecodePositionMs = ${presentationTimeMs}")
                         if (seekToMs <= presentationTimeMs) {
                             isRunning = false
                             latestDecodePositionMs = presentationTimeMs
@@ -167,6 +177,7 @@ class VideoFrameBitmapExtractor {
 
     /**
      * 今の再生位置よりも前の位置にシークして、指定した時間のフレームまでデコードする。
+     * 指定した時間のフレームがキーフレームじゃない場合は、キーフレームまでさらに巻き戻すので、ちょっと時間がかかります。
      *
      * @param seekToMs シーク位置
      */
@@ -178,6 +189,8 @@ class VideoFrameBitmapExtractor {
 
         // シークする。SEEK_TO_PREVIOUS_SYNC なので、シーク位置にキーフレームがない場合はキーフレームがある場所まで戻る
         mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+        // エンコードサれたデータを順番通りに送るわけではない（隣接したデータじゃない）ので flush する
+        decodeMediaCodec.flush()
 
         // デコーダーに渡す
         var isRunning = true
@@ -191,12 +204,11 @@ class VideoFrameBitmapExtractor {
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
             if (inputBufferIndex >= 0) {
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
+                // デコーダーへ流す
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
-                if (size > 0) {
-                    // デコーダーへ流す
-                    decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
-                    mediaExtractor.advance()
-                }
+                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
+                // 狙ったフレームになるまでデータを進める
+                mediaExtractor.advance()
             }
 
             // デコーダーから映像を受け取る部分
@@ -216,6 +228,7 @@ class VideoFrameBitmapExtractor {
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
                         val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                        println("presentationTimeMs = $presentationTimeMs")
                         if (seekToMs <= presentationTimeMs) {
                             isRunning = false
                             latestDecodePositionMs = presentationTimeMs
