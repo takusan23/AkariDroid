@@ -83,12 +83,9 @@ class VideoFrameBitmapExtractor {
     suspend fun getVideoFrameBitmap(
         seekToMs: Long
     ): Bitmap = withContext(Dispatchers.Default) {
-        println("seekToMs = $seekToMs / currentPositionMs = $latestDecodePositionMs / prevSeekToMs = $prevSeekToMs")
-
         val videoFrameBitmap = when {
             // 現在の再生位置よりも戻る方向に（巻き戻し）した場合
             seekToMs < prevSeekToMs -> {
-                println("awaitSeekToPrevDecode")
                 awaitSeekToPrevDecode(seekToMs)
                 getImageReaderBitmap()
             }
@@ -97,13 +94,11 @@ class VideoFrameBitmapExtractor {
             // 例えば 30fps なら 33ms 毎なら新しい Bitmap を返す必要があるが、 16ms 毎に要求されたら Bitmap 変化しないので
             // つまり映像のフレームレートよりも高頻度で Bitmap が要求されたら、前回取得した Bitmap がそのまま使い回せる
             seekToMs < latestDecodePositionMs && prevBitmap != null -> {
-                println("prevBitmap!!")
                 prevBitmap!!
             }
 
             else -> {
                 // 巻き戻しでも無く、フレームを取り出す必要がある
-                println("awaitSeekToNextDecode")
                 awaitSeekToNextDecode(seekToMs)
                 getImageReaderBitmap()
             }
@@ -228,7 +223,6 @@ class VideoFrameBitmapExtractor {
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
                         val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
-                        println("presentationTimeMs = $presentationTimeMs")
                         if (seekToMs <= presentationTimeMs) {
                             isRunning = false
                             latestDecodePositionMs = presentationTimeMs
