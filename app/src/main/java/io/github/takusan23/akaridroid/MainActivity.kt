@@ -70,19 +70,19 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val composeBitmap = remember { mutableStateOf<ImageBitmap?>(null) }
             val videoFrameBitmapExtractor = remember { VideoFrameBitmapExtractor() }
-            val currentPositionMs = remember { mutableLongStateOf(9100) }
+            val currentPositionMs = remember { mutableLongStateOf(0) }
 
-            fun nextFrame() {
+            fun nextFrame(seekValue: Long) {
                 scope.launch {
-                    currentPositionMs.longValue += 16
+                    currentPositionMs.longValue += seekValue
                     val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
                     composeBitmap.value = bitmap.asImageBitmap()
                 }
             }
 
-            fun prevFrame() {
+            fun prevFrame(seekValue: Long) {
                 scope.launch {
-                    currentPositionMs.longValue -= 16
+                    currentPositionMs.longValue -= seekValue
                     val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
                     composeBitmap.value = bitmap.asImageBitmap()
                 }
@@ -90,9 +90,11 @@ class MainActivity : ComponentActivity() {
 
             DisposableEffect(key1 = Unit) {
                 scope.launch {
-                    val videoFile = getExternalFilesDir(null)!!.resolve("apple.mp4")
+                    val videoFile = getExternalFilesDir(null)!!.resolve("test_toomo.mp4")
+                    videoFile.createNewFile()
                     videoFrameBitmapExtractor.prepareDecoder(videoFile)
-                    nextFrame()
+                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
+                    composeBitmap.value = bitmap.asImageBitmap()
                 }
                 onDispose { videoFrameBitmapExtractor.destroy() }
             }
@@ -108,10 +110,16 @@ class MainActivity : ComponentActivity() {
                 }
                 Text(text = "${currentPositionMs.longValue} ms")
 
-                Button(onClick = { nextFrame() }) {
+                Button(onClick = { nextFrame(16) }) {
                     Text(text = "進める")
                 }
-                Button(onClick = { prevFrame() }) {
+                Button(onClick = { nextFrame(4_000) }) {
+                    Text(text = "4秒進める")
+                }
+                Button(onClick = { nextFrame(10_000) }) {
+                    Text(text = "10秒進める")
+                }
+                Button(onClick = { prevFrame(16) }) {
                     Text(text = "巻き戻す")
                 }
             }

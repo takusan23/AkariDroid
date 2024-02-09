@@ -9,7 +9,7 @@ import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -103,7 +103,6 @@ class VideoFrameBitmapExtractor {
                 getImageReaderBitmap()
             }
         }
-
         prevSeekToMs = seekToMs
         return@withContext videoFrameBitmap
     }
@@ -126,21 +125,17 @@ class VideoFrameBitmapExtractor {
         var isRunning = isActive
         val bufferInfo = MediaCodec.BufferInfo()
         while (isRunning) {
+            // キャンセル時
+            if (!isActive) break
+
             // コンテナフォーマットからサンプルを取り出し、デコーダーに渡す
             // シークしないことで、連続してフレームを取得する場合にキーフレームまで戻る必要がなくなり、早くなる
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
             if (inputBufferIndex >= 0) {
-                val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
                 // デコーダーへ流す
+                val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
                 decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
-                mediaExtractor.advance()
-                // 欲しいフレームが前回の呼び出しと連続していないときの処理
-                // つまり、欲しいフレームが来るよりも先にキーフレームが来てしまった
-                // この場合は一気にシーク市に一番近いキーフレームまで戻る
-                if ((mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
-                    mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                }
             }
 
             // デコーダーから映像を受け取る部分
@@ -166,6 +161,25 @@ class VideoFrameBitmapExtractor {
                         }
                     }
                 }
+            }
+
+            // 次に進める
+            mediaExtractor.advance()
+
+            // 欲しいフレームが前回の呼び出しと連続していないときの処理
+            // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
+            // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
+            // この場合は一気にシーク位置に一番近いキーフレームまで進める
+            // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
+            // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
+            val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
+            val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
+//            println("loop bufferInfo.presentationTimeUs = ${bufferInfo.presentationTimeUs / 1000} / sampleTime = ${mediaExtractor.sampleTime / 1000} / isKeyFrame = ${isKeyFrame} / seekToMs = $seekToMs")
+            if (isKeyFrame && currentSampleTimeMs < seekToMs) {
+//                println("mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)")
+                mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+//                println("seekTo sampleTime = ${mediaExtractor.sampleTime / 1000}")
+                decodeMediaCodec.flush()
             }
         }
     }

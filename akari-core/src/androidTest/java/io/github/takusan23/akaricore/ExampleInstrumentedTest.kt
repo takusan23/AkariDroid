@@ -172,14 +172,15 @@ class ExampleInstrumentedTest {
     fun test_動画のフレームの取得ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val videoFrameFileName = listOf(
-            "test_動画のフレームの取得ができる_1000ms.png",
-            "test_動画のフレームの取得ができる_9000ms.png",
-            "test_動画のフレームの取得ができる_3000ms.png"
+            "test_動画のフレームの取得ができる_1_000ms.png",
+            "test_動画のフレームの取得ができる_15_000ms.png",
+            "test_動画のフレームの取得ができる_9_000ms.png"
         ).map { fileName ->
             appContext.getExternalFilesDir(null)!!.resolve(fileName)
         }
 
-        // 仮の動画をつくる
+        // 仮の動画をつくる。長めに
+        val TEMP_VIDEO_LENGTH_MS = 20_0000
         provideTempFolder { tempFolder ->
             val demoVideoFile = tempFolder.resolve("demo_video.mp4")
             val textPaint = Paint().apply {
@@ -193,7 +194,7 @@ class ExampleInstrumentedTest {
                 bitRate = 1_000_000,
                 frameRate = 30,
                 outputVideoWidth = 1280,
-                outputVideoHeight = 720,
+                outputVideoHeight = 720
             ) { positionMs ->
                 drawColor(Color.MAGENTA)
                 // 枠取り文字
@@ -207,7 +208,7 @@ class ExampleInstrumentedTest {
                 // 枠無し文字
                 drawText(text, 0f, 80f, textPaint)
                 // true を返している間は動画を作成する
-                positionMs <= 10 * 1_000
+                positionMs <= TEMP_VIDEO_LENGTH_MS
             }
 
             // 動画のフレーム取得
@@ -215,14 +216,14 @@ class ExampleInstrumentedTest {
                 prepareDecoder(demoVideoFile)
             }
 
-            // 巻き戻すやつもテストしたいから 1 -> 9 -> 3 で
-            val videoFrame_1000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 1000)
+            // 巻き戻すやつもテストしたいから 1 -> 15 -> 9 で
+            val videoFrame_1000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 1_000)
+            val videoFrame_15_000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 15_000)
             val videoFrame_9000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 9000)
-            val videoFrame_3000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 3000)
             // 保存
             videoFrame_1000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[0].outputStream())
-            videoFrame_9000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[1].outputStream())
-            videoFrame_3000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[2].outputStream())
+            videoFrame_15_000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[1].outputStream())
+            videoFrame_9000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[2].outputStream())
         }
     }
 
