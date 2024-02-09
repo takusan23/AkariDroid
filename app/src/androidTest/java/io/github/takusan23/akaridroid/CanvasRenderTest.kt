@@ -112,7 +112,7 @@ class CanvasRenderTest {
     fun test_動画のRenderDataから動画を作る() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         // TODO あらかじめ app/src/androidTest/res/raw/test_toomo.mp4 ファイルを置いておく
         // File しか受け付けないのでとりあえずコピー
-        val testToomoMp4 = createFile("test_toomo.mp4").also { testToomoMp4 ->
+        val testToomoMp4 = createFile("test_toomo").also { testToomoMp4 ->
             testToomoMp4.outputStream().use { outputStream ->
                 context.resources
                     .openRawResource(io.github.takusan23.akaridroid.test.R.raw.test_toomo)
@@ -121,8 +121,7 @@ class CanvasRenderTest {
         }
         encode(
             testName = "test_動画のRenderDataから動画を作る",
-            // TODO 遅すぎて 2 秒くらいにしないと無理
-            durationMs = 2_000,
+            durationMs = 10_000,
             canvasRender = CanvasRender(targetContext).apply {
                 setRenderData(
                     canvasRenderItem = listOf(
