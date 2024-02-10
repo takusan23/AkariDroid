@@ -65,7 +65,41 @@ object MediaStoreTool {
         }
         // MediaStoreへ登録
         val uri = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return@withContext
-        contentResolver.openOutputStream(uri).use { outputStream -> outputStream?.write(file.readBytes()) }
+        contentResolver.openOutputStream(uri)?.use { outputStream ->
+            file.inputStream().use { inputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+    }
+
+    /**
+     * [File]から端末の音声フォルダへコピーする
+     *
+     * @param context [Context]
+     * @param file コピーしたいファイルの[File]
+     */
+    suspend fun copyToAudioFolder(context: Context, file: File) = withContext(Dispatchers.IO) {
+        val contentResolver = context.contentResolver
+        // MediaStoreに入れる中身
+        val contentValues = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValuesOf(
+                MediaStore.MediaColumns.DISPLAY_NAME to file.name,
+                MediaStore.MediaColumns.RELATIVE_PATH to "${Environment.DIRECTORY_MUSIC}/AkariDroid",
+                MediaStore.MediaColumns.MIME_TYPE to "audio/aac"
+            )
+        } else {
+            contentValuesOf(
+                MediaStore.MediaColumns.DISPLAY_NAME to file.name,
+                MediaStore.MediaColumns.MIME_TYPE to "audio/aac"
+            )
+        }
+        // MediaStoreへ登録
+        val uri = contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return@withContext
+        contentResolver.openOutputStream(uri)?.use { outputStream ->
+            file.inputStream().use { inputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
     }
 
 }

@@ -77,8 +77,14 @@ data class RenderData(
             override val displayTime: DisplayTime,
             val filePath: String,
             val cropTimeCrop: TimeCrop? = null,
-            val volume: Float = 1f
+            val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
+
+        companion object {
+
+            /** [Audio.volume]の省略時の値 */
+            const val DEFAULT_VOLUME = 1f
+        }
     }
 
 

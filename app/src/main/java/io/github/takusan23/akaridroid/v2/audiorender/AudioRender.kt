@@ -1,7 +1,7 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -33,14 +33,14 @@ class AudioRender(
      *
      * @param renderData RenderData
      */
-    suspend fun setRenderData(renderData: RenderData) = withContext(Dispatchers.IO) {
+    suspend fun setRenderData(audioRenderItem: List<RenderData.AudioItem>, durationMs: Long) = withContext(Dispatchers.IO) {
         // PCM 音声を合成する
         outPcmFile.delete()
 
         // 用意
         // 素材をデコードする
         try {
-            audioItemRenderList = renderData.audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
+            audioItemRenderList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
                 // 並列で、デコーダー足りるかな
                 async {
                     // すでにあれば何もしない
@@ -55,7 +55,9 @@ class AudioRender(
                         outPcmFile = createOutPcmFile(audioItem.id)
                     )
                     // デコードもしておく
-                    newItem.decode(tempFolder)
+                    // 一応フォルダも分けておく
+                    val childTempFolder = tempFolder.resolve(audioItem.id.toString()).apply { mkdir() }
+                    newItem.decode(childTempFolder)
                     return@async newItem
                 }
             }.awaitAll()
@@ -67,13 +69,14 @@ class AudioRender(
         val mixList = audioItemRenderList.map { itemRender ->
             AudioMixingProcessor.MixAudioData(
                 inPcmFile = itemRender.outPcmFile,
-                startMs = itemRender.displayTime.startMs
+                startMs = itemRender.displayTime.startMs,
+                stopMs = itemRender.displayTime.stopMs
             )
         }
         // 合成する
         AudioMixingProcessor.start(
             outPcmFile = outPcmFile,
-            durationMs = renderData.durationMs,
+            durationMs = durationMs,
             mixList = mixList
         )
     }
@@ -99,7 +102,7 @@ class AudioRender(
      *
      * @param byteArray データの格納先
      */
-    suspend fun getPcmByteArray(byteArray: ByteArray) = withContext(Dispatchers.IO) {
+    suspend fun getPcmByteArray(byteArray: ByteArray): Int = withContext(Dispatchers.IO) {
         inputStream.read(byteArray)
     }
 

@@ -103,19 +103,21 @@ object AudioMixingProcessor {
      *
      * @param inPcmFile PCM ファイルのパス
      * @param startMs 合成する再生開始位置
+     * @param stopMs 終了位置
      */
     data class MixAudioData(
         val inPcmFile: File,
-        val startMs: Long
+        val startMs: Long,
+        val stopMs: Long
     ) {
 
         /** 音声ファイルの長さ（秒） */
         val durationSec: Long
             get() = inPcmFile.length() / (AkariCoreAudioProperties.SAMPLING_RATE * AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH)
 
-        /** 再生すべき位置の範囲を返す。開始位置から、開始位置 + ファイルの長さ */
+        /** 再生すべき位置の範囲を返す */
         val playPositionMs: LongRange
-            get() = startMs..(startMs + (durationSec * 1000))
+            get() = startMs..stopMs
 
     }
 
