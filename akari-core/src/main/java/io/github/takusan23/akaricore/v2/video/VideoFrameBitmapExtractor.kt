@@ -1,19 +1,19 @@
 package io.github.takusan23.akaricore.v2.video
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
+import android.graphics.PixelFormat
 import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.video.gl.VideoFrameInputSurface
+import io.github.takusan23.akaricore.v2.video.gl.VideoFrameTextureRenderer
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 import java.io.File
 
 /**
@@ -30,6 +30,9 @@ class VideoFrameBitmapExtractor {
 
     /** 映像デコーダーから Bitmap として取り出すための ImageReader */
     private var imageReader: ImageReader? = null
+
+    /** MediaCodec でフレームを受け取って、OpenGL で描画するやつ */
+    private var inputSurface: VideoFrameInputSurface? = null
 
     /** 最後の[getVideoFrameBitmap]で取得したフレームの位置 */
     private var latestDecodePositionMs = 0L
@@ -58,11 +61,23 @@ class VideoFrameBitmapExtractor {
         val videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
 
         // Surface 経由で Bitmap が取れる ImageReader つくる
-        imageReader = ImageReader.newInstance(videoWidth, videoHeight, ImageFormat.YUV_420_888, 2)
+        imageReader = ImageReader.newInstance(videoWidth, videoHeight, PixelFormat.RGBA_8888, 2)
+
+        // OpenGL 描画用スレッドに切り替える
+        withContext(openGlRendererThreadDispatcher) {
+            // MediaCodec と ImageReader の間に OpenGL を経由させる
+            // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
+            this@VideoFrameBitmapExtractor.inputSurface = VideoFrameInputSurface(
+                surface = imageReader!!.surface,
+                textureRenderer = VideoFrameTextureRenderer()
+            )
+            inputSurface!!.makeCurrent()
+            inputSurface!!.createRender()
+        }
 
         // 映像デコーダー起動
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
-            configure(mediaFormat, imageReader!!.surface, null, 0)
+            configure(mediaFormat, inputSurface!!.drawSurface, null, 0)
         }
         decodeMediaCodec!!.start()
     }
@@ -72,6 +87,7 @@ class VideoFrameBitmapExtractor {
         decodeMediaCodec?.release()
         mediaExtractor?.release()
         imageReader?.close()
+        inputSurface?.release()
     }
 
     /**
@@ -121,6 +137,7 @@ class VideoFrameBitmapExtractor {
     ) = withContext(Dispatchers.Default) {
         val decodeMediaCodec = decodeMediaCodec!!
         val mediaExtractor = mediaExtractor!!
+        val inputSurface = inputSurface!!
 
         var isRunning = isActive
         val bufferInfo = MediaCodec.BufferInfo()
@@ -153,6 +170,23 @@ class VideoFrameBitmapExtractor {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
+                        // OpenGL で描画して、ImageReader で撮影する
+                        // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
+                        withContext(openGlRendererThreadDispatcher) {
+                            if (doRender) {
+                                var errorWait = false
+                                try {
+                                    inputSurface.awaitNewImage()
+                                } catch (e: Exception) {
+                                    errorWait = true
+                                }
+                                if (!errorWait) {
+                                    inputSurface.drawImage()
+                                    inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                                    inputSurface.swapBuffers()
+                                }
+                            }
+                        }
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
                         val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
                         if (seekToMs <= presentationTimeMs) {
@@ -195,6 +229,7 @@ class VideoFrameBitmapExtractor {
     ) = withContext(Dispatchers.Default) {
         val decodeMediaCodec = decodeMediaCodec!!
         val mediaExtractor = mediaExtractor!!
+        val inputSurface = inputSurface!!
 
         // シークする。SEEK_TO_PREVIOUS_SYNC なので、シーク位置にキーフレームがない場合はキーフレームがある場所まで戻る
         mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
@@ -235,6 +270,23 @@ class VideoFrameBitmapExtractor {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
+                        // OpenGL で描画して、ImageReader で撮影する
+                        // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
+                        withContext(openGlRendererThreadDispatcher) {
+                            if (doRender) {
+                                var errorWait = false
+                                try {
+                                    inputSurface.awaitNewImage()
+                                } catch (e: Exception) {
+                                    errorWait = true
+                                }
+                                if (!errorWait) {
+                                    inputSurface.drawImage()
+                                    inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                                    inputSurface.swapBuffers()
+                                }
+                            }
+                        }
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
                         val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
                         if (seekToMs <= presentationTimeMs) {
@@ -249,27 +301,12 @@ class VideoFrameBitmapExtractor {
 
     /** [imageReader]から[Bitmap]を取り出す */
     private suspend fun getImageReaderBitmap(): Bitmap = withContext(Dispatchers.Default) {
-        // ImageFormat.YUV_420_888 を NV21 へ
         val image = imageReader!!.acquireLatestImage()
         val width = image.width
         val height = image.height
-        val yBuffer = image.planes[0].buffer
-        val uBuffer = image.planes[1].buffer
-        val vBuffer = image.planes[2].buffer
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
-        val nv21 = ByteArray(ySize + uSize + vSize)
-        yBuffer[nv21, 0, ySize]
-        vBuffer[nv21, ySize, vSize]
-        uBuffer[nv21, ySize + vSize, uSize]
-        // NV21 から JPEG へ
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
-        yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, byteArrayOutputStream)
-        // JPEG から Bitmap へ
-        val jpegByteArray = byteArrayOutputStream.toByteArray()
-        val bitmap = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.size)
+        val buffer = image.planes.first().buffer
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.copyPixelsFromBuffer(buffer)
         prevBitmap = bitmap
         // Image を close する
         image.close()
@@ -279,6 +316,10 @@ class VideoFrameBitmapExtractor {
     companion object {
         /** MediaCodec タイムアウト */
         private const val TIMEOUT_US = 10_000L
+
+        /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う TODO これテストだと動かない */
+        @OptIn(DelicateCoroutinesApi::class)
+        private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRenderDispatcher")
     }
 
 }

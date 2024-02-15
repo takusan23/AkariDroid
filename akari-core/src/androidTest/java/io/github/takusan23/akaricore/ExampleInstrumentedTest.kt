@@ -56,8 +56,8 @@ class ExampleInstrumentedTest {
                 outPcmFile = outPcm,
                 durationMs = 10_000,
                 mixList = listOf(
-                    AudioMixingProcessor.MixAudioData(videoPcm, 0),
-                    AudioMixingProcessor.MixAudioData(bgmPcm, 0)
+                    AudioMixingProcessor.MixAudioData(videoPcm, 0, 10_000),
+                    AudioMixingProcessor.MixAudioData(bgmPcm, 0, 10_000)
                 )
             )
             // エンコード

@@ -91,11 +91,22 @@ class MainActivity : ComponentActivity() {
             DisposableEffect(key1 = Unit) {
                 scope.launch {
                     val videoFile = getExternalFilesDir(null)!!.resolve("test_toomo.mp4")
-                    videoFile.createNewFile()
                     videoFrameBitmapExtractor.prepareDecoder(videoFile)
                     val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
                     composeBitmap.value = bitmap.asImageBitmap()
                 }
+//                scope.launch {
+//                    val time = measureTimeMillis {
+//                        val videoFile = getExternalFilesDir(null)!!.resolve("test_toomo.mp4")
+//                        VideoFrameBitmapExtractor().apply {
+//                            prepareDecoder(videoFile)
+//                            getVideoFrameBitmap(1_000)
+//                            getVideoFrameBitmap(1_100)
+//                            getVideoFrameBitmap(1_200)
+//                        }
+//                    }
+//                    println("VideoFrameBitmapExtractor time = $time ms")
+//                }
                 onDispose { videoFrameBitmapExtractor.destroy() }
             }
 
