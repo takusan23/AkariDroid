@@ -3,6 +3,7 @@ package io.github.takusan23.akaridroid.v2.canvasrender
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ImageRender
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.ItemRenderInterface
 import io.github.takusan23.akaridroid.v2.canvasrender.itemrender.TextRender

@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.v2.canvasrender
+package io.github.takusan23.akaridroid.v2
 
 import kotlinx.serialization.Serializable
 
@@ -19,7 +19,7 @@ data class RenderData(
 ) {
 
     /** 映像、音声で共通している */
-    interface RenderItem {
+    sealed interface RenderItem {
         /** アイテムを識別する一意の値 */
         val id: Long
 

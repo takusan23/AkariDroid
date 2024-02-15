@@ -7,7 +7,7 @@ import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import java.io.File
 
 /**

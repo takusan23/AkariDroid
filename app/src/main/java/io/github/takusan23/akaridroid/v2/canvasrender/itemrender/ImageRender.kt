@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import com.bumptech.glide.Glide
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

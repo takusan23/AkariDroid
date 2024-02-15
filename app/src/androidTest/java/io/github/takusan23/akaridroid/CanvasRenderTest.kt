@@ -11,7 +11,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith

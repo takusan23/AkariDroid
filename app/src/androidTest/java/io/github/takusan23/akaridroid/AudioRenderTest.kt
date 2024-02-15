@@ -6,7 +6,7 @@ import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaridroid.test.R
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.audiorender.AudioRender
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext

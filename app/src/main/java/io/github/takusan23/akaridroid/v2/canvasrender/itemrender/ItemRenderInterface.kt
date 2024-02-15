@@ -1,7 +1,7 @@
 package io.github.takusan23.akaridroid.v2.canvasrender.itemrender
 
 import android.graphics.Canvas
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 
 /** [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.RenderItem]を描画する */
 interface ItemRenderInterface {

@@ -3,7 +3,7 @@ package io.github.takusan23.akaridroid.v2.canvasrender.itemrender
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 
 /** 文字を描画する */
 class TextRender(

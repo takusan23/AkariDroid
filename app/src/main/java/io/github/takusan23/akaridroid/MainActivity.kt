@@ -6,24 +6,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaridroid.ui.theme.AkariDroidTheme
+import io.github.takusan23.akaridroid.v2.ui.screen.AkariDroidMainScreenV2
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -67,75 +52,9 @@ class MainActivity : ComponentActivity() {
         */
 
         setContent {
-            val scope = rememberCoroutineScope()
-            val composeBitmap = remember { mutableStateOf<ImageBitmap?>(null) }
-            val videoFrameBitmapExtractor = remember { VideoFrameBitmapExtractor() }
-            val currentPositionMs = remember { mutableLongStateOf(0) }
-
-            fun nextFrame(seekValue: Long) {
-                scope.launch {
-                    currentPositionMs.longValue += seekValue
-                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
-                    composeBitmap.value = bitmap.asImageBitmap()
-                }
+            AkariDroidTheme {
+                AkariDroidMainScreenV2()
             }
-
-            fun prevFrame(seekValue: Long) {
-                scope.launch {
-                    currentPositionMs.longValue -= seekValue
-                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
-                    composeBitmap.value = bitmap.asImageBitmap()
-                }
-            }
-
-            DisposableEffect(key1 = Unit) {
-                scope.launch {
-                    val videoFile = getExternalFilesDir(null)!!.resolve("test_toomo.mp4")
-                    videoFrameBitmapExtractor.prepareDecoder(videoFile)
-                    val bitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(currentPositionMs.longValue)
-                    composeBitmap.value = bitmap.asImageBitmap()
-                }
-//                scope.launch {
-//                    val time = measureTimeMillis {
-//                        val videoFile = getExternalFilesDir(null)!!.resolve("test_toomo.mp4")
-//                        VideoFrameBitmapExtractor().apply {
-//                            prepareDecoder(videoFile)
-//                            getVideoFrameBitmap(1_000)
-//                            getVideoFrameBitmap(1_100)
-//                            getVideoFrameBitmap(1_200)
-//                        }
-//                    }
-//                    println("VideoFrameBitmapExtractor time = $time ms")
-//                }
-                onDispose { videoFrameBitmapExtractor.destroy() }
-            }
-
-
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (composeBitmap.value != null) {
-                    Image(bitmap = composeBitmap.value!!, contentDescription = null)
-                }
-                Text(text = "${currentPositionMs.longValue} ms")
-
-                Button(onClick = { nextFrame(16) }) {
-                    Text(text = "進める")
-                }
-                Button(onClick = { nextFrame(4_000) }) {
-                    Text(text = "4秒進める")
-                }
-                Button(onClick = { nextFrame(10_000) }) {
-                    Text(text = "10秒進める")
-                }
-                Button(onClick = { prevFrame(16) }) {
-                    Text(text = "巻き戻す")
-                }
-            }
-
-            // AkariDroidMainScreen()
         }
     }
 

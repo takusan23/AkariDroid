@@ -1,6 +1,6 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import java.io.File
 
 /** [AudioItemRender]のインターフェース。今ん所継承してるの一個しか無いけど */

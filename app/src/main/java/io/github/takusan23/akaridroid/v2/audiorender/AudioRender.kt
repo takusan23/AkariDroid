@@ -2,7 +2,7 @@ package io.github.takusan23.akaridroid.v2.audiorender
 
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
-import io.github.takusan23.akaridroid.v2.canvasrender.RenderData
+import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,11 +28,7 @@ class AudioRender(
     private val inputStream
         get() = outPcmFile.inputStream()
 
-    /**
-     * [RenderData]をセットして、合成済みの PCM を作る
-     *
-     * @param renderData RenderData
-     */
+    /** [audioRenderItem]をセットして、合成済みの PCM を作る */
     suspend fun setRenderData(audioRenderItem: List<RenderData.AudioItem>, durationMs: Long) = withContext(Dispatchers.IO) {
         // PCM 音声を合成する
         outPcmFile.delete()
@@ -102,7 +98,7 @@ class AudioRender(
      *
      * @param byteArray データの格納先
      */
-    suspend fun getPcmByteArray(byteArray: ByteArray): Int = withContext(Dispatchers.IO) {
+    suspend fun readPcmByteArray(byteArray: ByteArray): Int = withContext(Dispatchers.IO) {
         inputStream.read(byteArray)
     }
 
