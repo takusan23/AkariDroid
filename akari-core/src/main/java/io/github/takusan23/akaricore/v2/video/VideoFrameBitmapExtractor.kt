@@ -20,6 +20,7 @@ import java.io.File
  * [android.media.MediaMetadataRetriever.getFrameAtTime]が遅いので、[MediaCodec]あたりを使って高速に[Bitmap]を返すやつを作る。
  * また、[android.media.MediaMetadataRetriever]を複数用意して、[Bitmap]を作ろうとしても何故か速度が変わらない（共有している・・？）
  */
+@OptIn(DelicateCoroutinesApi::class)
 class VideoFrameBitmapExtractor {
 
     /** MediaCodec デコーダー */
@@ -42,6 +43,9 @@ class VideoFrameBitmapExtractor {
 
     /** 前回[getImageReaderBitmap]で作成した Bitmap */
     private var prevBitmap: Bitmap? = null
+
+    /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う */
+    private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRendererThreadDispatcher")
 
     /**
      * デコーダーを初期化する
@@ -88,6 +92,7 @@ class VideoFrameBitmapExtractor {
         mediaExtractor?.release()
         imageReader?.close()
         inputSurface?.release()
+        openGlRendererThreadDispatcher.close()
     }
 
     /**
@@ -316,10 +321,6 @@ class VideoFrameBitmapExtractor {
     companion object {
         /** MediaCodec タイムアウト */
         private const val TIMEOUT_US = 10_000L
-
-        /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う TODO これテストだと動かない */
-        @OptIn(DelicateCoroutinesApi::class)
-        private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRenderDispatcher")
     }
 
 }
