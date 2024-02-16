@@ -33,7 +33,7 @@ fun VideoEditorBottomSheetRouter(
                 is RenderData.AudioItem -> TODO()
                 is RenderData.CanvasItem.Image -> TODO()
 
-                is RenderData.CanvasItem.Text -> TextEditBottomSheet(
+                is RenderData.CanvasItem.Text -> TextRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
                     onCreateOrUpdate = { onResult(VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate(it)) },
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) },

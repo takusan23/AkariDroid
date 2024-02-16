@@ -2,7 +2,6 @@ package io.github.takusan23.akaridroid.v2.ui.bottomsheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,8 +9,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,9 +16,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.v2.RenderData
+import io.github.takusan23.akaridroid.v2.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.v2.ui.component.OutlinedFloatTextField
+import io.github.takusan23.akaridroid.v2.ui.component.RenderItemDisplayTimeEditComponent
+import io.github.takusan23.akaridroid.v2.ui.component.RenderItemPositionEditComponent
 
 /**
  * 文字を追加するボトムシート
@@ -32,16 +31,16 @@ import io.github.takusan23.akaridroid.v2.ui.component.OutlinedFloatTextField
  * @param onDelete 削除押したとき
  */
 @Composable
-fun TextEditBottomSheet(
+fun TextRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Text,
     isEdit: Boolean,
     onCreateOrUpdate: (RenderData.CanvasItem.Text) -> Unit,
     onDelete: (RenderData.CanvasItem.Text) -> Unit,
 ) {
-    val canvasItemText = remember { mutableStateOf(renderItem) }
+    val textItem = remember { mutableStateOf(renderItem) }
 
     fun update(copy: (RenderData.CanvasItem.Text) -> RenderData.CanvasItem.Text) {
-        canvasItemText.value = copy(canvasItemText.value)
+        textItem.value = copy(textItem.value)
     }
 
     Column(
@@ -51,41 +50,42 @@ fun TextEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = if (isEdit) "テキストの追加" else "テキストの編集",
-                fontSize = 24.sp
-            )
-            if (isEdit) {
-                OutlinedButton(onClick = { onDelete(canvasItemText.value) }) {
-                    Text(text = "削除")
-                }
-            }
-            Button(onClick = { onCreateOrUpdate(canvasItemText.value) }) {
-                Text(text = if (isEdit) "完了" else "追加")
-            }
-        }
+        BottomSheetHeader(
+            title = if (isEdit) "テキストの追加" else "テキストの編集",
+            isEdit = isEdit,
+            onCreateOrUpdate = { onCreateOrUpdate(textItem.value) },
+            onDelete = { onDelete(textItem.value) }
+        )
 
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = canvasItemText.value.text,
+            value = textItem.value.text,
             onValueChange = { text -> update { it.copy(text = text) } },
             label = { Text(text = "文字") }
         )
 
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = canvasItemText.value.fontColor,
+            value = textItem.value.fontColor,
             onValueChange = { color -> update { it.copy(fontColor = color) } },
             label = { Text(text = "文字の色（カラーコード）") }
         )
 
         OutlinedFloatTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = canvasItemText.value.textSize,
+            value = textItem.value.textSize,
             onValueChange = { textSize -> update { it.copy(textSize = textSize) } },
             label = { Text(text = "文字サイズ") }
+        )
+
+        RenderItemPositionEditComponent(
+            position = textItem.value.position,
+            onUpdate = { position -> update { it.copy(position = position) } }
+        )
+
+        RenderItemDisplayTimeEditComponent(
+            displayTime = textItem.value.displayTime,
+            onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
         )
     }
 }

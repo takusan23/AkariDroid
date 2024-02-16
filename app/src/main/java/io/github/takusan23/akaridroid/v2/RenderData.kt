@@ -27,6 +27,16 @@ data class RenderData(
         val displayTime: DisplayTime
     }
 
+    /** 保存先。ファイルパスか android の Uri */
+    sealed interface FilePath {
+
+        /** Uri */
+        data class Uri(val uriPath: String) : FilePath
+
+        /** ファイルパス */
+        data class File(val filePath: String) : FilePath
+    }
+
     /** Canvas に書く */
     sealed interface CanvasItem : RenderItem {
 
@@ -50,7 +60,7 @@ data class RenderData(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
             override val displayTime: DisplayTime,
-            val filePath: String,
+            val filePath: FilePath,
             val size: Size? = null
         ) : CanvasItem
 
@@ -60,7 +70,7 @@ data class RenderData(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
             override val displayTime: DisplayTime,
-            val filePath: String,
+            val filePath: FilePath,
             val size: Size? = null,
             val cropTimeCrop: TimeCrop? = null,
             val chromaKeyColor: Int? = null

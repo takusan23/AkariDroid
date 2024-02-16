@@ -1,9 +1,11 @@
 package io.github.takusan23.akaridroid.v2.canvasrender.itemrender
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.core.graphics.scale
+import androidx.core.net.toUri
 import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +14,7 @@ import java.io.File
 
 /** 動画を描画する */
 class VideoRender(
+    private val context: Context,
     private val video: RenderData.CanvasItem.Video
 ) : ItemRenderInterface {
 
@@ -28,7 +31,11 @@ class VideoRender(
 
     override suspend fun prepare() = withContext(Dispatchers.IO) {
         videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
-            prepareDecoder(File(video.filePath))
+            // Uri と File で分岐
+            when (video.filePath) {
+                is RenderData.FilePath.File -> prepareDecoder(File(video.filePath.filePath))
+                is RenderData.FilePath.Uri -> prepareDecoder(context, video.filePath.uriPath.toUri())
+            }
         }
     }
 

@@ -10,8 +10,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
-import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender
 import io.github.takusan23.akaridroid.v2.RenderData
+import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -92,13 +92,13 @@ class CanvasRenderTest {
                         RenderData.CanvasItem.Image(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(100f, 100f),
-                            filePath = imagePath.path,
+                            filePath = RenderData.FilePath.File(imagePath.path),
                             size = RenderData.Size(100, 100)
                         ),
                         RenderData.CanvasItem.Image(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(300f, 300f),
-                            filePath = imagePath.path,
+                            filePath = RenderData.FilePath.File(imagePath.path),
                             size = RenderData.Size(300, 300)
                         )
                     )
@@ -128,19 +128,19 @@ class CanvasRenderTest {
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(0f, 0f),
-                            filePath = testToomoMp4.path,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(640f, 0f),
-                            filePath = testToomoMp4.path,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(0f, 360f),
-                            filePath = testToomoMp4.path,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Text(

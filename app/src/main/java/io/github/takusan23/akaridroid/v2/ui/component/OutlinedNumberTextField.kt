@@ -49,3 +49,25 @@ fun OutlinedIntTextField(
         label = label
     )
 }
+
+/** [OutlinedTextField]の[Long]版 */
+@Composable
+fun OutlinedLongTextField(
+    modifier: Modifier = Modifier,
+    value: Long,
+    onValueChange: (Long) -> Unit,
+    label: @Composable (() -> Unit)? = null
+) {
+    val numberText = remember { mutableStateOf(value.toString()) }
+    OutlinedTextField(
+        modifier = modifier,
+        value = numberText.value,
+        onValueChange = {
+            numberText.value = it
+            it.toLongOrNull()?.also { long ->
+                onValueChange(long)
+            }
+        },
+        label = label
+    )
+}

@@ -40,7 +40,7 @@ class CanvasRender(private val context: Context) {
                 val newItem = when (renderItem) {
                     is RenderData.CanvasItem.Text -> TextRender(renderItem)
                     is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
-                    is RenderData.CanvasItem.Video -> VideoRender(renderItem)
+                    is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
                 }
                 // 初期化も
                 newItem.prepare()

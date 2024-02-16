@@ -28,7 +28,12 @@ class ImageRender(
         val request = Glide
             .with(context)
             .asBitmap()
-            .load(image.filePath)
+            .load(
+                when (image.filePath) {
+                    is RenderData.FilePath.File -> image.filePath.filePath
+                    is RenderData.FilePath.Uri -> image.filePath.uriPath
+                }
+            )
 
         // リサイズする
         bitmap = if (image.size != null) {
