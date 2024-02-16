@@ -31,8 +31,9 @@ class VideoEditorPreviewPlayer(
 
     private val canvasRender = CanvasRender(context)
     private val audioRender = AudioRender(
-        pcmFolder = projectFolder.resolve(OUT_PCM_FILE_NAME),
-        outPcmFile = projectFolder.resolve(DECODE_PCM_FOLDER_NAME).apply { mkdir() },
+        context = context,
+        outPcmFile = projectFolder.resolve(OUT_PCM_FILE_NAME),
+        pcmFolder = projectFolder.resolve(DECODE_PCM_FOLDER_NAME).apply { mkdir() },
         tempFolder = projectFolder.resolve(TEMP_FOLDER_NAME).apply { mkdir() }
     )
     private val pcmPlayer = PcmPlayer(
@@ -140,6 +141,7 @@ class VideoEditorPreviewPlayer(
     fun destroy() {
         stop()
         pcmPlayer.destroy()
+        audioRender.destroy()
     }
 
     /**

@@ -1,6 +1,8 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
+import android.content.Context
 import android.media.MediaFormat
+import androidx.core.net.toUri
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
@@ -11,12 +13,14 @@ import io.github.takusan23.akaridroid.v2.RenderData
 import java.io.File
 
 /**
- * [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.AudioItem]からデータをデコードしたりするクラス
+ * [RenderData.AudioItem]からデータをデコードしたりするクラス
  *
+ * @param context [Context]
  * @param audioItem 音声素材
  * @param outPcmFile デコードしたファイルの保存先
  */
 class AudioItemRender(
+    private val context: Context,
     private val audioItem: RenderData.AudioItem.Audio,
     override val outPcmFile: File,
 ) : AudioRenderInterface {
@@ -27,20 +31,36 @@ class AudioItemRender(
     override suspend fun decode(tempFolder: File) {
 
         /** 仮のファイルを作る */
-        fun createTempFile(fileName: String): File = tempFolder.resolve(fileName)
+        fun createTempFile(fileName: String): File = tempFolder.resolve(fileName).apply { createNewFile() }
+
+        // Uri の場合はコピーする。
+        // 現状音声の方は File しか見てない
+        val fileOrCopyFile = when (audioItem.filePath) {
+            is RenderData.FilePath.File -> File(audioItem.filePath.filePath)
+
+            // Uri の場合は tempFolder 内にコピーする
+            // TODO Uri を受け付けれるようにしたい
+            is RenderData.FilePath.Uri -> createTempFile(AUDIO_COPY_FROM_URI).also { copyFile ->
+                context.contentResolver.openInputStream(audioItem.filePath.uriPath.toUri())!!.use { inputStream ->
+                    copyFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+            }
+        }
 
         // カットが必要な場合
         val audioFile = if (audioItem.cropTimeCrop != null) {
             createTempFile(AUDIO_CROP_FILE).also { cropAudioFile ->
                 CutProcessor.start(
-                    targetVideoFile = File(audioItem.filePath),
+                    targetVideoFile = fileOrCopyFile,
                     resultFile = cropAudioFile,
                     timeRangeMs = audioItem.cropTimeCrop,
                     extractMimeType = MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO
                 )
             }
         } else {
-            File(audioItem.filePath)
+            fileOrCopyFile
         }
 
         // デコーダーにかける
@@ -94,6 +114,7 @@ class AudioItemRender(
 
     companion object {
 
+        private const val AUDIO_COPY_FROM_URI = "audio_copy_from_uri"
         private const val AUDIO_CROP_FILE = "audio_crop_file"
         private const val AUDIO_DECODE_FILE = "audio_decode_file"
         private const val AUDIO_FIX_VOLUME = "audio_fix_volume"

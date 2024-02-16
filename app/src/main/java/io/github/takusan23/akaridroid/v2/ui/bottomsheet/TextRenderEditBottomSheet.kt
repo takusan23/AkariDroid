@@ -23,18 +23,17 @@ import io.github.takusan23.akaridroid.v2.ui.component.RenderItemDisplayTimeEditC
 import io.github.takusan23.akaridroid.v2.ui.component.RenderItemPositionEditComponent
 
 /**
- * 文字を追加するボトムシート
+ * [RenderData.CanvasItem.Text]の追加・編集ボトムシート
  *
- * @param canvasItemText キャンバスのテキストの情報
+ * @param renderItem キャンバスのテキストの情報
  * @param isEdit 編集は true、新規作成は false
- * @param onCreateOrUpdate 作成か更新
- * @param onDelete 削除押したとき
+ * @param  作成か更新時に呼ばれる
+ * @param onDelete 削除時に呼ばれる
  */
 @Composable
 fun TextRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Text,
-    isEdit: Boolean,
-    onCreateOrUpdate: (RenderData.CanvasItem.Text) -> Unit,
+    onUpdate: (RenderData.CanvasItem.Text) -> Unit,
     onDelete: (RenderData.CanvasItem.Text) -> Unit,
 ) {
     val textItem = remember { mutableStateOf(renderItem) }
@@ -51,9 +50,8 @@ fun TextRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = if (isEdit) "テキストの追加" else "テキストの編集",
-            isEdit = isEdit,
-            onCreateOrUpdate = { onCreateOrUpdate(textItem.value) },
+            title = "テキストの編集",
+            onComplete = { onUpdate(textItem.value) },
             onDelete = { onDelete(textItem.value) }
         )
 

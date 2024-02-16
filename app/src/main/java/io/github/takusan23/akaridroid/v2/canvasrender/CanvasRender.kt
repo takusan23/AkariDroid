@@ -15,6 +15,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** [Canvas] に [RenderData.CanvasItem]の内容を描画するやつ */
 class CanvasRender(private val context: Context) {
 
     /** 描画する [ItemRenderInterface] の配列 */

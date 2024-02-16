@@ -99,8 +99,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムシートの作業結果[VideoEditorBottomSheetRouteResultData]を捌く */
     fun resolveBottomSheetResult(routeResultData: VideoEditorBottomSheetRouteResultData) {
         when (routeResultData) {
-            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addOrUpdateCanvasRenderItem(routeResultData.text)
             is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> deleteRenderItem(routeResultData.renderItem)
+            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addOrUpdateCanvasRenderItem(routeResultData.text)
+            is VideoEditorBottomSheetRouteResultData.VideoUpdate -> addOrUpdateCanvasRenderItem(routeResultData.video)
+            is VideoEditorBottomSheetRouteResultData.AudioUpdate -> addOrUpdateAudioRenderItem(routeResultData.audio)
         }
     }
 
@@ -120,7 +122,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param canvasItem [RenderData.CanvasItem]
      */
-    private fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+    fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.canvasRenderItem.any { it.id == canvasItem.id }) {
@@ -139,7 +141,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param audioItem [RenderData.AudioItem]
      */
-    private fun addAudioRenderItem(audioItem: RenderData.AudioItem) {
+    fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.audioRenderItem.any { it.id == audioItem.id }) {

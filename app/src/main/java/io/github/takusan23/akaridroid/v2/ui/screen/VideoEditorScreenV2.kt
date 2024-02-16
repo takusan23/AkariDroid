@@ -20,9 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBar
+import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouter
+import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 
 /** 動画編集画面 */
@@ -50,7 +51,20 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
     Scaffold(
         bottomBar = {
             VideoEditorBottomBar(
-                onCreateRenderItem = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(it)) }
+                onCreateRenderItem = { renderItemList ->
+                    // 素材を追加して
+                    renderItemList.forEach { renderItem ->
+                        when (renderItem) {
+                            is RenderData.AudioItem -> viewModel.addOrUpdateAudioRenderItem(renderItem)
+                            is RenderData.CanvasItem -> viewModel.addOrUpdateCanvasRenderItem(renderItem)
+                        }
+                    }
+                    // ボトムシートを出す。
+                    // 動画の場合は複数返ってくるので、、まあ出さないでいいか
+                    if (renderItemList.size == 1) {
+                        viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItemList.first()))
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -80,8 +94,15 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
             }
 
             renderData.value.canvasRenderItem.forEach { canvasItem ->
-                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem, isEdit = true)) }) {
+                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem)) }) {
                     Text(text = canvasItem.toString())
+                }
+                Divider()
+            }
+
+            renderData.value.audioRenderItem.forEach { audioItem ->
+                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(audioItem)) }) {
+                    Text(text = audioItem.toString())
                 }
                 Divider()
             }

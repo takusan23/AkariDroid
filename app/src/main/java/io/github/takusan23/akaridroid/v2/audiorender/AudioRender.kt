@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
+import android.content.Context
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaridroid.v2.RenderData
@@ -13,9 +14,12 @@ import java.io.InputStream
 /**
  * 音声を合成して PCM を返す
  *
+ * @param pcmFolder デコードした PCM データの保存先
  * @param outPcmFile PCM 保存先
+ * @param tempFolder 一時的な保存先
  */
 class AudioRender(
+    private val context: Context,
     private val pcmFolder: File,
     private val outPcmFile: File,
     private val tempFolder: File
@@ -36,6 +40,7 @@ class AudioRender(
         // 用意
         // 素材をデコードする
         try {
+            tempFolder.mkdir()
             audioItemRenderList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
                 // 並列で、デコーダー足りるかな
                 async {
@@ -47,6 +52,7 @@ class AudioRender(
 
                     // ない場合
                     val newItem = AudioItemRender(
+                        context = context,
                         audioItem = audioItem,
                         outPcmFile = createOutPcmFile(audioItem.id)
                     )
@@ -58,7 +64,7 @@ class AudioRender(
                 }
             }.awaitAll()
         } finally {
-            tempFolder.delete()
+            tempFolder.deleteRecursively()
         }
 
         // 合成する際のパラメータ
@@ -100,6 +106,13 @@ class AudioRender(
      */
     suspend fun readPcmByteArray(byteArray: ByteArray): Int = withContext(Dispatchers.IO) {
         inputStream.read(byteArray)
+    }
+
+    /** 破棄する。生成したファイルを消す */
+    fun destroy() {
+        outPcmFile.deleteRecursively()
+        pcmFolder.delete()
+        tempFolder.deleteRecursively()
     }
 
     private fun createOutPcmFile(id: Long): File {

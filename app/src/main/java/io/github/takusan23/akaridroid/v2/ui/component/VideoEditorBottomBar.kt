@@ -28,11 +28,16 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.v2.RenderData
 
-/** 動画編集画面のボトムバー */
+/**
+ * 動画編集画面のボトムバー
+ *
+ * @param modifier [Modifier]
+ * @param onCreateRenderItem [RenderData]を作成したら呼ばれます。動画以外は配列に一つだけ、動画の場合は音声と映像で2つ配列に入っています。
+ */
 @Composable
 fun VideoEditorBottomBar(
     modifier: Modifier = Modifier,
-    onCreateRenderItem: (RenderData.RenderItem) -> Unit
+    onCreateRenderItem: (List<RenderData.RenderItem>) -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -47,10 +52,10 @@ fun VideoEditorBottomBar(
                 .padding(top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            AddTextButton(onCreateRenderItem = onCreateRenderItem)
-            AddImageButton(onCreateRenderItem = onCreateRenderItem)
-            AddVideoButton(onCreateRenderItem = onCreateRenderItem)
-            AddAudioButton(onCreateRenderItem = onCreateRenderItem)
+            AddTextButton(onCreateRenderItem = { onCreateRenderItem(listOf(it)) })
+            AddImageButton(onCreateRenderItem = { onCreateRenderItem(listOf(it)) })
+            AddVideoButton(onCreateRenderItem = { tracks -> onCreateRenderItem(tracks) })
+            AddAudioButton(onCreateRenderItem = { onCreateRenderItem(listOf(it)) })
         }
     }
 }
@@ -78,7 +83,16 @@ private fun AddTextButton(onCreateRenderItem: (RenderData.RenderItem) -> Unit) {
 private fun AddImageButton(onCreateRenderItem: (RenderData.RenderItem) -> Unit) {
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> }
+        onResult = { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            onCreateRenderItem(
+                RenderData.CanvasItem.Image(
+                    filePath = RenderData.FilePath.Uri(uri.toString()),
+                    displayTime = RenderData.DisplayTime(0, 1000),
+                    position = RenderData.Position(0f, 0f),
+                )
+            )
+        }
     )
 
     VideoEditorBottomBarItem(
@@ -90,10 +104,28 @@ private fun AddImageButton(onCreateRenderItem: (RenderData.RenderItem) -> Unit) 
 
 /** 動画を追加ボタン */
 @Composable
-private fun AddVideoButton(onCreateRenderItem: (RenderData.RenderItem) -> Unit) {
+private fun AddVideoButton(onCreateRenderItem: (List<RenderData.RenderItem>) -> Unit) {
     val videoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> }
+        onResult = { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            // 動画の場合、映像トラックと音声トラックの2つがあるので2つ配列に入れて返す
+            // TODO 音声トラックない場合
+            onCreateRenderItem(
+                listOf(
+                    RenderData.CanvasItem.Video(
+                        filePath = RenderData.FilePath.Uri(uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 1000),
+                        position = RenderData.Position(0f, 0f),
+                    ),
+                    RenderData.AudioItem.Audio(
+                        id = System.currentTimeMillis() + 10,
+                        filePath = RenderData.FilePath.Uri(uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 1000)
+                    )
+                )
+            )
+        }
     )
 
     VideoEditorBottomBarItem(

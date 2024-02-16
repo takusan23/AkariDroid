@@ -30,17 +30,25 @@ fun VideoEditorBottomSheetRouter(
 
             // 編集画面を出す
             is VideoEditorBottomSheetRouteRequestData.OpenEditor -> when (videoEditorBottomSheetRouteRequestData.renderItem) {
-                is RenderData.AudioItem -> TODO()
+                is RenderData.AudioItem.Audio -> AudioEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.AudioUpdate(it)) },
+                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
+                )
+
                 is RenderData.CanvasItem.Image -> TODO()
 
                 is RenderData.CanvasItem.Text -> TextRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    onCreateOrUpdate = { onResult(VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate(it)) },
-                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) },
-                    isEdit = videoEditorBottomSheetRouteRequestData.isEdit
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate(it)) },
+                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
 
-                is RenderData.CanvasItem.Video -> TODO()
+                is RenderData.CanvasItem.Video -> VideoRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.VideoUpdate(it)) },
+                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
+                )
             }
         }
     }

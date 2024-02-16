@@ -5,8 +5,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaridroid.test.R
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
-import io.github.takusan23.akaridroid.v2.audiorender.AudioRender
 import io.github.takusan23.akaridroid.v2.RenderData
+import io.github.takusan23.akaridroid.v2.audiorender.AudioRender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -42,6 +42,7 @@ class AudioRenderTest {
         // 作る
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
+            context = context,
             pcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
@@ -50,7 +51,7 @@ class AudioRenderTest {
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(0, 10_000),
-                        filePath = testToomoMp4.path
+                        filePath = RenderData.FilePath.File(testToomoMp4.path)
                     )
                 ),
                 durationMs = 10_000
@@ -69,6 +70,7 @@ class AudioRenderTest {
         // 作る
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
+            context = context,
             pcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
@@ -77,17 +79,17 @@ class AudioRenderTest {
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(0, 3_000),
-                        filePath = testToomoMp4.path,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
                     ),
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(3_000, 6_000),
-                        filePath = testToomoMp4.path,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.5f
                     ),
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(6_000, 10_000),
-                        filePath = testToomoMp4.path,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 1f
                     )
                 ),
@@ -107,6 +109,7 @@ class AudioRenderTest {
         // 作る
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
+            context = context,
             pcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
@@ -117,7 +120,7 @@ class AudioRenderTest {
                 audioRenderItem = (0 until 10).map { index ->
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(index * 1_000L, 10_000L),
-                        filePath = testToomoMp4.path,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
                     )
                 },

@@ -15,16 +15,14 @@ import androidx.compose.ui.unit.sp
  *
  * @param modifier [Modifier]
  * @param title タイトル
- * @param isEdit 編集なら true
- * @param onCreateOrUpdate 作成押したとき
+ * @param onComplete 完了を押したとき
  * @param onDelete 削除押したとき
  */
 @Composable
 fun BottomSheetHeader(
     modifier: Modifier = Modifier,
     title: String,
-    isEdit: Boolean,
-    onCreateOrUpdate: () -> Unit,
+    onComplete: () -> Unit,
     onDelete: () -> Unit
 ) {
     Row(
@@ -36,13 +34,11 @@ fun BottomSheetHeader(
             text = title,
             fontSize = 24.sp
         )
-        if (isEdit) {
-            OutlinedButton(onClick = onDelete) {
-                Text(text = "削除")
-            }
+        OutlinedButton(onClick = onDelete) {
+            Text(text = "削除")
         }
-        Button(onClick = onCreateOrUpdate) {
-            Text(text = if (isEdit) "完了" else "追加")
+        Button(onClick = onComplete) {
+            Text(text = "完了")
         }
     }
 }

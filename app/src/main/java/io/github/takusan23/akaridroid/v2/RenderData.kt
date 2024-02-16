@@ -30,7 +30,7 @@ data class RenderData(
     /** 保存先。ファイルパスか android の Uri */
     sealed interface FilePath {
 
-        /** Uri */
+        /** Uri 。シリアライズできるように String です。 */
         data class Uri(val uriPath: String) : FilePath
 
         /** ファイルパス */
@@ -78,14 +78,14 @@ data class RenderData(
     }
 
     /** 音声 */
-    interface AudioItem : RenderItem {
+    sealed interface AudioItem : RenderItem {
 
         /** 音声素材と、動画（音声トラック） */
         @Serializable
         data class Audio(
             override val id: Long = System.currentTimeMillis(),
             override val displayTime: DisplayTime,
-            val filePath: String,
+            val filePath: FilePath,
             val cropTimeCrop: TimeCrop? = null,
             val volume: Float = DEFAULT_VOLUME
         ) : AudioItem

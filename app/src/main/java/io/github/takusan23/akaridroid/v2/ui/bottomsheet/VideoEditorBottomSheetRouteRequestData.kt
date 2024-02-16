@@ -6,14 +6,10 @@ import io.github.takusan23.akaridroid.v2.RenderData
 sealed interface VideoEditorBottomSheetRouteRequestData {
 
     /**
-     * [RenderData.RenderItem]の編集ボトムシートを出す
+     * [RenderData.RenderItem]に対応する各編集ボトムシートを出す
      *
      * @param renderItem 編集するアイテム
-     * @param isEdit 編集モードは true
      */
-    data class OpenEditor(
-        val renderItem: RenderData.RenderItem,
-        val isEdit: Boolean = false
-    ) : VideoEditorBottomSheetRouteRequestData
+    data class OpenEditor(val renderItem: RenderData.RenderItem) : VideoEditorBottomSheetRouteRequestData
 
 }
