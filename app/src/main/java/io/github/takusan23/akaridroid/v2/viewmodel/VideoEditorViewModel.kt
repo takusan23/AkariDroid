@@ -99,7 +99,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムシートの作業結果[VideoEditorBottomSheetRouteResultData]を捌く */
     fun resolveBottomSheetResult(routeResultData: VideoEditorBottomSheetRouteResultData) {
         when (routeResultData) {
-            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addCanvasRenderItem(routeResultData.text)
+            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addOrUpdateCanvasRenderItem(routeResultData.text)
             is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> deleteRenderItem(routeResultData.renderItem)
         }
     }
@@ -120,9 +120,16 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param canvasItem [RenderData.CanvasItem]
      */
-    private fun addCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
-        _renderData.update {
-            it.copy(canvasRenderItem = it.canvasRenderItem + canvasItem)
+    private fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+        _renderData.update { before ->
+            // 更新なら
+            if (before.canvasRenderItem.any { it.id == canvasItem.id }) {
+                before.copy(canvasRenderItem = before.canvasRenderItem.map { item ->
+                    if (item.id == canvasItem.id) canvasItem else item
+                })
+            } else {
+                before.copy(canvasRenderItem = before.canvasRenderItem + canvasItem)
+            }
         }
     }
 
@@ -133,8 +140,15 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      * @param audioItem [RenderData.AudioItem]
      */
     private fun addAudioRenderItem(audioItem: RenderData.AudioItem) {
-        _renderData.update {
-            it.copy(audioRenderItem = it.audioRenderItem + audioItem)
+        _renderData.update { before ->
+            // 更新なら
+            if (before.audioRenderItem.any { it.id == audioItem.id }) {
+                before.copy(audioRenderItem = before.audioRenderItem.map { item ->
+                    if (item.id == audioItem.id) audioItem else item
+                })
+            } else {
+                before.copy(audioRenderItem = before.audioRenderItem + audioItem)
+            }
         }
     }
 
