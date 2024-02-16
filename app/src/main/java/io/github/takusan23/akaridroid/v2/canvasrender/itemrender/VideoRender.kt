@@ -69,7 +69,7 @@ class VideoRender(
     }
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
-        return renderItem != video
+        return renderItem == video
     }
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {

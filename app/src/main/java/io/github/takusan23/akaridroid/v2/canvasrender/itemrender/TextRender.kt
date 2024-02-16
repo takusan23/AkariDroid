@@ -32,7 +32,7 @@ class TextRender(
     }
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
-        return text != renderItem
+        return text == renderItem
     }
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {

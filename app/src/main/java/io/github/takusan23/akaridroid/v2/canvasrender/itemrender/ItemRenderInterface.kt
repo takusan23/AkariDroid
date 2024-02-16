@@ -42,7 +42,7 @@ interface ItemRenderInterface {
     /**
      * データが一緒かどうか返す
      *
-     * @param renderItem 比較対象の[io.github.takusan23.akaridroid.v2.canvasrender.RenderData.CanvasItem]
+     * @param renderItem 比較対象の[RenderData.CanvasItem]
      * @return 同じ場合は true
      */
     suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean

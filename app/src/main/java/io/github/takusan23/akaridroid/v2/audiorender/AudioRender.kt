@@ -37,6 +37,9 @@ class AudioRender(
         // PCM 音声を合成する
         outPcmFile.delete()
 
+        // 処理をスキップできるか。前回と素材が変化していないとき
+        var isAllSkippable = true
+
         // 用意
         // 素材をデコードする
         try {
@@ -51,6 +54,7 @@ class AudioRender(
                     }
 
                     // ない場合
+                    isAllSkippable = false
                     val newItem = AudioItemRender(
                         context = context,
                         audioItem = audioItem,
@@ -66,6 +70,9 @@ class AudioRender(
         } finally {
             tempFolder.deleteRecursively()
         }
+
+        // スキップ出来る場合はこれ以降何もしない
+        if (isAllSkippable) return@withContext
 
         // 合成する際のパラメータ
         val mixList = audioItemRenderList.map { itemRender ->
@@ -110,8 +117,8 @@ class AudioRender(
 
     /** 破棄する。生成したファイルを消す */
     fun destroy() {
-        outPcmFile.deleteRecursively()
-        pcmFolder.delete()
+        outPcmFile.delete()
+        pcmFolder.deleteRecursively()
         tempFolder.deleteRecursively()
     }
 

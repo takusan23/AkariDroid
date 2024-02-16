@@ -46,6 +46,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // TODO 適当に初期値を入れた
         _renderData.update {
             it.copy(
+/*
                 canvasRenderItem = listOf(
                     RenderData.CanvasItem.Text(
                         id = 1,
@@ -63,6 +64,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         fontColor = "#ff0000"
                     )
                 )
+*/
             )
         }
 

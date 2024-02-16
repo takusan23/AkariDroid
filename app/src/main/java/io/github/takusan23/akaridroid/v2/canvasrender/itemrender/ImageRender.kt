@@ -55,7 +55,7 @@ class ImageRender(
     }
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
-        return image != renderItem
+        return image == renderItem
     }
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
