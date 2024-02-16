@@ -56,7 +56,7 @@ fun EditorMenuBar(
             }
             item {
                 EditorMenuBarItem(
-                    icon = painterResource(id = R.drawable.outline_audiotrack_24),
+                    icon = painterResource(id = R.drawable.ic_outline_audiotrack_24),
                     text = "音声の追加",
                     onClick = onAudioClick
                 )

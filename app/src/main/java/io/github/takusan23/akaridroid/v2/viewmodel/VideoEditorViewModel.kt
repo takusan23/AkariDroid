@@ -6,6 +6,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
+import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,6 +28,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             audioRenderItem = emptyList()
         )
     )
+    private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
@@ -36,18 +39,23 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** 素材の情報 */
     val renderData = _renderData.asStateFlow()
 
+    /** ボトムシートのルーティング */
+    val bottomSheetRouteData = _bottomSheetRouteData.asStateFlow()
+
     init {
         // TODO 適当に初期値を入れた
         _renderData.update {
             it.copy(
                 canvasRenderItem = listOf(
                     RenderData.CanvasItem.Text(
+                        id = 1,
                         text = "あかりどろいど",
                         displayTime = RenderData.DisplayTime(0, 10_000),
                         position = RenderData.Position(0f, 100f),
                         textSize = 100f
                     ),
                     RenderData.CanvasItem.Text(
+                        id = 2,
                         text = "2024/02/16",
                         displayTime = RenderData.DisplayTime(0, 10_000),
                         position = RenderData.Position(0f, 150f),
@@ -88,13 +96,31 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         videoEditorPreviewPlayer.destroy()
     }
 
+    /** ボトムシートの作業結果[VideoEditorBottomSheetRouteResultData]を捌く */
+    fun resolveBottomSheetResult(routeResultData: VideoEditorBottomSheetRouteResultData) {
+        when (routeResultData) {
+            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addCanvasRenderItem(routeResultData.text)
+            is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> deleteRenderItem(routeResultData.renderItem)
+        }
+    }
+
+    /** ボトムシートを表示させる */
+    fun openBottomSheet(bottomSheetRouteRequestData: VideoEditorBottomSheetRouteRequestData) {
+        _bottomSheetRouteData.value = bottomSheetRouteRequestData
+    }
+
+    /** ボトムシートを閉じる */
+    fun closeBottomSheet() {
+        _bottomSheetRouteData.value = null
+    }
+
     /**
      * [RenderData.CanvasItem]を追加する
      * 動画とか、テキストとか
      *
      * @param canvasItem [RenderData.CanvasItem]
      */
-    fun addCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+    private fun addCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
         _renderData.update {
             it.copy(canvasRenderItem = it.canvasRenderItem + canvasItem)
         }
@@ -106,7 +132,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param audioItem [RenderData.AudioItem]
      */
-    fun addAudioRenderItem(audioItem: RenderData.AudioItem) {
+    private fun addAudioRenderItem(audioItem: RenderData.AudioItem) {
         _renderData.update {
             it.copy(audioRenderItem = it.audioRenderItem + audioItem)
         }
@@ -117,7 +143,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param renderItem 削除したい
      */
-    fun removeRenderItem(renderItem: RenderData.RenderItem) {
+    private fun deleteRenderItem(renderItem: RenderData.RenderItem) {
         _renderData.update {
             when (renderItem) {
                 is RenderData.AudioItem -> it.copy(audioRenderItem = it.audioRenderItem.filter { it.id != renderItem.id })

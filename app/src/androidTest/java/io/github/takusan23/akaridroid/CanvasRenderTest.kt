@@ -78,7 +78,7 @@ class CanvasRenderTest {
     fun test_画像のRenderDataから動画を作る() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val imagePath = createFile("temp_photo").also { file ->
             file.outputStream().use { outputStream ->
-                ContextCompat.getDrawable(targetContext, R.drawable.outline_audiotrack_24)!!
+                ContextCompat.getDrawable(targetContext, R.drawable.ic_outline_audiotrack_24)!!
                     .apply { setTintList(ColorStateList.valueOf(Color.WHITE)) }
                     .toBitmap()
                     .compress(Bitmap.CompressFormat.PNG, 100, outputStream)

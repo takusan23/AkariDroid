@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBar
+import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
+import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 
 /** 動画編集画面 */
@@ -31,7 +35,25 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
     /** プレビューのBitmap */
     val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsState()
 
-    Scaffold { paddingValues ->
+    /** ボトムシート */
+    val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsState()
+
+    // ボトムシート
+    if (bottomSheetRouteData.value != null) {
+        VideoEditorBottomSheetRouter(
+            videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
+            onResult = { routeResultData -> viewModel.resolveBottomSheetResult(routeResultData) },
+            onClose = { viewModel.closeBottomSheet() }
+        )
+    }
+
+    Scaffold(
+        bottomBar = {
+            VideoEditorBottomBar(
+                onCreateRenderItem = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(it)) }
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -55,11 +77,12 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
                 } else {
                     Text(text = "生成中です...")
                 }
-
             }
 
-            renderData.value.canvasRenderItem.forEach {
-                Text(text = it.toString())
+            renderData.value.canvasRenderItem.forEach { canvasItem ->
+                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem, isEdit = true)) }) {
+                    Text(text = canvasItem.toString())
+                }
                 Divider()
             }
         }
