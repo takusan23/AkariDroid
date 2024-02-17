@@ -1,10 +1,12 @@
 package io.github.takusan23.akaridroid.v2.ui.component
 
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 
 /** [OutlinedTextField]の[Float]版 */
 @Composable
@@ -24,7 +26,9 @@ fun OutlinedFloatTextField(
                 onValueChange(float)
             }
         },
-        label = label
+        label = label,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true
     )
 }
 
@@ -46,7 +50,9 @@ fun OutlinedIntTextField(
                 onValueChange(int)
             }
         },
-        label = label
+        label = label,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true
     )
 }
 
@@ -68,6 +74,8 @@ fun OutlinedLongTextField(
                 onValueChange(long)
             }
         },
-        label = label
+        label = label,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true
     )
 }

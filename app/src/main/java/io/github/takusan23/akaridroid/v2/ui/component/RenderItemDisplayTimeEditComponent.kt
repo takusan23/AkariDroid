@@ -23,13 +23,13 @@ fun RenderItemDisplayTimeEditComponent(
             modifier = Modifier.weight(1f),
             value = displayTime.startMs,
             onValueChange = { startMs -> onUpdate(displayTime.copy(startMs = startMs)) },
-            label = { Text(text = "表示開始時間") }
+            label = { Text(text = "表示開始時間（ミリ秒）") }
         )
         OutlinedLongTextField(
             modifier = Modifier.weight(1f),
             value = displayTime.stopMs,
             onValueChange = { stopMs -> onUpdate(displayTime.copy(stopMs = stopMs)) },
-            label = { Text(text = "表示終了時間") }
+            label = { Text(text = "表示終了時間（ミリ秒）") }
         )
     }
 }

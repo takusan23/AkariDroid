@@ -26,8 +26,7 @@ import io.github.takusan23.akaridroid.v2.ui.component.RenderItemPositionEditComp
  * [RenderData.CanvasItem.Text]の追加・編集ボトムシート
  *
  * @param renderItem キャンバスのテキストの情報
- * @param isEdit 編集は true、新規作成は false
- * @param  作成か更新時に呼ばれる
+ * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
  */
 @Composable

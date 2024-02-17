@@ -14,15 +14,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouter
+import io.github.takusan23.akaridroid.v2.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 
@@ -31,13 +32,16 @@ import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
 
     /** 動画の素材や情報が入ったデータ */
-    val renderData = viewModel.renderData.collectAsState()
+    val renderData = viewModel.renderData.collectAsStateWithLifecycle()
+
+    /** プレビューのプレイヤー状態 */
+    val previewPlayerStatus = viewModel.videoEditorPreviewPlayer.playerStatus.collectAsStateWithLifecycle()
 
     /** プレビューのBitmap */
-    val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsState()
+    val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsStateWithLifecycle()
 
     /** ボトムシート */
-    val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsState()
+    val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
 
     // ボトムシート
     if (bottomSheetRouteData.value != null) {
@@ -92,6 +96,14 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
                     Text(text = "生成中です...")
                 }
             }
+
+            // シークバーとか
+            PreviewPlayerController(
+                modifier = Modifier.padding(horizontal = 5.dp),
+                playerStatus = previewPlayerStatus.value,
+                onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+                onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
+            )
 
             renderData.value.canvasRenderItem.forEach { canvasItem ->
                 Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem)) }) {

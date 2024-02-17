@@ -29,8 +29,7 @@ class AudioRender(
     private var audioItemRenderList: List<AudioItemRender> = emptyList()
 
     /** PCM をファイルから取り出すための[InputStream] */
-    private val inputStream
-        get() = outPcmFile.inputStream()
+    private var inputStream: InputStream? = null
 
     /** [audioRenderItem]をセットして、合成済みの PCM を作る */
     suspend fun setRenderData(audioRenderItem: List<RenderData.AudioItem>, durationMs: Long) = withContext(Dispatchers.IO) {
@@ -88,10 +87,14 @@ class AudioRender(
             durationMs = durationMs,
             mixList = mixList
         )
+        inputStream = outPcmFile.inputStream()
     }
 
     /** シークする。秒なので音ズレが訪れする */
     suspend fun seek(currentSec: Int) = withContext(Dispatchers.IO) {
+        // InputStream なければ何もしない
+        val inputStream = inputStream ?: return@withContext
+
         // 読み取り位置を見て、もし戻る必要があれば
         val currentReadPos = outPcmFile.length() - inputStream.available()
         val seekBytePos = (AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH * AkariCoreAudioProperties.SAMPLING_RATE) * currentSec
@@ -111,12 +114,14 @@ class AudioRender(
      *
      * @param byteArray データの格納先
      */
-    suspend fun readPcmByteArray(byteArray: ByteArray): Int = withContext(Dispatchers.IO) {
-        inputStream.read(byteArray)
+    suspend fun readPcmByteArray(byteArray: ByteArray) = withContext(Dispatchers.IO) {
+        inputStream?.read(byteArray)
     }
 
     /** 破棄する。生成したファイルを消す */
     fun destroy() {
+        inputStream?.close()
+        inputStream = null
         outPcmFile.delete()
         pcmFolder.deleteRecursively()
         tempFolder.deleteRecursively()

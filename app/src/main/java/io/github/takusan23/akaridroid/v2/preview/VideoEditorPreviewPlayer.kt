@@ -42,10 +42,16 @@ class VideoEditorPreviewPlayer(
     )
     private val bitmapCanvasController = BitmapCanvasController()
 
-    private val _playerPosition = MutableStateFlow(PlayerPosition(0, 0))
+    private val _playerStatus = MutableStateFlow(
+        PlayerStatus(
+            isPlaying = false,
+            currentPositionMs = 0,
+            durationMs = 0
+        )
+    )
 
-    /** プレビュープレイヤーの再生位置と動画時間を流す Flow */
-    val playerPosition = _playerPosition.asStateFlow()
+    /** プレビュープレイヤーのプレイヤー状態 Flow */
+    val playerStatus = _playerStatus.asStateFlow()
 
     /** プレビュー画像として[Bitmap]を流す Flow */
     val previewBitmap = bitmapCanvasController.latestBitmap
@@ -56,7 +62,7 @@ class VideoEditorPreviewPlayer(
         videoHeight: Int,
         durationMs: Long
     ) {
-        _playerPosition.update { it.copy(durationMs = durationMs) }
+        _playerStatus.update { it.copy(durationMs = durationMs) }
         bitmapCanvasController.createCanvas(videoWidth, videoHeight)
     }
 
@@ -64,7 +70,7 @@ class VideoEditorPreviewPlayer(
     suspend fun setAudioRenderItem(
         audioRenderItemList: List<RenderData.AudioItem> = emptyList()
     ) = withContext(Dispatchers.Default) {
-        audioRender.setRenderData(audioRenderItemList, _playerPosition.value.durationMs)
+        audioRender.setRenderData(audioRenderItemList, _playerStatus.value.durationMs)
     }
 
     /** 動画で再生するキャンパス要素をセットする */
@@ -76,13 +82,15 @@ class VideoEditorPreviewPlayer(
 
     /** シークする */
     fun seekTo(seekToMs: Long) {
-        _playerPosition.update { it.copy(currentPositionMs = seekToMs) }
+        _playerStatus.update { it.copy(currentPositionMs = seekToMs) }
+        // プレビューを更新
+        playInSingle()
     }
 
     /** 現在位置のプレビューを更新する。更新は一回だけ */
-    fun startSinglePlay() {
+    fun playInSingle() {
         playerScope.launch {
-            val (currentPosition, videoDuration) = _playerPosition.first()
+            val (_, currentPosition, videoDuration) = _playerStatus.first()
             bitmapCanvasController.update { canvas ->
                 canvasRender.draw(canvas, videoDuration, currentPosition)
             }
@@ -90,17 +98,21 @@ class VideoEditorPreviewPlayer(
     }
 
     /** プレビュー再生を開始する。停止するまで時間が進み続けます。 */
-    fun startRepeatPlay() {
+    fun playInRepeat() {
+
+        _playerStatus.update { it.copy(isPlaying = true) }
 
         // 時間を進める
         playerScope.launch {
             while (isActive) {
                 // 時間を進める
-                if (_playerPosition.value.currentPositionMs <= _playerPosition.value.durationMs) {
+                if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
                     // 1秒ごとなのは、AudioRender が時間の単位が秒なのでそれの最低値
-                    _playerPosition.update { it.copy(currentPositionMs = it.currentPositionMs + 1_000) }
+                    _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + 1_000) }
                     delay(1_000)
                 } else {
+                    // 動画時間超えたら折る
+                    _playerStatus.update { it.copy(isPlaying = false) }
                     break
                 }
             }
@@ -110,7 +122,7 @@ class VideoEditorPreviewPlayer(
         // プレビュー重たい
         // 速度優先のため1秒ごと
         playerScope.launch {
-            _playerPosition.collect { (currentPosition, videoDuration) ->
+            _playerStatus.collect { (_, currentPosition, videoDuration) ->
                 bitmapCanvasController.update { canvas ->
                     canvasRender.draw(canvas, videoDuration, currentPosition)
                 }
@@ -123,7 +135,7 @@ class VideoEditorPreviewPlayer(
         // 1秒間に必要な ByteArray を用意して読み出す
         val pcmByteArray = ByteArray(AkariCoreAudioProperties.SAMPLING_RATE * AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH)
         playerScope.launch {
-            _playerPosition.collect { (currentPosition, _) ->
+            _playerStatus.collect { (_, currentPosition, _) ->
                 // シークする
                 audioRender.seek((currentPosition / 1000).toInt())
                 audioRender.readPcmByteArray(pcmByteArray)
@@ -134,25 +146,28 @@ class VideoEditorPreviewPlayer(
     }
 
     /** 再生を一時停止する */
-    fun stop() {
+    fun pause() {
+        _playerStatus.update { it.copy(isPlaying = false) }
         pcmPlayer.pause()
         playerScope.coroutineContext.cancelChildren()
     }
 
     /** 破棄する */
     fun destroy() {
-        stop()
+        pause()
         pcmPlayer.destroy()
         audioRender.destroy()
     }
 
     /**
-     * プレイヤーの時間
+     * プレイヤーの状態
      *
+     * @param isPlaying 再生中かどうか
      * @param currentPositionMs 再生位置
      * @param durationMs 動画の時間
      */
-    data class PlayerPosition(
+    data class PlayerStatus(
+        val isPlaying: Boolean,
         val currentPositionMs: Long,
         val durationMs: Long
     )
