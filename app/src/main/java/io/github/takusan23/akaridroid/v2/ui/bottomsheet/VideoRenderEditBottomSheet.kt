@@ -22,6 +22,7 @@ import io.github.takusan23.akaridroid.v2.tool.UriTool
 import io.github.takusan23.akaridroid.v2.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.v2.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.v2.ui.component.RenderItemPositionEditComponent
+import io.github.takusan23.akaridroid.v2.ui.component.RenderItemSizeEditComponent
 
 /**
  * [RenderData.CanvasItem.Video]の編集ボトムシート
@@ -74,6 +75,12 @@ fun VideoRenderEditBottomSheet(
         RenderItemDisplayTimeEditComponent(
             displayTime = videoItem.value.displayTime,
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
+        )
+
+        // TODO Uri からサイズを取り出していれる機能
+        RenderItemSizeEditComponent(
+            size = videoItem.value.size,
+            onUpdate = { size -> update { it.copy(size = size) } }
         )
     }
 }

@@ -31,9 +31,11 @@ data class RenderData(
     sealed interface FilePath {
 
         /** Uri 。シリアライズできるように String です。 */
+        @Serializable
         data class Uri(val uriPath: String) : FilePath
 
         /** ファイルパス */
+        @Serializable
         data class File(val filePath: String) : FilePath
     }
 
