@@ -138,10 +138,24 @@ private fun AddVideoButton(onCreateRenderItem: (List<RenderData.RenderItem>) -> 
 /** 音声を追加ボタン */
 @Composable
 private fun AddAudioButton(onCreateRenderItem: (RenderData.RenderItem) -> Unit) {
+    // フォトピッカーの音声版は存在しないので、、、
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            uri ?: return@rememberLauncherForActivityResult
+            onCreateRenderItem(
+                RenderData.AudioItem.Audio(
+                    filePath = RenderData.FilePath.Uri(uri.toString()),
+                    displayTime = RenderData.DisplayTime(0, 1000)
+                )
+            )
+        }
+    )
+
     VideoEditorBottomBarItem(
         label = "音声の追加",
         iconId = R.drawable.ic_outline_audiotrack_24,
-        onClick = { }
+        onClick = { filePicker.launch(arrayOf("audio/*")) }
     )
 }
 

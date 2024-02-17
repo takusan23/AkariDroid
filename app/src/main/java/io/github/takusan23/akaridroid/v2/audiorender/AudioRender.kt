@@ -35,25 +35,24 @@ class AudioRender(
     suspend fun setRenderData(audioRenderItem: List<RenderData.AudioItem>, durationMs: Long) = withContext(Dispatchers.IO) {
         // PCM 音声を合成する
         outPcmFile.delete()
-
-        // 処理をスキップできるか。前回と素材が変化していないとき
-        var isAllSkippable = true
+        inputStream?.close()
+        inputStream = null
 
         // 用意
         // 素材をデコードする
         try {
             tempFolder.mkdir()
-            audioItemRenderList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
+            val newAudioItemRenderList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
                 // 並列で、デコーダー足りるかな
                 async {
                     // すでにあれば何もしない
+                    // TODO デコードとサンプリングレート変換だけやって、切り抜きとかは Mix のときにやると良さそう。
                     val exitsOrNull = audioItemRenderList.firstOrNull { it.isEquals(audioItem) }
                     if (exitsOrNull != null) {
                         return@async exitsOrNull
                     }
 
                     // ない場合
-                    isAllSkippable = false
                     val newItem = AudioItemRender(
                         context = context,
                         audioItem = audioItem,
@@ -66,46 +65,58 @@ class AudioRender(
                     return@async newItem
                 }
             }.awaitAll()
+
+            // 前回から要らなくなったものを削除する
+            // 前回と同じなら isEquals が true のはず。true ならそのまま残す
+            // false で前回までしか残ってないやつは破棄する
+            // TODO が、、、なんか消しちゃいけないものまで消してる
+            /*
+                        audioItemRenderList.forEach { oldRender ->
+                            // 含まれていなければ使われてない
+                            if (audioRenderItem.none { new -> oldRender.isEquals(new) }) {
+                                oldRender.outPcmFile.delete()
+                            }
+                        }
+            */
+
+            audioItemRenderList = newAudioItemRenderList
+
+            // 合成する際のパラメータ
+            val mixList = audioItemRenderList.map { itemRender ->
+                AudioMixingProcessor.MixAudioData(
+                    inPcmFile = itemRender.outPcmFile,
+                    startMs = itemRender.displayTime.startMs,
+                    stopMs = itemRender.displayTime.stopMs
+                )
+            }
+            // 合成する
+            AudioMixingProcessor.start(
+                outPcmFile = outPcmFile,
+                durationMs = durationMs,
+                mixList = mixList
+            )
+            // InputStream を開く
+            inputStream = outPcmFile.inputStream()
         } finally {
+            // 終了時 tempFolder 削除
             tempFolder.deleteRecursively()
         }
-
-        // スキップ出来る場合はこれ以降何もしない
-        if (isAllSkippable) return@withContext
-
-        // 合成する際のパラメータ
-        val mixList = audioItemRenderList.map { itemRender ->
-            AudioMixingProcessor.MixAudioData(
-                inPcmFile = itemRender.outPcmFile,
-                startMs = itemRender.displayTime.startMs,
-                stopMs = itemRender.displayTime.stopMs
-            )
-        }
-        // 合成する
-        AudioMixingProcessor.start(
-            outPcmFile = outPcmFile,
-            durationMs = durationMs,
-            mixList = mixList
-        )
-        inputStream = outPcmFile.inputStream()
     }
 
     /** シークする。秒なので音ズレが訪れする */
     suspend fun seek(currentSec: Int) = withContext(Dispatchers.IO) {
-        // InputStream なければ何もしない
-        val inputStream = inputStream ?: return@withContext
-
         // 読み取り位置を見て、もし戻る必要があれば
-        val currentReadPos = outPcmFile.length() - inputStream.available()
+        val available = inputStream?.available() ?: return@withContext
+        val currentReadPos = outPcmFile.length() - available
         val seekBytePos = (AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH * AkariCoreAudioProperties.SAMPLING_RATE) * currentSec
         if (currentReadPos < seekBytePos) {
             // Skip する
-            inputStream.skip(seekBytePos - currentReadPos)
+            inputStream?.skip(seekBytePos - currentReadPos)
         } else {
-            // 戻ってやり直す。その後 skip
-            // InputStream は逆方向には skip 出来ない
-            inputStream.reset()
-            inputStream.skip(seekBytePos.toLong())
+            // 戻れないので、InputStream を開き直す
+            inputStream?.close()
+            inputStream = outPcmFile.inputStream()
+            inputStream?.skip(seekBytePos.toLong())
         }
     }
 
@@ -115,7 +126,9 @@ class AudioRender(
      * @param byteArray データの格納先
      */
     suspend fun readPcmByteArray(byteArray: ByteArray) = withContext(Dispatchers.IO) {
-        inputStream?.read(byteArray)
+        if (inputStream?.available() != 0) {
+            inputStream?.read(byteArray)
+        } else 0
     }
 
     /** 破棄する。生成したファイルを消す */

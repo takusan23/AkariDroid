@@ -109,7 +109,7 @@ class AudioItemRender(
     }
 
     override suspend fun isEquals(item: RenderData.AudioItem): Boolean {
-        return audioItem != item
+        return audioItem == item
     }
 
     companion object {

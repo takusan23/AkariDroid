@@ -31,7 +31,7 @@ object AudioMixingProcessor {
         val outputStream = outPcmFile.outputStream()
         // InputStream を作る
         val mixAudioStreamDataList = mixList.map {
-            MixAudioStreamData(it, it.inPcmFile.inputStream())
+            MixAudioStreamData(it, it.inPcmFile.inputStream().buffered())
         }
 
         // 音声を合成する
