@@ -36,7 +36,11 @@ fun VideoEditorBottomSheetRouter(
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
 
-                is RenderData.CanvasItem.Image -> TODO()
+                is RenderData.CanvasItem.Image -> ImageRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.ImageUpdate(it)) },
+                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
+                )
 
                 is RenderData.CanvasItem.Text -> TextRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
