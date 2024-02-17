@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -61,15 +60,18 @@ class VideoEditorPreviewPlayer(
         bitmapCanvasController.createCanvas(videoWidth, videoHeight)
     }
 
-    /** 動画に再生する各種素材をセットする */
-    suspend fun setRenderItem(
-        audioRenderItemList: List<RenderData.AudioItem> = emptyList(),
+    /** 動画で再生する音声素材をセットする */
+    suspend fun setAudioRenderItem(
+        audioRenderItemList: List<RenderData.AudioItem> = emptyList()
+    ) = withContext(Dispatchers.Default) {
+        audioRender.setRenderData(audioRenderItemList, _playerPosition.value.durationMs)
+    }
+
+    /** 動画で再生するキャンパス要素をセットする */
+    suspend fun setCanvasRenderItem(
         canvasItemList: List<RenderData.CanvasItem> = emptyList(),
     ) = withContext(Dispatchers.Default) {
-        listOf(
-            launch { audioRender.setRenderData(audioRenderItemList, _playerPosition.value.durationMs) },
-            launch { canvasRender.setRenderData(canvasItemList) }
-        ).joinAll()
+        canvasRender.setRenderData(canvasItemList)
     }
 
     /** シークする */

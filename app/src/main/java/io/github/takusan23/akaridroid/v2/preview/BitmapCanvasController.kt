@@ -27,6 +27,7 @@ class BitmapCanvasController {
         val bitmap = bitmap ?: return
 
         draw(bitmapCanvas)
-        _latestBitmap.value = bitmap
+        // 多分コピーしないと差分が通知されない
+        _latestBitmap.value = bitmap.copy(Bitmap.Config.ARGB_8888, true)
     }
 }

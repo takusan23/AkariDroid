@@ -46,25 +46,25 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // TODO 適当に初期値を入れた
         _renderData.update {
             it.copy(
-/*
-                canvasRenderItem = listOf(
-                    RenderData.CanvasItem.Text(
-                        id = 1,
-                        text = "あかりどろいど",
-                        displayTime = RenderData.DisplayTime(0, 10_000),
-                        position = RenderData.Position(0f, 100f),
-                        textSize = 100f
-                    ),
-                    RenderData.CanvasItem.Text(
-                        id = 2,
-                        text = "2024/02/16",
-                        displayTime = RenderData.DisplayTime(0, 10_000),
-                        position = RenderData.Position(0f, 150f),
-                        textSize = 50f,
-                        fontColor = "#ff0000"
-                    )
-                )
-*/
+                /*
+                                canvasRenderItem = listOf(
+                                    RenderData.CanvasItem.Text(
+                                        id = 1,
+                                        text = "あかりどろいど",
+                                        displayTime = RenderData.DisplayTime(0, 10_000),
+                                        position = RenderData.Position(0f, 100f),
+                                        textSize = 100f
+                                    ),
+                                    RenderData.CanvasItem.Text(
+                                        id = 2,
+                                        text = "2024/02/16",
+                                        displayTime = RenderData.DisplayTime(0, 10_000),
+                                        position = RenderData.Position(0f, 150f),
+                                        textSize = 50f,
+                                        fontColor = "#ff0000"
+                                    )
+                                )
+                */
             )
         }
 
@@ -82,14 +82,22 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // 素材が更新されたらプレビューにも反映
         // TODO デコード処理が入るので重たい。UI にぐるぐるとか出す
         viewModelScope.launch {
-            _renderData.collect { renderData ->
-                videoEditorPreviewPlayer.setRenderItem(
-                    audioRenderItemList = renderData.audioRenderItem,
-                    canvasItemList = renderData.canvasRenderItem
-                )
-                // プレビューを更新
-                videoEditorPreviewPlayer.startSinglePlay()
-            }
+            _renderData
+                .map { it.audioRenderItem }
+                .distinctUntilChanged()
+                .collect { renderItem ->
+                    videoEditorPreviewPlayer.setAudioRenderItem(renderItem)
+                }
+        }
+        viewModelScope.launch {
+            _renderData
+                .map { it.canvasRenderItem }
+                .distinctUntilChanged()
+                .collect { renderItem ->
+                    videoEditorPreviewPlayer.setCanvasRenderItem(renderItem)
+                    // プレビューを更新
+                    videoEditorPreviewPlayer.startSinglePlay()
+                }
         }
     }
 
