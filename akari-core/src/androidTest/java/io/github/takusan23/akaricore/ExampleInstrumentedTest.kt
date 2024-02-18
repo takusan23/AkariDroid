@@ -139,7 +139,7 @@ class ExampleInstrumentedTest {
             AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
             // アップサンプリング
             ReSamplingRateProcessor.reSamplingBySonic(
-                inPcmFile = pcmFile,
+                inputDataSource = pcmFile.toAkariCoreInputDataSource(),
                 outPcmFile = resamplingPcmFile,
                 channelCount = 1,
                 inSamplingRate = 8_000,
@@ -168,7 +168,7 @@ class ExampleInstrumentedTest {
             // デコード
             AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
             // 音量調整
-            AudioVolumeProcessor.start(pcmFile, applyVolumePcmFile, 0.05f)
+            AudioVolumeProcessor.start(pcmFile.toAkariCoreInputDataSource(), applyVolumePcmFile, 0.05f)
             // エンコード
             AudioEncodeDecodeProcessor.encode(applyVolumePcmFile, resultFile)
         }

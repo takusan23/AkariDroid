@@ -44,6 +44,7 @@ object AudioMixingProcessor {
 
         // 音を重ねていく
         // サンプリングレートの分だけ
+        // TODO たぶん、合成の際に秒より小さい値は見ていない。切り捨てられてる
         val durationSec = (durationMs / 1000).toInt()
         repeat(durationSec) { sec ->
 

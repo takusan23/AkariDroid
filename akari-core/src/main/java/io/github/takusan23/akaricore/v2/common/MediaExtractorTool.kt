@@ -2,6 +2,7 @@ package io.github.takusan23.akaricore.v2.common
 
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -24,7 +25,15 @@ object MediaExtractorTool {
         val mediaExtractor = MediaExtractor()
         when (inputDataSource) {
             is AkariCoreInputDataSource.AndroidUri -> inputDataSource.getFileDescriptor().use { mediaExtractor.setDataSource(it.fileDescriptor) }
-            is AkariCoreInputDataSource.JavaFile -> mediaExtractor.setDataSource(inputDataSource.file.path)
+            is AkariCoreInputDataSource.JavaFile -> mediaExtractor.setDataSource(inputDataSource.filePath)
+            is AkariCoreInputDataSource.JavaByteArray -> {
+                // TODO Android 6 以降のみ！
+                if (inputDataSource.mediaDataSource != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        mediaExtractor.setDataSource(inputDataSource.mediaDataSource)
+                    }
+                }
+            }
         }
         // 映像トラックとインデックス番号のPairを作って返す
         val (index, track) = (0 until mediaExtractor.trackCount)

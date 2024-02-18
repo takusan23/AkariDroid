@@ -1,34 +1,32 @@
 package io.github.takusan23.akaricore.v2.audio
 
-import android.media.MediaFormat
-import android.media.MediaMuxer
-import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
 /** [Sonic]を利用した、サンプリングレート変換器 */
 object ReSamplingRateProcessor {
+    private const val BUFFER_SIZE = 8192
 
     /**
-     * Sonic ライブラリを使ってアップサンプリングする
+     * [Sonic]ライブラリを使ってアップサンプリングする
      *
-     * @param inPcmFile 変換前 PCM ファイル
+     * @param inputDataSource 変換前 PCM ファイルを表す[AkariCoreInputDataSource]
      * @param outPcmFile 変換後 PCM ファイル
      * @param channelCount チャンネル数
      * @param inSamplingRate 変換前のサンプリングレート
      * @param outSamplingRate 変換後のサンプリングレート
      */
     suspend fun reSamplingBySonic(
-        inPcmFile: File,
+        inputDataSource: AkariCoreInputDataSource,
         outPcmFile: File,
         channelCount: Int,
         inSamplingRate: Int,
         outSamplingRate: Int
     ) = withContext(Dispatchers.Default) {
-        val bufferSize = 8192
-        val inByteArray = ByteArray(bufferSize)
-        val outByteArray = ByteArray(bufferSize)
+        val inByteArray = ByteArray(BUFFER_SIZE)
+        val outByteArray = ByteArray(BUFFER_SIZE)
         var numRead: Int
         var numWritten: Int
 
@@ -42,18 +40,18 @@ object ReSamplingRateProcessor {
         sonic.chordPitch = false
         sonic.quality = 0
 
-        inPcmFile.inputStream().use { inputStream ->
+        inputDataSource.inputStream().use { inputStream ->
             outPcmFile.outputStream().use { outputStream ->
 
                 do {
-                    numRead = inputStream.read(inByteArray, 0, bufferSize)
+                    numRead = inputStream.read(inByteArray, 0, BUFFER_SIZE)
                     if (numRead <= 0) {
                         sonic.flushStream()
                     } else {
                         sonic.writeBytesToStream(inByteArray, numRead)
                     }
                     do {
-                        numWritten = sonic.readBytesFromStream(outByteArray, bufferSize)
+                        numWritten = sonic.readBytesFromStream(outByteArray, BUFFER_SIZE)
                         if (numWritten > 0) {
                             outputStream.write(outByteArray, 0, numWritten)
                         }
