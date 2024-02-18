@@ -1,13 +1,12 @@
 package io.github.takusan23.akaricore.v2.video
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import android.net.Uri
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import io.github.takusan23.akaricore.v2.video.gl.VideoFrameInputSurface
 import io.github.takusan23.akaricore.v2.video.gl.VideoFrameTextureRenderer
@@ -16,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /**
  * [android.media.MediaMetadataRetriever.getFrameAtTime]が遅いので、[MediaCodec]あたりを使って高速に[Bitmap]を返すやつを作る。
@@ -24,6 +22,9 @@ import java.io.File
  */
 @OptIn(DelicateCoroutinesApi::class)
 class VideoFrameBitmapExtractor {
+
+    /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う */
+    private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRendererThreadDispatcher")
 
     /** MediaCodec デコーダー */
     private var decodeMediaCodec: MediaCodec? = null
@@ -46,40 +47,47 @@ class VideoFrameBitmapExtractor {
     /** 前回[getImageReaderBitmap]で作成した Bitmap */
     private var prevBitmap: Bitmap? = null
 
-    /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う */
-    private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRendererThreadDispatcher")
-
     /**
      * デコーダーを初期化する
      *
-     * @param videoFile 動画ファイルのパス
+     * @param akariCoreInputDataSource [AkariCoreInputDataSource]。Uri か File です。
      */
     suspend fun prepareDecoder(
-        videoFile: File
-    ) = withContext(Dispatchers.IO) {
-        // コンテナからメタデータを取り出す
-        val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(videoFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
+        akariCoreInputDataSource: AkariCoreInputDataSource
+    ) {
+        val (mediaExtractor, index, mediaFormat) = when (akariCoreInputDataSource) {
+            is AkariCoreInputDataSource.AndroidUri -> akariCoreInputDataSource.getFileDescriptor()
+                .use { fd -> MediaExtractorTool.extractMedia(fd.fileDescriptor, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) }
+
+            is AkariCoreInputDataSource.JavaFile -> MediaExtractorTool.extractMedia(akariCoreInputDataSource.file.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+        }!!
         this@VideoFrameBitmapExtractor.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
-        prepareMediaCodecAndOpenGl(mediaFormat = mediaFormat)
-    }
 
-    /**
-     * デコーダーを初期化する
-     *
-     * @param uri フォトピッカー等で取り出した Uri
-     */
-    suspend fun prepareDecoder(
-        context: Context,
-        uri: Uri
-    ) = withContext(Dispatchers.IO) {
-        // コンテナからメタデータを取り出す
-        val (mediaExtractor, index, mediaFormat) = context.contentResolver.openFileDescriptor(uri, "r")!!.use { fd ->
-            MediaExtractorTool.extractMedia(fd.fileDescriptor, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
+        val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
+        val videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
+        val videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+
+        // Surface 経由で Bitmap が取れる ImageReader つくる
+        imageReader = ImageReader.newInstance(videoWidth, videoHeight, PixelFormat.RGBA_8888, 2)
+
+        // OpenGL 描画用スレッドに切り替える
+        withContext(openGlRendererThreadDispatcher) {
+            // MediaCodec と ImageReader の間に OpenGL を経由させる
+            // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
+            this@VideoFrameBitmapExtractor.inputSurface = VideoFrameInputSurface(
+                surface = imageReader!!.surface,
+                textureRenderer = VideoFrameTextureRenderer()
+            )
+            inputSurface!!.makeCurrent()
+            inputSurface!!.createRender()
         }
-        this@VideoFrameBitmapExtractor.mediaExtractor = mediaExtractor
-        mediaExtractor.selectTrack(index)
-        prepareMediaCodecAndOpenGl(mediaFormat = mediaFormat)
+
+        // 映像デコーダー起動
+        decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
+            configure(mediaFormat, inputSurface!!.drawSurface, null, 0)
+        }
+        decodeMediaCodec!!.start()
     }
 
     /** デコーダーを破棄する */
@@ -312,34 +320,6 @@ class VideoFrameBitmapExtractor {
         // Image を close する
         image.close()
         return@withContext bitmap
-    }
-
-    /** MediaCodec と OpenGL を初期化する */
-    private suspend fun prepareMediaCodecAndOpenGl(mediaFormat: MediaFormat) {
-        val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
-        val videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
-        val videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
-
-        // Surface 経由で Bitmap が取れる ImageReader つくる
-        imageReader = ImageReader.newInstance(videoWidth, videoHeight, PixelFormat.RGBA_8888, 2)
-
-        // OpenGL 描画用スレッドに切り替える
-        withContext(openGlRendererThreadDispatcher) {
-            // MediaCodec と ImageReader の間に OpenGL を経由させる
-            // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
-            this@VideoFrameBitmapExtractor.inputSurface = VideoFrameInputSurface(
-                surface = imageReader!!.surface,
-                textureRenderer = VideoFrameTextureRenderer()
-            )
-            inputSurface!!.makeCurrent()
-            inputSurface!!.createRender()
-        }
-
-        // 映像デコーダー起動
-        decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
-            configure(mediaFormat, inputSurface!!.drawSurface, null, 0)
-        }
-        decodeMediaCodec!!.start()
     }
 
     companion object {

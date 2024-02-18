@@ -10,7 +10,6 @@ import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRo
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -86,8 +85,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             _renderData
                 .map { it.audioRenderItem }
                 .distinctUntilChanged()
-                .collectLatest { renderItem ->
-                    // collectLatest でもし setAudioRenderItem が処理中でもキャンセルさせてやり直しさせます
+                .collect { renderItem ->
                     videoEditorPreviewPlayer.setAudioRenderItem(renderItem)
                 }
         }

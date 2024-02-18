@@ -14,6 +14,7 @@ import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.test.runTest
@@ -213,7 +214,7 @@ class ExampleInstrumentedTest {
 
             // 動画のフレーム取得
             val videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
-                prepareDecoder(demoVideoFile)
+                prepareDecoder(demoVideoFile.toAkariCoreInputDataSource())
             }
 
             // 巻き戻すやつもテストしたいから 1 -> 15 -> 9 で
