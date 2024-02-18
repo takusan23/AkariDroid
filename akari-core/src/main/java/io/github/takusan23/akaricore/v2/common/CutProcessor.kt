@@ -16,19 +16,19 @@ object CutProcessor {
     /**
      * 動画、音声を指定時間で切り抜いて返す
      *
-     * @param targetVideoFile 対象のファイル
+     * @param inputDataSource 対象のファイル
      * @param resultFile 出力ファイル
      * @param timeRangeMs
      */
     @SuppressLint("WrongConstant")
     suspend fun start(
-        targetVideoFile: File,
+        inputDataSource: AkariCoreInputDataSource,
         resultFile: File,
         timeRangeMs: ClosedRange<Long>,
         extractMimeType: MediaExtractorTool.ExtractMimeType,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
     ) = withContext(Dispatchers.Default) {
-        val (mediaExtractor, extractorIndex, format) = MediaExtractorTool.extractMedia(targetVideoFile.path, extractMimeType)!!
+        val (mediaExtractor, extractorIndex, format) = MediaExtractorTool.extractMedia(inputDataSource, extractMimeType)!!
         mediaExtractor.selectTrack(extractorIndex)
         // 保存先
         val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)

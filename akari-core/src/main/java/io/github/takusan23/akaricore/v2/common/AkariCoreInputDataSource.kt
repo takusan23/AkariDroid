@@ -15,9 +15,10 @@ fun Uri.toAkariCoreInputDataSource(context: Context) = AkariCoreInputDataSource.
 
 /**
  * akari-core で[Uri]と[File]両方に対応するための一枚噛んでるクラス。
- * [Uri]が取れるときと、[File]が取れるとき、両方あると思うので・・・
- *
+ * [Uri]が取れるときと、[File]が取れるとき、両方あると思うので・・・。
  * Android だと[Uri]便利なんだけど、テストコードとか、アプリ固有ストレージの場合は[File]のが欲しいのよね。
+ *
+ * [Uri.toAkariCoreInputDataSource]と[File.toAkariCoreInputDataSource]があります。使ってね。
  */
 sealed interface AkariCoreInputDataSource {
 

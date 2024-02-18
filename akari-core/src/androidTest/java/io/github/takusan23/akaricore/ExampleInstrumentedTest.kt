@@ -49,8 +49,8 @@ class ExampleInstrumentedTest {
             val bgmPcm = tempFolder.resolve("bgm_pcm")
             val outPcm = tempFolder.resolve("out_pcm")
             // デコード
-            AudioEncodeDecodeProcessor.decode(videoFile, videoPcm)
-            AudioEncodeDecodeProcessor.decode(bgmFile, bgmPcm)
+            AudioEncodeDecodeProcessor.decode(videoFile.toAkariCoreInputDataSource(), videoPcm)
+            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), bgmPcm)
 
             // 合成する
             AudioMixingProcessor.start(
@@ -109,15 +109,20 @@ class ExampleInstrumentedTest {
         val resultFile = File(appContext.getExternalFilesDir(null), "test_動画の切り取りが出来る_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val toomo = sampleVideoFolder.resolve("iphone.mp4")
         // カットしてみる
-        CutProcessor.start(toomo, resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+        CutProcessor.start(toomo.toAkariCoreInputDataSource(), resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
     }
 
     @Test
     fun test_無音の音声が作成できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val resultFile = File(appContext.getExternalFilesDir(null), "test_無音の音声が作成できる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
-        // 10 秒間の無音の音声ファイルを作る
-        SilenceAudioProcessor.start(resultFile, 10_000)
+        provideTempFolder { tempFolder ->
+            val silencePcm = tempFolder.resolve("silence_pcm")
+            // 10 秒間の無音の音声ファイルを作る
+            SilenceAudioProcessor.start(silencePcm, 10_000)
+            // エンコードする
+            AudioEncodeDecodeProcessor.encode(silencePcm, resultFile)
+        }
     }
 
     @Test
@@ -131,7 +136,7 @@ class ExampleInstrumentedTest {
             val pcmFile = tempFolder.resolve("pcm_file")
             val resamplingPcmFile = tempFolder.resolve("resampling_pcm_file")
             // デコード
-            AudioEncodeDecodeProcessor.decode(bgmFile, pcmFile)
+            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
             // アップサンプリング
             ReSamplingRateProcessor.reSamplingBySonic(
                 inPcmFile = pcmFile,
@@ -161,7 +166,7 @@ class ExampleInstrumentedTest {
             val pcmFile = tempFolder.resolve("pcm_file")
             val applyVolumePcmFile = tempFolder.resolve("apply_volume_pcm_file")
             // デコード
-            AudioEncodeDecodeProcessor.decode(bgmFile, pcmFile)
+            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
             // 音量調整
             AudioVolumeProcessor.start(pcmFile, applyVolumePcmFile, 0.05f)
             // エンコード

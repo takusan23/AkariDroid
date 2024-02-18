@@ -2,7 +2,8 @@ package io.github.takusan23.akaricore.v2.audio
 
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import io.github.takusan23.akaricore.v1.tool.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -18,17 +19,17 @@ object AudioEncodeDecodeProcessor {
     /**
      * デコードする
      *
-     * @param inAudioFile AAC ファイル入力
+     * @param inAudioData AAC ファイル入力
      * @param outPcmFile PCM ファイル出力
      * @param onOutputFormat デコード時にでてくる [MediaFormat]
      */
     suspend fun decode(
-        inAudioFile: File,
+        inAudioData: AkariCoreInputDataSource,
         outPcmFile: File,
         onOutputFormat: (MediaFormat) -> Unit = {}
     ) = withContext(Dispatchers.Default) {
         // デコードする
-        val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(inAudioFile.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!
+        val (mediaExtractor, index, format) = MediaExtractorTool.extractMedia(inAudioData, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO)!!
         mediaExtractor.selectTrack(index)
 
         // デコーダー起動

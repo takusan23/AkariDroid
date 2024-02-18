@@ -55,12 +55,7 @@ class VideoFrameBitmapExtractor {
     suspend fun prepareDecoder(
         akariCoreInputDataSource: AkariCoreInputDataSource
     ) {
-        val (mediaExtractor, index, mediaFormat) = when (akariCoreInputDataSource) {
-            is AkariCoreInputDataSource.AndroidUri -> akariCoreInputDataSource.getFileDescriptor()
-                .use { fd -> MediaExtractorTool.extractMedia(fd.fileDescriptor, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO) }
-
-            is AkariCoreInputDataSource.JavaFile -> MediaExtractorTool.extractMedia(akariCoreInputDataSource.file.path, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
-        }!!
+        val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(akariCoreInputDataSource, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this@VideoFrameBitmapExtractor.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
 

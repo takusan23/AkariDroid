@@ -9,6 +9,7 @@ import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
 import io.github.takusan23.akaridroid.v2.RenderData
 import java.io.File
 
@@ -53,7 +54,7 @@ class AudioItemRender(
         val audioFile = if (audioItem.cropTimeCrop != null) {
             createTempFile(AUDIO_CROP_FILE).also { cropAudioFile ->
                 CutProcessor.start(
-                    targetVideoFile = fileOrCopyFile,
+                    inputDataSource = fileOrCopyFile.toAkariCoreInputDataSource(),
                     resultFile = cropAudioFile,
                     timeRangeMs = audioItem.cropTimeCrop,
                     extractMimeType = MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO
@@ -67,7 +68,7 @@ class AudioItemRender(
         var decoderMediaFormat: MediaFormat? = null
         val decodeFile = createTempFile(AUDIO_DECODE_FILE)
         AudioEncodeDecodeProcessor.decode(
-            inAudioFile = audioFile,
+            inAudioData = audioFile.toAkariCoreInputDataSource(),
             outPcmFile = decodeFile,
             onOutputFormat = { decoderMediaFormat = it }
         )
