@@ -9,7 +9,7 @@ import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
 import java.io.File
 
@@ -54,8 +54,8 @@ class AudioItemRender(
         val audioFile = if (audioItem.cropTime != null) {
             createTempFile(AUDIO_CROP_FILE).also { cropAudioFile ->
                 CutProcessor.start(
-                    inputDataSource = fileOrCopyFile.toAkariCoreInputDataSource(),
-                    resultFile = cropAudioFile,
+                    input = fileOrCopyFile.toAkariCoreInputOutputData(),
+                    output = cropAudioFile.toAkariCoreInputOutputData(),
                     timeRangeMs = audioItem.cropTime,
                     extractMimeType = MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO
                 )
@@ -68,8 +68,8 @@ class AudioItemRender(
         var decoderMediaFormat: MediaFormat? = null
         val decodeFile = createTempFile(AUDIO_DECODE_FILE)
         AudioEncodeDecodeProcessor.decode(
-            inAudioData = audioFile.toAkariCoreInputDataSource(),
-            outPcmFile = decodeFile,
+            input = audioFile.toAkariCoreInputOutputData(),
+            output = decodeFile.toAkariCoreInputOutputData(),
             onOutputFormat = { decoderMediaFormat = it }
         )
 
@@ -79,8 +79,8 @@ class AudioItemRender(
         val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
             createTempFile(AUDIO_FIX_SAMPLIN).also { outFile ->
                 ReSamplingRateProcessor.reSamplingBySonic(
-                    inputDataSource = decodeFile.toAkariCoreInputDataSource(),
-                    outPcmFile = outFile,
+                    input = decodeFile.toAkariCoreInputOutputData(),
+                    output = outFile.toAkariCoreInputOutputData(),
                     channelCount = 2,
                     inSamplingRate = samplingRate,
                     outSamplingRate = AkariCoreAudioProperties.SAMPLING_RATE
@@ -95,8 +95,8 @@ class AudioItemRender(
         val fixVolumeDecodeFile = if (audioItem.volume != RenderData.AudioItem.DEFAULT_VOLUME) {
             createTempFile(AUDIO_FIX_VOLUME).also { outFile ->
                 AudioVolumeProcessor.start(
-                    inputDataSource = fixSamplingRateDecodeFile.toAkariCoreInputDataSource(),
-                    outPcmFile = outFile,
+                    input = fixSamplingRateDecodeFile.toAkariCoreInputOutputData(),
+                    output = outFile.toAkariCoreInputOutputData(),
                     volume = audioItem.volume
                 )
             }

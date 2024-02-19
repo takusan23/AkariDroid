@@ -7,11 +7,12 @@ import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
@@ -19,64 +20,69 @@ import java.io.FileInputStream
 // TODO Interface に切り出す
 class AudioItemRenderV2(
     private val context: Context,
-    private val audioItem: RenderData.AudioItem.Audio,
-    private val outPcmFile: File,
+    private val audioItem: RenderData.AudioItem.Audio, // TODO private にする
+    private val outPcmFile: File, // TODO デコード機能を AudioDecodeManager へ、デコード結果を受け取るようにする
 ) {
 
     private var inputStream: FileInputStream? = null
 
-    private val decodeMutex = Mutex()
-    private var isDecodeComplete = false
-
-    val displayTime: RenderData.DisplayTime
-        get() = audioItem.displayTime
+    /** デコード済み */
+    var isDecodeComplete = false
+        private set
 
     /** [audioItem]のファイルをデコードして加工できるようにする */
-    suspend fun decode(tempFolder: File) = decodeMutex.withLock {
-        // デコードが多重で動かないように mutex
-        if (isDecodeComplete) return@withLock
+    // TODO AduioDecodeManager に処理を移動させる
+    suspend fun decode(tempFolder: File) {
+        try {
+            /** 一時的なファイルを作る */
+            fun createTempFile(fileName: String): File = tempFolder
+                .resolve(fileName)
+                .apply { createNewFile() }
 
-        /** 一時的なファイルを作る */
-        fun createTempFile(fileName: String): File = tempFolder
-            .resolve(fileName)
-            .apply { createNewFile() }
+            delete()
 
-        delete()
+            // InputStream を開く
+            // デコーダーにかける
+            var decoderMediaFormat: MediaFormat? = null
+            val decodeFile = createTempFile(AUDIO_DECODE_FILE)
+            AudioEncodeDecodeProcessor.decode(
+                input = when (audioItem.filePath) {
+                    is RenderData.FilePath.File -> File(audioItem.filePath.filePath).toAkariCoreInputOutputData()
+                    is RenderData.FilePath.Uri -> audioItem.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
+                },
+                output = decodeFile.toAkariCoreInputOutputData(),
+                onOutputFormat = { decoderMediaFormat = it }
+            )
 
-        // InputStream を開く
-        // デコーダーにかける
-        var decoderMediaFormat: MediaFormat? = null
-        val decodeFile = createTempFile(AUDIO_DECODE_FILE)
-        AudioEncodeDecodeProcessor.decode(
-            inAudioData = when (audioItem.filePath) {
-                is RenderData.FilePath.File -> File(audioItem.filePath.filePath).toAkariCoreInputDataSource()
-                is RenderData.FilePath.Uri -> audioItem.filePath.uriPath.toUri().toAkariCoreInputDataSource(context)
-            },
-            outPcmFile = decodeFile,
-            onOutputFormat = { decoderMediaFormat = it }
-        )
-
-        // サンプリングレート変換が必要な場合
-        // TODO チャンネル数は？
-        val samplingRate = decoderMediaFormat!!.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-        val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
-            createTempFile(AUDIO_FIX_SAMPLING).also { outFile ->
-                ReSamplingRateProcessor.reSamplingBySonic(
-                    inputDataSource = decodeFile.toAkariCoreInputDataSource(),
-                    outPcmFile = outFile,
-                    channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
-                    inSamplingRate = samplingRate,
-                    outSamplingRate = AkariCoreAudioProperties.SAMPLING_RATE
-                )
+            // サンプリングレート変換が必要な場合
+            // TODO チャンネル数は？
+            val samplingRate = decoderMediaFormat!!.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
+                createTempFile(AUDIO_FIX_SAMPLING).also { outFile ->
+                    ReSamplingRateProcessor.reSamplingBySonic(
+                        input = decodeFile.toAkariCoreInputOutputData(),
+                        output = outFile.toAkariCoreInputOutputData(),
+                        channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
+                        inSamplingRate = samplingRate,
+                        outSamplingRate = AkariCoreAudioProperties.SAMPLING_RATE
+                    )
+                }
+            } else {
+                // 不要
+                decodeFile
             }
-        } else {
-            // 不要
-            decodeFile
-        }
 
-        // 入れ直して終了
-        // 音声調整と、指定範囲切り抜きは別にデコードのやり直しが必要じゃないので！
-        fixSamplingRateDecodeFile.renameTo(outPcmFile)
+            // 入れ直して終了
+            // 音声調整と、指定範囲切り抜きは別にデコードのやり直しが必要じゃないので！
+            fixSamplingRateDecodeFile.renameTo(outPcmFile)
+            isDecodeComplete = false
+        } catch (e: CancellationException) {
+            // キャンセル時
+            // delete で削除してしまう
+            withContext(NonCancellable) {
+                delete()
+            }
+        }
     }
 
     /** [readPcmData]の前に呼び出す */
@@ -99,16 +105,29 @@ class AudioItemRenderV2(
      * PCM データを取り出して ByteArray にいれる
      * 多分1秒間のデータで埋めることになる
      *
-     * @param currentPositionSec 必要な再生位置。秒。戻ることはないはず。
-     * @param byteArray [ByteArray]
+     * @param readSize 次読み出すデータのサイズ
+     * @return 読み出し結果[ByteArray]
      */
-    suspend fun readPcmData(currentPositionSec: Long, byteArray: ByteArray) = withContext(Dispatchers.IO) {
-        val inputStream = inputStream ?: return@withContext false
+    suspend fun readPcmData(readSize: Int) = withContext(Dispatchers.IO) {
+        val inputStream = inputStream ?: return@withContext byteArrayOf()
+
         // データを埋める
-        val size = inputStream.read(byteArray)
+        var readByteArray = ByteArray(readSize)
+        inputStream.read(readByteArray)
+
         // 音量調整を適用する
-        // TODO output に bytearray
-        AudioVolumeProcessor.start(byteArray.toAkariCoreInputDataSource())
+        // 加工したデータはメモリに乗せるので
+        if (audioItem.volume != RenderData.AudioItem.DEFAULT_VOLUME) {
+            val output = AkariCoreInputOutput.OutputJavaByteArray()
+            AudioVolumeProcessor.start(
+                input = readByteArray.toAkariCoreInputOutputData(),
+                output = output,
+                volume = audioItem.volume
+            )
+            readByteArray = output.byteArray
+        }
+
+        readByteArray
     }
 
     /** デコードのやり直し（PCM の作り直し）が必要かどうか */
@@ -125,6 +144,17 @@ class AudioItemRenderV2(
     /** データが同じかどうかを返す */
     fun isEquals(item: RenderData.AudioItem): Boolean {
         return audioItem == item
+    }
+
+    /** ファイルパスが同じかどうかを返す */
+    fun isEqualsFilePath(item: RenderData.AudioItem): Boolean {
+        // 今のところ Audio 以外は無い
+        if (item !is RenderData.AudioItem.Audio) {
+            return true
+        }
+        // ファイルパスとサンプリングレート変換をやっているので、それ以外が変わったらやり直しが必要
+        // が、サンプリングレートはファイルが変わらない場合はスキップできるので
+        return item.filePath == audioItem.filePath
     }
 
     fun isDisplayPosition(currentPositionMs: Long): Boolean {

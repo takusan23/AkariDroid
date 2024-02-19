@@ -6,7 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.core.graphics.scale
 import androidx.core.net.toUri
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
@@ -34,8 +34,8 @@ class VideoRender(
         videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
             // Uri と File で分岐
             when (video.filePath) {
-                is RenderData.FilePath.File -> prepareDecoder(File(video.filePath.filePath).toAkariCoreInputDataSource())
-                is RenderData.FilePath.Uri -> prepareDecoder(video.filePath.uriPath.toUri().toAkariCoreInputDataSource(context))
+                is RenderData.FilePath.File -> prepareDecoder(File(video.filePath.filePath).toAkariCoreInputOutputData())
+                is RenderData.FilePath.Uri -> prepareDecoder(video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context))
             }
         }
     }
