@@ -5,6 +5,7 @@ import android.media.MediaFormat
 import androidx.core.net.toUri
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
+import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
 import io.github.takusan23.akaridroid.v2.RenderData
@@ -26,6 +27,9 @@ class AudioItemRenderV2(
 
     private val decodeMutex = Mutex()
     private var isDecodeComplete = false
+
+    val displayTime: RenderData.DisplayTime
+        get() = audioItem.displayTime
 
     /** [audioItem]のファイルをデコードして加工できるようにする */
     suspend fun decode(tempFolder: File) = decodeMutex.withLock {
@@ -58,7 +62,7 @@ class AudioItemRenderV2(
         val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
             createTempFile(AUDIO_FIX_SAMPLING).also { outFile ->
                 ReSamplingRateProcessor.reSamplingBySonic(
-                    inPcmFile = decodeFile,
+                    inputDataSource = decodeFile.toAkariCoreInputDataSource(),
                     outPcmFile = outFile,
                     channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
                     inSamplingRate = samplingRate,
@@ -73,23 +77,38 @@ class AudioItemRenderV2(
         // 入れ直して終了
         // 音声調整と、指定範囲切り抜きは別にデコードのやり直しが必要じゃないので！
         fixSamplingRateDecodeFile.renameTo(outPcmFile)
-        inputStream = outPcmFile.inputStream()
+    }
 
-        // InputStream を音声範囲から始まるように調整する
-        if (audioItem.cropTimeCrop != null) {
-            val startSec = audioItem.cropTimeCrop.cropStartMs / 1_000
-            inputStream?.skip(startSec)
+    /** [readPcmData]の前に呼び出す */
+    suspend fun prepareRead() = withContext(Dispatchers.IO) {
+        // InputStream を開く
+        inputStream?.close()
+        inputStream = outPcmFile.inputStream()
+        // 音声ファイルをカットする場合
+        // 読み出し開始位置を skip して調整しておく
+        if (audioItem.cropTime != null) {
+            // 秒にする
+            // TODO ミリ秒単位の調整には対応していない
+            val startSec = audioItem.cropTime.cropStartMs / 1_000
+            val skipBytes = startSec * AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE
+            inputStream?.skip(skipBytes)
         }
     }
 
     /**
      * PCM データを取り出して ByteArray にいれる
+     * 多分1秒間のデータで埋めることになる
      *
+     * @param currentPositionSec 必要な再生位置。秒。戻ることはないはず。
      * @param byteArray [ByteArray]
      */
-    suspend fun getPcmData(byteArray: ByteArray) {
-        inputStream?.read(byteArray)
+    suspend fun readPcmData(currentPositionSec: Long, byteArray: ByteArray) = withContext(Dispatchers.IO) {
+        val inputStream = inputStream ?: return@withContext false
+        // データを埋める
+        val size = inputStream.read(byteArray)
         // 音量調整を適用する
+        // TODO output に bytearray
+        AudioVolumeProcessor.start(byteArray.toAkariCoreInputDataSource())
     }
 
     /** デコードのやり直し（PCM の作り直し）が必要かどうか */
@@ -106,6 +125,21 @@ class AudioItemRenderV2(
     /** データが同じかどうかを返す */
     fun isEquals(item: RenderData.AudioItem): Boolean {
         return audioItem == item
+    }
+
+    fun isDisplayPosition(currentPositionMs: Long): Boolean {
+        // 範囲内にいること
+        if (currentPositionMs !in audioItem.displayTime) {
+            return false
+        }
+        val framePositionMs = currentPositionMs - audioItem.displayTime.startMs
+
+        // 動画をカットする場合で、カットした時間外の場合
+        if (audioItem.cropTime != null && framePositionMs !in audioItem.cropTime) {
+            return false
+        }
+
+        return true
     }
 
     /** デコードした PCM ファイルを消す。もう素材として利用しないとき用 */

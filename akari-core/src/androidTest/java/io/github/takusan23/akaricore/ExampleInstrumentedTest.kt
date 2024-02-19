@@ -14,7 +14,7 @@ import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
 import io.github.takusan23.akaricore.v2.common.CutProcessor
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.test.runTest
@@ -49,8 +49,14 @@ class ExampleInstrumentedTest {
             val bgmPcm = tempFolder.resolve("bgm_pcm")
             val outPcm = tempFolder.resolve("out_pcm")
             // デコード
-            AudioEncodeDecodeProcessor.decode(videoFile.toAkariCoreInputDataSource(), videoPcm)
-            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), bgmPcm)
+            AudioEncodeDecodeProcessor.decode(
+                input = videoFile.toAkariCoreInputOutputData(),
+                output = videoPcm.toAkariCoreInputOutputData()
+            )
+            AudioEncodeDecodeProcessor.decode(
+                input = bgmFile.toAkariCoreInputOutputData(),
+                output = bgmPcm.toAkariCoreInputOutputData()
+            )
 
             // 合成する
             AudioMixingProcessor.start(
@@ -62,7 +68,10 @@ class ExampleInstrumentedTest {
                 )
             )
             // エンコード
-            AudioEncodeDecodeProcessor.encode(outPcm, resultFile)
+            AudioEncodeDecodeProcessor.encode(
+                input = outPcm.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData()
+            )
         }
     }
 
@@ -109,7 +118,12 @@ class ExampleInstrumentedTest {
         val resultFile = File(appContext.getExternalFilesDir(null), "test_動画の切り取りが出来る_${System.currentTimeMillis()}.mp4").apply { createNewFile() }
         val toomo = sampleVideoFolder.resolve("iphone.mp4")
         // カットしてみる
-        CutProcessor.start(toomo.toAkariCoreInputDataSource(), resultFile, 0L..2_000L, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)
+        CutProcessor.start(
+            input = toomo.toAkariCoreInputOutputData(),
+            output = resultFile.toAkariCoreInputOutputData(),
+            timeRangeMs = 0L..2_000L,
+            extractMimeType = MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO
+        )
     }
 
     @Test
@@ -119,9 +133,15 @@ class ExampleInstrumentedTest {
         provideTempFolder { tempFolder ->
             val silencePcm = tempFolder.resolve("silence_pcm")
             // 10 秒間の無音の音声ファイルを作る
-            SilenceAudioProcessor.start(silencePcm, 10_000)
+            SilenceAudioProcessor.start(
+                output = silencePcm.toAkariCoreInputOutputData(),
+                durationMs = 10_000
+            )
             // エンコードする
-            AudioEncodeDecodeProcessor.encode(silencePcm, resultFile)
+            AudioEncodeDecodeProcessor.encode(
+                input = silencePcm.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData()
+            )
         }
     }
 
@@ -136,19 +156,22 @@ class ExampleInstrumentedTest {
             val pcmFile = tempFolder.resolve("pcm_file")
             val resamplingPcmFile = tempFolder.resolve("resampling_pcm_file")
             // デコード
-            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
+            AudioEncodeDecodeProcessor.decode(
+                input = bgmFile.toAkariCoreInputOutputData(),
+                output = pcmFile.toAkariCoreInputOutputData()
+            )
             // アップサンプリング
             ReSamplingRateProcessor.reSamplingBySonic(
-                inputDataSource = pcmFile.toAkariCoreInputDataSource(),
-                outPcmFile = resamplingPcmFile,
+                input = pcmFile.toAkariCoreInputOutputData(),
+                output = resamplingPcmFile.toAkariCoreInputOutputData(),
                 channelCount = 1,
                 inSamplingRate = 8_000,
                 outSamplingRate = 44_100
             )
             // エンコード
             AudioEncodeDecodeProcessor.encode(
-                inPcmFile = resamplingPcmFile,
-                outAudioFile = resultFile,
+                input = resamplingPcmFile.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData(),
                 channelCount = 1
             )
         }
@@ -166,11 +189,21 @@ class ExampleInstrumentedTest {
             val pcmFile = tempFolder.resolve("pcm_file")
             val applyVolumePcmFile = tempFolder.resolve("apply_volume_pcm_file")
             // デコード
-            AudioEncodeDecodeProcessor.decode(bgmFile.toAkariCoreInputDataSource(), pcmFile)
+            AudioEncodeDecodeProcessor.decode(
+                input = bgmFile.toAkariCoreInputOutputData(),
+                output = pcmFile.toAkariCoreInputOutputData()
+            )
             // 音量調整
-            AudioVolumeProcessor.start(pcmFile.toAkariCoreInputDataSource(), applyVolumePcmFile, 0.05f)
+            AudioVolumeProcessor.start(
+                input = pcmFile.toAkariCoreInputOutputData(),
+                output = applyVolumePcmFile.toAkariCoreInputOutputData(),
+                volume = 0.05f
+            )
             // エンコード
-            AudioEncodeDecodeProcessor.encode(applyVolumePcmFile, resultFile)
+            AudioEncodeDecodeProcessor.encode(
+                input = applyVolumePcmFile.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData()
+            )
         }
     }
 
@@ -219,7 +252,7 @@ class ExampleInstrumentedTest {
 
             // 動画のフレーム取得
             val videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
-                prepareDecoder(demoVideoFile.toAkariCoreInputDataSource())
+                prepareDecoder(demoVideoFile.toAkariCoreInputOutputData())
             }
 
             // 巻き戻すやつもテストしたいから 1 -> 15 -> 9 で

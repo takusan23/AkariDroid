@@ -133,7 +133,7 @@ class VideoEditorPreviewPlayer(
         pcmPlayer.play()
         // AudioRender も用意
         // 1秒間に必要な ByteArray を用意して読み出す
-        val pcmByteArray = ByteArray(AkariCoreAudioProperties.SAMPLING_RATE * AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH)
+        val pcmByteArray = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
         playerScope.launch {
             _playerStatus.collect { (_, currentPosition, _) ->
                 // シークする

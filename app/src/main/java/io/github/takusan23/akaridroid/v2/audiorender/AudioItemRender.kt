@@ -51,12 +51,12 @@ class AudioItemRender(
         }
 
         // カットが必要な場合
-        val audioFile = if (audioItem.cropTimeCrop != null) {
+        val audioFile = if (audioItem.cropTime != null) {
             createTempFile(AUDIO_CROP_FILE).also { cropAudioFile ->
                 CutProcessor.start(
                     inputDataSource = fileOrCopyFile.toAkariCoreInputDataSource(),
                     resultFile = cropAudioFile,
-                    timeRangeMs = audioItem.cropTimeCrop,
+                    timeRangeMs = audioItem.cropTime,
                     extractMimeType = MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_AUDIO
                 )
             }
@@ -79,7 +79,7 @@ class AudioItemRender(
         val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
             createTempFile(AUDIO_FIX_SAMPLIN).also { outFile ->
                 ReSamplingRateProcessor.reSamplingBySonic(
-                    inPcmFile = decodeFile,
+                    inputDataSource = decodeFile.toAkariCoreInputDataSource(),
                     outPcmFile = outFile,
                     channelCount = 2,
                     inSamplingRate = samplingRate,
@@ -95,7 +95,7 @@ class AudioItemRender(
         val fixVolumeDecodeFile = if (audioItem.volume != RenderData.AudioItem.DEFAULT_VOLUME) {
             createTempFile(AUDIO_FIX_VOLUME).also { outFile ->
                 AudioVolumeProcessor.start(
-                    inPcmFile = fixSamplingRateDecodeFile,
+                    inputDataSource = fixSamplingRateDecodeFile.toAkariCoreInputDataSource(),
                     outPcmFile = outFile,
                     volume = audioItem.volume
                 )

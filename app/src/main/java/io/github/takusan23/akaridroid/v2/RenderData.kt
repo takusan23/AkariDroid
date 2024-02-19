@@ -74,7 +74,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             val filePath: FilePath,
             val size: Size? = null,
-            val cropTimeCrop: TimeCrop? = null,
+            val cropTime: TimeCrop? = null,
             val chromaKeyColor: Int? = null
         ) : CanvasItem
     }
@@ -88,7 +88,7 @@ data class RenderData(
             override val id: Long = System.currentTimeMillis(),
             override val displayTime: DisplayTime,
             val filePath: FilePath,
-            val cropTimeCrop: TimeCrop? = null,
+            val cropTime: TimeCrop? = null,
             val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
 

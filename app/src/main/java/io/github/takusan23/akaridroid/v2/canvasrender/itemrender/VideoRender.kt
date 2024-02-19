@@ -47,7 +47,7 @@ class VideoRender(
 
         // カットする場合は考慮した時間を
         val framePositionMs = currentPositionMs - video.displayTime.startMs
-        val cropIncludedFramePositionMs = framePositionMs - (video.cropTimeCrop?.cropStartMs ?: 0)
+        val cropIncludedFramePositionMs = framePositionMs - (video.cropTime?.cropStartMs ?: 0)
         preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(cropIncludedFramePositionMs).let { origin ->
             // リサイズする場合
             if (video.size != null) {
@@ -81,7 +81,7 @@ class VideoRender(
         val framePositionMs = currentPositionMs - video.displayTime.startMs
 
         // 動画をカットする場合で、カットした時間外の場合
-        if (video.cropTimeCrop != null && framePositionMs !in video.cropTimeCrop) {
+        if (video.cropTime != null && framePositionMs !in video.cropTime) {
             return false
         }
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaMuxer
+import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -14,6 +15,39 @@ import java.nio.ByteBuffer
  * 音声と映像をコンテナフォーマットへしまって一つの動画にする関数がある
  * */
 object MediaMuxerTool {
+
+    /**
+     * [AkariCoreInputOutput.Output]に対応した[MediaMuxer]
+     *
+     * - 注意点です
+     * - [AkariCoreInputOutput.JavaFile]
+     *  - ぶっちゃけこれしか対応してません
+     * - [AkariCoreInputOutput.AndroidUri]
+     *  - Android 8 以降のみです
+     * - それ以外
+     *  - 対応してません；；
+     *
+     * @param output 保存先
+     * @param format コンテナフォーマット
+     */
+    fun createMediaMuxer(
+        output: AkariCoreInputOutput.Output,
+        format: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4
+    ): MediaMuxer {
+        return when (output) {
+            is AkariCoreInputOutput.JavaFile -> MediaMuxer(output.filePath, format)
+
+            is AkariCoreInputOutput.AndroidUri -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                output.getFileDescriptor().use {
+                    MediaMuxer(it.fileDescriptor, format)
+                }
+            } else {
+                throw UnsupportedOperationException("未対応")
+            }
+
+            is AkariCoreInputOutput.OutputJavaByteArray -> throw UnsupportedOperationException("未対応")
+        }
+    }
 
     /**
      * コンテナフォーマットへ格納する

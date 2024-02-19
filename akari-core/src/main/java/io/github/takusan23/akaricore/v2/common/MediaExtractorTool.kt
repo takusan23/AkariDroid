@@ -12,25 +12,25 @@ import kotlinx.coroutines.withContext
 object MediaExtractorTool {
 
     /**
-     * 引数に渡した動画パス[videoPath]の情報を[MediaExtractor]で取り出す
+     * 引数に渡した動画[AkariCoreInputOutput.Input]の情報を[MediaExtractor]で取り出す
      *
-     * @param inputDataSource Uri なら[AkariCoreInputDataSource.AndroidUri]、File なら[AkariCoreInputDataSource.JavaFile]
+     * @param input 動画ファイル。詳しくは[AkariCoreInputOutput]
      * @param mimeType [ExtractMimeType]。音声、動画どっちか
      * @return [MediaExtractor] / [mimeType]のトラック番号 / [MediaFormat]
      */
     suspend fun extractMedia(
-        inputDataSource: AkariCoreInputDataSource,
+        input: AkariCoreInputOutput.Input,
         mimeType: ExtractMimeType
     ): Triple<MediaExtractor, Int, MediaFormat>? = withContext(Dispatchers.IO) {
         val mediaExtractor = MediaExtractor()
-        when (inputDataSource) {
-            is AkariCoreInputDataSource.AndroidUri -> inputDataSource.getFileDescriptor().use { mediaExtractor.setDataSource(it.fileDescriptor) }
-            is AkariCoreInputDataSource.JavaFile -> mediaExtractor.setDataSource(inputDataSource.filePath)
-            is AkariCoreInputDataSource.JavaByteArray -> {
+        when (input) {
+            is AkariCoreInputOutput.AndroidUri -> input.getFileDescriptor().use { mediaExtractor.setDataSource(it.fileDescriptor) }
+            is AkariCoreInputOutput.JavaFile -> mediaExtractor.setDataSource(input.filePath)
+            is AkariCoreInputOutput.InputJavaByteArray -> {
                 // TODO Android 6 以降のみ！
-                if (inputDataSource.mediaDataSource != null) {
+                if (input.mediaDataSource != null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        mediaExtractor.setDataSource(inputDataSource.mediaDataSource)
+                        mediaExtractor.setDataSource(input.mediaDataSource)
                     }
                 }
             }

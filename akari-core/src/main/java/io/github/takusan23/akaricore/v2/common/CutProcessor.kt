@@ -7,7 +7,6 @@ import android.media.MediaMuxer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.nio.ByteBuffer
 
 /** 動画、音声を指定時間でカットする処理 */
@@ -16,22 +15,22 @@ object CutProcessor {
     /**
      * 動画、音声を指定時間で切り抜いて返す
      *
-     * @param inputDataSource 対象のファイル
+     * @param input 対象のファイル
      * @param resultFile 出力ファイル
      * @param timeRangeMs
      */
     @SuppressLint("WrongConstant")
     suspend fun start(
-        inputDataSource: AkariCoreInputDataSource,
-        resultFile: File,
+        input: AkariCoreInputOutput.Input,
+        output: AkariCoreInputOutput.Output,
         timeRangeMs: ClosedRange<Long>,
         extractMimeType: MediaExtractorTool.ExtractMimeType,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
     ) = withContext(Dispatchers.Default) {
-        val (mediaExtractor, extractorIndex, format) = MediaExtractorTool.extractMedia(inputDataSource, extractMimeType)!!
+        val (mediaExtractor, extractorIndex, format) = MediaExtractorTool.extractMedia(input, extractMimeType)!!
         mediaExtractor.selectTrack(extractorIndex)
         // 保存先
-        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
+        val mediaMuxer = MediaMuxerTool.createMediaMuxer(output, containerFormat)
         val mixerIndex = mediaMuxer.addTrack(format)
         mediaMuxer.start()
         // シークする

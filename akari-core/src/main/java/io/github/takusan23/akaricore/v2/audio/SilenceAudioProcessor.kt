@@ -1,10 +1,8 @@
 package io.github.takusan23.akaricore.v2.audio
 
-import android.media.MediaFormat
-import android.media.MediaMuxer
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** 無音の音声ファイルを作成する */
 object SilenceAudioProcessor {
@@ -12,13 +10,14 @@ object SilenceAudioProcessor {
     /**
      * 音声を生成する
      *
+     * @param output PCM 出力先
      * @param durationMs 音声の時間（ミリ秒）
      * @param samplingRate サンプリングレート。大体 44100
      * @param channelCount チャンネル数。ステレオなら 2
      * @param bitDepth 量子化ビット数。単位は byte。ほぼ 16bit だろうし 2
      */
     suspend fun start(
-        outPcmFile: File,
+        output: AkariCoreInputOutput.Output,
         durationMs: Long,
         samplingRate: Int = 44_100,
         channelCount: Int = 2,
@@ -32,7 +31,7 @@ object SilenceAudioProcessor {
         // TODO メモリにPCMデータを載せておくのはもったいないことしてるかもしれない
         val second = (durationMs / 1_000f).toInt()
         val pcmByteSize = channelCount * bitDepth * samplingRate
-        outPcmFile.outputStream().use { outputStream ->
+        output.outputStream().use { outputStream ->
             repeat(second) {
                 outputStream.write(ByteArray(pcmByteSize))
             }

@@ -1,10 +1,9 @@
 package io.github.takusan23.akaricore.v2.audio
 
-import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** PCM の音量調整 */
 object AudioVolumeProcessor {
@@ -12,19 +11,19 @@ object AudioVolumeProcessor {
     /**
      * PCM ファイルの音量調整をする
      *
-     * @param inputDataSource 入力 PCM の[AkariCoreInputDataSource]
-     * @param outPcmFile 出力 PCM
+     * @param input 入力 PCM
+     * @param output 出力 PCM
      * @param volume 音量
      */
     suspend fun start(
-        inputDataSource: AkariCoreInputDataSource,
-        outPcmFile: File,
+        input: AkariCoreInputOutput.Input,
+        output: AkariCoreInputOutput.Output,
         volume: Float
     ) = withContext(Dispatchers.IO) {
         val leftByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
         val rightByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
-        inputDataSource.inputStream().buffered().use { inputStream ->
-            outPcmFile.outputStream().use { outputStream ->
+        input.inputStream().buffered().use { inputStream ->
+            output.outputStream().use { outputStream ->
                 while (isActive) {
                     if (inputStream.available() == 0) break
 

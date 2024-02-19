@@ -5,34 +5,46 @@ import android.media.MediaDataSource
 import android.net.Uri
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput.AndroidUri
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput.JavaFile
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput.OutputJavaByteArray
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileDescriptor
 import java.io.InputStream
+import java.io.OutputStream
 
+/** [File]から[AkariCoreOutputData]を作る */
+fun File.toAkariCoreInputOutputData() = AkariCoreInputOutput.JavaFile(this)
 
-/** [File]から[AkariCoreInputDataSource]を作る */
-fun File.toAkariCoreInputDataSource() = AkariCoreInputDataSource.JavaFile(this)
+/** [Uri]から[AkariCoreOutputData]を作る */
+fun Uri.toAkariCoreInputOutputData(context: Context) = AkariCoreInputOutput.AndroidUri(context, this)
 
-/** [Uri]から[AkariCoreInputDataSource]を作る */
-fun Uri.toAkariCoreInputDataSource(context: Context) = AkariCoreInputDataSource.AndroidUri(context, this)
-
-/** [ByteArray]から[AkariCoreInputDataSource]を作る */
-fun ByteArray.toAkariCoreInputDataSource() = AkariCoreInputDataSource.JavaByteArray(this)
+/** [ByteArray]から[AkariCoreOutputData]を作る */
+fun ByteArray.toAkariCoreInputOutputData() = AkariCoreInputOutput.InputJavaByteArray(this)
 
 /**
  * akari-core で[Uri]と[File]両方に対応するための一枚噛んでるクラス。
  * [Uri]が取れるときと、[File]が取れるとき、両方あると思うので・・・。
  * Android だと[Uri]便利なんだけど、テストコードとか、アプリ固有ストレージの場合は[File]のが欲しいのよね。
  *
- * [Uri.toAkariCoreInputDataSource]と[File.toAkariCoreInputDataSource]があります。使ってね。
+ * [JavaFile]ならほぼ動くはず、[AndroidUri]と[InputJavaByteArray][OutputJavaByteArray]は動かないやつがいる
+ *
  */
-sealed interface AkariCoreInputDataSource {
+sealed interface AkariCoreInputOutput {
 
-    /** ファイルを読み出すための InputStream。close するのは呼び出し側で */
-    fun inputStream(): InputStream
+    sealed interface Input {
+        /** ファイルを読み出すための[InputStream]。close するのは呼び出し側で */
+        fun inputStream(): InputStream
+    }
+
+    sealed interface Output {
+        /** ファイルを書き込むための[OutputStream]。close するのは呼び出し側で */
+        fun outputStream(): OutputStream
+    }
 
     /**
-     * Android の[Uri]を入力として使う
+     * Android の[Uri]を入出力として使う
      * [Uri]はプロセス生きてる間だけ有効なので、[Uri]の永続化が必要なら[android.content.ContentResolver.takePersistableUriPermission]
      *
      * @param context [Context]
@@ -40,30 +52,34 @@ sealed interface AkariCoreInputDataSource {
      */
     class AndroidUri(
         private val context: Context,
-        private val uri: Uri // public にしても使い道ないので private
-    ) : AkariCoreInputDataSource {
+        private val uri: Uri
+    ) : AkariCoreInputOutput, Input, Output {
         override fun inputStream(): InputStream = context.contentResolver.openInputStream(uri)!!
+
+        override fun outputStream(): OutputStream = context.contentResolver.openOutputStream(uri)!!
 
         /**
          * [FileDescriptor]が必要なとき用。
          * [MediaExtractorTool]で使う。
          */
-        fun getFileDescriptor(): ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")!!
+        fun getFileDescriptor(): ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "rw")!!
     }
 
     /**
-     * Java の[File]を入力として使う
+     * Java の[File]を入出力として使う
      *
      * @param file [File]。
      */
     class JavaFile(
         private val file: File
-    ) : AkariCoreInputDataSource {
+    ) : AkariCoreInputOutput, Input, Output {
         /** ファイルパス。[MediaExtractorTool]で使う */
         val filePath: String
             get() = file.path
 
         override fun inputStream(): InputStream = file.inputStream()
+
+        override fun outputStream(): OutputStream = file.outputStream()
     }
 
     /**
@@ -72,9 +88,9 @@ sealed interface AkariCoreInputDataSource {
      *
      * @param byteArray [ByteArray]
      */
-    class JavaByteArray(
+    class InputJavaByteArray(
         val byteArray: ByteArray
-    ) : AkariCoreInputDataSource {
+    ) : AkariCoreInputOutput, Input {
         override fun inputStream(): InputStream = byteArray.inputStream()
 
         /** [MediaExtractorTool] で使う */
@@ -122,4 +138,20 @@ sealed interface AkariCoreInputDataSource {
             null
         }
     }
+
+    /**
+     * データ型の[ByteArray]を出力として使う
+     * [outputStream]に書き込んだ結果が[byteArray]で取れます
+     * TODO [android.media.MediaMuxer]には使えない
+     */
+    class OutputJavaByteArray : AkariCoreInputOutput, Output {
+        private val byteArrayOutputStream = ByteArrayOutputStream()
+
+        override fun outputStream(): OutputStream = byteArrayOutputStream
+
+        /** [outputStream]に書き込んだ結果を受け取る */
+        val byteArray: ByteArray
+            get() = byteArrayOutputStream.toByteArray()
+    }
+
 }

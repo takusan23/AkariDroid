@@ -6,7 +6,7 @@ import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
 import io.github.takusan23.akaricore.v2.video.gl.VideoFrameInputSurface
 import io.github.takusan23.akaricore.v2.video.gl.VideoFrameTextureRenderer
@@ -50,12 +50,10 @@ class VideoFrameBitmapExtractor {
     /**
      * デコーダーを初期化する
      *
-     * @param akariCoreInputDataSource [AkariCoreInputDataSource]。Uri か File です。
+     * @param input 動画ファイル。詳しくは[AkariCoreInputOutput.Input]
      */
-    suspend fun prepareDecoder(
-        akariCoreInputDataSource: AkariCoreInputDataSource
-    ) {
-        val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(akariCoreInputDataSource, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
+    suspend fun prepareDecoder(input: AkariCoreInputOutput.Input) {
+        val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this@VideoFrameBitmapExtractor.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
 

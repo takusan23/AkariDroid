@@ -1,9 +1,8 @@
 package io.github.takusan23.akaricore.v2.audio
 
-import io.github.takusan23.akaricore.v2.common.AkariCoreInputDataSource
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** [Sonic]を利用した、サンプリングレート変換器 */
 object ReSamplingRateProcessor {
@@ -12,15 +11,15 @@ object ReSamplingRateProcessor {
     /**
      * [Sonic]ライブラリを使ってアップサンプリングする
      *
-     * @param inputDataSource 変換前 PCM ファイルを表す[AkariCoreInputDataSource]
-     * @param outPcmFile 変換後 PCM ファイル
+     * @param input 変換前 PCM ファイルを表す
+     * @param output 変換後 PCM ファイル
      * @param channelCount チャンネル数
      * @param inSamplingRate 変換前のサンプリングレート
      * @param outSamplingRate 変換後のサンプリングレート
      */
     suspend fun reSamplingBySonic(
-        inputDataSource: AkariCoreInputDataSource,
-        outPcmFile: File,
+        input: AkariCoreInputOutput.Input,
+        output: AkariCoreInputOutput.Output,
         channelCount: Int,
         inSamplingRate: Int,
         outSamplingRate: Int
@@ -40,8 +39,8 @@ object ReSamplingRateProcessor {
         sonic.chordPitch = false
         sonic.quality = 0
 
-        inputDataSource.inputStream().use { inputStream ->
-            outPcmFile.outputStream().use { outputStream ->
+        input.inputStream().use { inputStream ->
+            output.outputStream().use { outputStream ->
 
                 do {
                     numRead = inputStream.read(inByteArray, 0, BUFFER_SIZE)
