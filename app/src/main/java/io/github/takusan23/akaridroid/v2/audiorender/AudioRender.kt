@@ -2,7 +2,7 @@ package io.github.takusan23.akaridroid.v2.audiorender
 
 import android.content.Context
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessorV2
+import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
@@ -88,7 +88,7 @@ class AudioRender(
         audioItemRenderList.forEach { it.prepareRead() }
 
         // 音声素材をを合成する
-        AudioMixingProcessorV2.start(
+        AudioMixingProcessor.start(
             output = outPcmFile.toAkariCoreInputOutputData(),
             durationMs = durationMs,
             onMixingByteArrays = { positionSec, byteArraySize ->

@@ -5,7 +5,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 
-object AudioMixingProcessorV2 {
+/**
+ * 音の合成ですが、難しいことはなく、波の音を重ねることで音がミックスされます。
+ * 実装的には、AAC を PCM にして（ Audacity の Raw データのように）、バイト配列から同じ位置の Byte を足すことでできます。
+ */
+object AudioMixingProcessor {
 
     /**
      * 複数の PCM 音声を [ByteArray] で受け取って、合成した一つの PCM 音声にする。

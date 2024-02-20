@@ -8,7 +8,7 @@ import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessorV2
+import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
@@ -63,7 +63,7 @@ class ExampleInstrumentedTest {
             val bgmOutputStream = bgmPcm.inputStream()
 
             // それぞれの PCM を取り出して合成する
-            AudioMixingProcessorV2.start(
+            AudioMixingProcessor.start(
                 output = outPcm.toAkariCoreInputOutputData(),
                 durationMs = 10_000,
                 onMixingByteArrays = { position, byteArraySize ->
