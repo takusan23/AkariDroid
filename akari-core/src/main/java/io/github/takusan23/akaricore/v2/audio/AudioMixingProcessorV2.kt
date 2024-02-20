@@ -18,7 +18,7 @@ object AudioMixingProcessorV2 {
     suspend fun start(
         output: AkariCoreInputOutput.Output,
         durationMs: Long,
-        onMixingByteArrays: (positionSec: Int, byteArraySize: Int) -> List<ByteArray>
+        onMixingByteArrays: suspend (positionSec: Int, byteArraySize: Int) -> List<ByteArray>
     ) = withContext(Dispatchers.IO) {
         // 音声を合成する
 

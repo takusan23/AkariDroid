@@ -8,7 +8,6 @@ import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessorV2
 import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor

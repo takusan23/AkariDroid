@@ -27,6 +27,10 @@ import kotlin.random.Random
  * 複数の音声ファイルをそれぞれ PCM にデコードするやつ。
  *
  * [RenderData.AudioItem]ではなく、[RenderData.FilePath]をキーにしているのは同じファイルの[RenderData.AudioItem]ならスキップさせるため
+ *
+ * @param context [Context]
+ * @param tempFolder 一時的な保存先
+ * @param outputDecodePcmFolder PCM デコード結果を保存するフォルダ
  */
 class AudioDecodeManager(
     private val context: Context,

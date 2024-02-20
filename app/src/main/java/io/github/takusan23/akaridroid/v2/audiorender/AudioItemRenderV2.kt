@@ -41,8 +41,9 @@ class AudioItemRenderV2(
     }
 
     /**
-     * PCM データを取り出して ByteArray にいれる
-     * 多分1秒間のデータで埋めることになる
+     * PCM データを取り出して ByteArray にいれる。
+     * 多分1秒間のデータで埋めることになる。
+     * 音量調整とかはここで適用される。
      *
      * @param readSize 次読み出すデータのサイズ
      * @return 読み出し結果[ByteArray]

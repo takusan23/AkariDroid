@@ -2,11 +2,10 @@ package io.github.takusan23.akaridroid.v2.audiorender
 
 import android.content.Context
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessorV2
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
@@ -15,11 +14,11 @@ import java.io.InputStream
  * 音声を合成して PCM を返す
  *
  * @param outputDecodePcmFolder デコードした PCM データの保存先
- * @param outPcmFile PCM 保存先
+ * @param outPcmFile 合成済みの PCM データ保存先
  * @param tempFolder 一時的な保存先
  */
 class AudioRender(
-    private val context: Context,
+    context: Context,
     private val outPcmFile: File,
     private val outputDecodePcmFolder: File,
     private val tempFolder: File
@@ -83,83 +82,23 @@ class AudioRender(
             }
         }
 
-        // ミックス処理をする
+        // 合成前に呼び出しておく
+        audioItemRenderList.forEach { it.prepareRead() }
 
-    }
-
-    /** [audioRenderItem]をセットして、合成済みの PCM を作る */
-    suspend fun setRenderData(
-        audioRenderItem: List<RenderData.AudioItem>,
-        durationMs: Long
-    ) = withContext(Dispatchers.IO) {
-        // PCM 音声を合成する
-        outPcmFile.delete()
-        inputStream?.close()
-        inputStream = null
-
-        // 用意
-        // 素材をデコードする
-        try {
-            tempFolder.mkdir()
-            val newAudioItemRenderList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>().map { audioItem ->
-                // 並列で、デコーダー足りるかな
-                async {
-                    // すでにあれば何もしない
-                    // TODO デコードとサンプリングレート変換だけやって、切り抜きとかは Mix のときにやると良さそう。
-                    val exitsOrNull = audioItemRenderList.firstOrNull { it.isEquals(audioItem) }
-                    if (exitsOrNull != null) {
-                        return@async exitsOrNull
-                    }
-
-                    // ない場合
-                    val newItem = AudioItemRender(
-                        context = context,
-                        audioItem = audioItem,
-                        outPcmFile = createOutPcmFile(audioItem.id)
-                    )
-                    // デコードもしておく
-                    // 一応フォルダも分けておく
-                    val childTempFolder = tempFolder.resolve(audioItem.id.toString()).apply { mkdir() }
-                    newItem.decode(childTempFolder)
-                    return@async newItem
-                }
-            }.awaitAll()
-
-            // 前回から要らなくなったものを削除する
-            // 前回と同じなら isEquals が true のはず。true ならそのまま残す
-            // false で前回までしか残ってないやつは破棄する
-            // TODO が、、、なんか消しちゃいけないものまで消してる
-            /*
-                        audioItemRenderList.forEach { oldRender ->
-                            // 含まれていなければ使われてない
-                            if (audioRenderItem.none { new -> oldRender.isEquals(new) }) {
-                                oldRender.outPcmFile.delete()
-                            }
-                        }
-            */
-
-            audioItemRenderList = newAudioItemRenderList
-
-            // 合成する際のパラメータ
-            val mixList = audioItemRenderList.map { itemRender ->
-                AudioMixingProcessor.MixAudioData(
-                    inPcmFile = itemRender.outPcmFile,
-                    startMs = itemRender.displayTime.startMs,
-                    stopMs = itemRender.displayTime.stopMs
-                )
+        // 音声素材をを合成する
+        AudioMixingProcessorV2.start(
+            output = outPcmFile.toAkariCoreInputOutputData(),
+            durationMs = durationMs,
+            onMixingByteArrays = { positionSec, byteArraySize ->
+                // 範囲内のものを取り出す
+                audioItemRenderList
+                    .filter { it.isDisplayPosition(positionSec * 1_000L) }
+                    .map { it.readPcmData(byteArraySize) }
             }
-            // 合成する
-            AudioMixingProcessor.start(
-                outPcmFile = outPcmFile,
-                durationMs = durationMs,
-                mixList = mixList
-            )
-            // InputStream を開く
-            inputStream = outPcmFile.inputStream()
-        } finally {
-            // 終了時 tempFolder 削除
-            tempFolder.deleteRecursively()
-        }
+        )
+
+        // 音声ファイル出来たら InputStream を開く
+        inputStream = outPcmFile.inputStream()
     }
 
     /** シークする。秒なので音ズレが訪れする */
@@ -195,19 +134,15 @@ class AudioRender(
         inputStream?.close()
         inputStream = null
         audioDecodeManager.destroy()
+        audioItemRenderList.forEach { it.destroy() }
+
         outPcmFile.delete()
         outputDecodePcmFolder.deleteRecursively()
         tempFolder.deleteRecursively()
     }
 
-    private fun createOutPcmFile(id: Long): File {
-        return outputDecodePcmFolder.resolve("$DECODE_PCM_FILE_PREFIX$id")
-    }
-
     companion object {
-
         private const val DECODE_PCM_FILE_PREFIX = "pcm_file_"
-
     }
 
 }
