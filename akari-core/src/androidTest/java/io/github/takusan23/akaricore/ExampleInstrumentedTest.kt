@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessorV2
 import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
@@ -58,20 +59,29 @@ class ExampleInstrumentedTest {
                 output = bgmPcm.toAkariCoreInputOutputData()
             )
 
-            // 合成する
-            AudioMixingProcessor.start(
-                outPcmFile = outPcm,
+            // Stream を開く
+            val videoOutputStream = videoPcm.inputStream()
+            val bgmOutputStream = bgmPcm.inputStream()
+
+            // それぞれの PCM を取り出して合成する
+            AudioMixingProcessorV2.start(
+                output = outPcm.toAkariCoreInputOutputData(),
                 durationMs = 10_000,
-                mixList = listOf(
-                    AudioMixingProcessor.MixAudioData(videoPcm, 0, 10_000),
-                    AudioMixingProcessor.MixAudioData(bgmPcm, 0, 10_000)
-                )
+                onMixingByteArrays = { position, byteArraySize ->
+                    val videoAudio = videoOutputStream.readNBytes(byteArraySize)
+                    val bgmAudio = bgmOutputStream.readNBytes(byteArraySize)
+                    listOf(videoAudio, bgmAudio)
+                }
             )
+
             // エンコード
             AudioEncodeDecodeProcessor.encode(
                 input = outPcm.toAkariCoreInputOutputData(),
                 output = resultFile.toAkariCoreInputOutputData()
             )
+
+            videoOutputStream.close()
+            bgmOutputStream.close()
         }
     }
 
