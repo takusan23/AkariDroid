@@ -82,4 +82,11 @@ class CanvasRender(private val context: Context) {
         }
     }
 
+    /** 破棄する */
+    fun destroy() {
+        itemRenderList.forEach {
+            it.destroy()
+        }
+    }
+
 }

@@ -50,7 +50,7 @@ class ImageRender(
         canvas.drawBitmap(bitmap, x, y, paint)
     }
 
-    override suspend fun destroy() {
+    override fun destroy() {
         bitmap?.recycle()
     }
 

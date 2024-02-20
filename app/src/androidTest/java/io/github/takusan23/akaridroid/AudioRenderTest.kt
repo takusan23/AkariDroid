@@ -43,7 +43,7 @@ class AudioRenderTest {
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
             context = context,
-            pcmFolder = tempFolder,
+            outputDecodePcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
         ).apply {
@@ -71,7 +71,7 @@ class AudioRenderTest {
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
             context = context,
-            pcmFolder = tempFolder,
+            outputDecodePcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
         ).apply {
@@ -110,7 +110,7 @@ class AudioRenderTest {
         val resultPcm = createTempFile("result_pcm")
         AudioRender(
             context = context,
-            pcmFolder = tempFolder,
+            outputDecodePcmFolder = tempFolder,
             outPcmFile = resultPcm,
             tempFolder = tempFolder
         ).apply {

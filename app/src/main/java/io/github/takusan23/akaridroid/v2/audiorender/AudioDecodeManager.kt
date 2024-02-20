@@ -22,8 +22,11 @@ import java.io.File
 import kotlin.random.Random
 
 /**
- * [AudioRender]から PCM デコード関連を抜き出した
- * 音声ファイルのデコードをいい感じに統括する
+ * [AudioRender]から PCM デコード関連のコードがここにある。
+ * デコード開始、終了、デコード済み一覧等。
+ * 複数の音声ファイルをそれぞれ PCM にデコードするやつ。
+ *
+ * [RenderData.AudioItem]ではなく、[RenderData.FilePath]をキーにしているのは同じファイルの[RenderData.AudioItem]ならスキップさせるため
  */
 class AudioDecodeManager(
     private val context: Context,
@@ -37,13 +40,18 @@ class AudioDecodeManager(
     /** デコード中、デコード済みのファイルの配列[AudioDecodeItem] */
     private var decodeItemList = listOf<AudioDecodeItem>()
 
-    /** デコード中か、デコード済みなら true */
+    /** 追加済みの[RenderData.FilePath] */
+    val addedDecoderFilePathList: List<RenderData.FilePath>
+        get() = decodeItemList.map { it.filePath }
+
+    /** [addDecode]で追加済みかどうかを返す */
     fun hasDecode(filePath: RenderData.FilePath): Boolean {
-        return decodeItemList.any { it.filePath == filePath }
+        return filePath in addedDecoderFilePathList
     }
 
     /**
-     * デコードするファイルを追加する
+     * デコードするファイルを追加する。
+     * コルーチンをキャンセルしても、デコード処理は別のコルーチンスコープなのでキャンセルされません。
      *
      * @param filePath 音声ファイル
      * @param outputFileName デコードした音声ファイル PCM の名前
@@ -56,28 +64,55 @@ class AudioDecodeManager(
         decodeItemList = decodeItemList + AudioDecodeItem(filePath, outputDecodePcmFile, decodeJob)
     }
 
-    /** デコード中ならキャンセルする */
-    suspend fun cancelDecode(filePath: RenderData.FilePath) {
+    /**
+     * デコード中ならキャンセルして、ファイルも消す
+     *
+     * @param filePath 音声ファイル
+     */
+    suspend fun cancelDecodeAndDeleteFile(filePath: RenderData.FilePath) {
         // なければ return
-        val exitsItem = decodeItemList.firstOrNull { it.filePath == filePath } ?: return
+        val exitsItem = getDecodeItemOrNull(filePath) ?: return
         // キャンセルしてデコードしたファイルも消す
         exitsItem.decodeJob.cancelAndJoin()
         exitsItem.outputDecodePcmFile.delete()
         decodeItemList = decodeItemList - exitsItem
     }
 
-    /** すべてのデコードを待つ */
+    /**
+     * すべてのデコードを待つ
+     * [addDecode]を呼び出した後にこれで待つ
+     */
     suspend fun awaitAllDecode() {
-        // TODO 追加時
         decodeItemList.map { it.decodeJob }.joinAll()
     }
 
-    /** 破棄する */
-    fun delete() {
+    /**
+     * デコード済みのファイルを取得する
+     *
+     * @param filePath 音声ファイル
+     * @return デコード済みならファイル、ない場合、デコード終わってない場合は null
+     */
+    fun getDecodedPcmFile(filePath: RenderData.FilePath): File? {
+        val decodeItem = getDecodeItemOrNull(filePath) ?: return null
+        return if (decodeItem.decodeJob.isCompleted) {
+            decodeItem.outputDecodePcmFile
+        } else {
+            null
+        }
+    }
+
+    /**
+     * 破棄する。
+     * [outputDecodePcmFolder]は別途消してください（プレビューと動画書き出しで使い回す？）。
+     * TODO 動画書き出し時に PCM ファイル使い回す？
+     */
+    fun destroy() {
         decodeScope.cancel()
-        // TODO 動画書き出し時に PCM ファイル使い回す？
         // outputDecodePcmFolder.delete()
     }
+
+    /** [filePath]から[AudioDecodeItem]を探す */
+    private fun getDecodeItemOrNull(filePath: RenderData.FilePath) = decodeItemList.firstOrNull { it.filePath == filePath }
 
     /**
      * デコードする
@@ -121,7 +156,7 @@ class AudioDecodeManager(
                 decodeFile
             }
 
-            // 入れ直して終了
+            // ファイル名直して終了
             fixSamplingRateDecodeFile.renameTo(outputDecodePcmFile)
         } catch (e: CancellationException) {
             // キャンセル時

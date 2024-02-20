@@ -32,7 +32,7 @@ class VideoEditorPreviewPlayer(
     private val audioRender = AudioRender(
         context = context,
         outPcmFile = projectFolder.resolve(OUT_PCM_FILE_NAME),
-        pcmFolder = projectFolder.resolve(DECODE_PCM_FOLDER_NAME).apply { mkdir() },
+        outputDecodePcmFolder = projectFolder.resolve(DECODE_PCM_FOLDER_NAME).apply { mkdir() },
         tempFolder = projectFolder.resolve(TEMP_FOLDER_NAME).apply { mkdir() }
     )
     private val pcmPlayer = PcmPlayer(

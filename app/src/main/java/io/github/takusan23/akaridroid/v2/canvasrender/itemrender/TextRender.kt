@@ -27,7 +27,7 @@ class TextRender(
         canvas.drawText(text.text, x, y, paint)
     }
 
-    override suspend fun destroy() {
+    override fun destroy() {
         // do nothing
     }
 

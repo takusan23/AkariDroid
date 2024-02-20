@@ -37,7 +37,7 @@ interface ItemRenderInterface {
      * 破棄する
      * [prepare]で用意したリソースを開放してください
      */
-    suspend fun destroy()
+    fun destroy()
 
     /**
      * データが一緒かどうか返す

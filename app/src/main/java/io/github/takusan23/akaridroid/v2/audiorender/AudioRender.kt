@@ -4,13 +4,9 @@ import android.content.Context
 import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
 import io.github.takusan23.akaridroid.v2.RenderData
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
@@ -18,22 +14,23 @@ import java.io.InputStream
 /**
  * 音声を合成して PCM を返す
  *
- * @param pcmFolder デコードした PCM データの保存先
+ * @param outputDecodePcmFolder デコードした PCM データの保存先
  * @param outPcmFile PCM 保存先
  * @param tempFolder 一時的な保存先
  */
 class AudioRender(
     private val context: Context,
-    private val pcmFolder: File,
     private val outPcmFile: File,
+    private val outputDecodePcmFolder: File,
     private val tempFolder: File
 ) {
 
-    /** PCM デコード用コルーチンスコープ */
-    private val decodeScope = CoroutineScope(Dispatchers.Default + Job())
-
-    /** 素材とデコード進捗の一覧 */
-    private var decodeJobPairList = listOf<Pair<AudioItemRenderV2, Job>>()
+    /** 素材をデコードしてくれるやつ */
+    private val audioDecodeManager = AudioDecodeManager(
+        context = context,
+        tempFolder = tempFolder,
+        outputDecodePcmFolder = outputDecodePcmFolder
+    )
 
     /** デコード済みで使える素材一覧 */
     private var audioItemRenderList: List<AudioItemRenderV2> = emptyList()
@@ -46,58 +43,47 @@ class AudioRender(
         audioRenderItem: List<RenderData.AudioItem>,
         durationMs: Long
     ) = withContext(Dispatchers.IO) {
-        // デコードをする
-        try {
+        // TODO 今のところ Audio のみしか来ない
+        val audioList = audioRenderItem.filterIsInstance<RenderData.AudioItem.Audio>()
+        val filePathList = audioList.map { it.filePath }
 
-            val newDecodeJobPairList = audioRenderItem
-                .filterIsInstance<RenderData.AudioItem.Audio>()
-                .map { audioItem ->
-                    // すでに AudioRender 作っていれば使う
-                    val exitsOrNull = decodeJobPairList.firstOrNull { (render, _) -> render.audioItem.id == audioItem.id }
-                    val audioRender = exitsOrNull?.first ?: AudioItemRenderV2(
-                        context = context,
-                        audioItem = audioItem,
-                        outPcmFile = createOutPcmFile(audioItem.id)
-                    )
-
-                    // withContext の CoroutineScope じゃなくて
-                    val job = decodeScope.launch {
-                        // 再エンコードが必要
-                        if (audioRender.isRequireReDecode(audioItem)){
-
-                        }
-                    }
-                    // map の返り値
-                    audioRender to job
+        // 前回から削除された素材はデコード中ならキャンセルさせ、PCM ファイルも消す
+        audioDecodeManager
+            .addedDecoderFilePathList
+            .forEach { oldItem ->
+                // 前回から削除された素材を消す
+                if (oldItem !in filePathList) {
+                    audioDecodeManager.cancelDecodeAndDeleteFile(oldItem)
                 }
+            }
 
-            decodeJobPairList = audioRenderItem
-                .filterIsInstance<RenderData.AudioItem.Audio>()
-                .map { audioItem ->
-                    // 並列で、デコーダー足りるかな
-                    async {
-                        // 音声がデコード済の場合は何もしない
-                        val exitsOrNull = audioItemRenderList.firstOrNull { it.isRequireReDecode(audioItem) }
-                        if (exitsOrNull != null) {
-                            return@async exitsOrNull
-                        }
-
-                        // ない場合
-                        val newItem = AudioItemRender(
-                            context = context,
-                            audioItem = audioItem,
-                            outPcmFile = createOutPcmFile(audioItem.id)
-                        )
-                        // デコードもしておく
-                        // 一応フォルダも分けておく
-                        val childTempFolder = tempFolder.resolve(audioItem.id.toString()).apply { mkdir() }
-                        newItem.decode(childTempFolder)
-                        return@async newItem
-                    }
+        // デコーダーに入れてデコードさせる
+        audioRenderItem
+            .filterIsInstance<RenderData.AudioItem.Audio>()
+            .forEach { audioItem ->
+                val id = audioItem.id
+                val filePath = audioItem.filePath
+                // 前回からの追加分の場合は追加
+                if (!audioDecodeManager.hasDecode(filePath)) {
+                    audioDecodeManager.addDecode(filePath, "$DECODE_PCM_FILE_PREFIX$id")
                 }
-        } finally {
+            }
 
+        // デコードが終わるのを待つ
+        // もしデコード中に素材が変わった場合はキャンセルしてね、この待機もキャンセルされます
+        audioDecodeManager.awaitAllDecode()
+
+        // AudioItemRender を作る
+        audioItemRenderList = audioList.mapNotNull { audioItem ->
+            audioDecodeManager.getDecodedPcmFile(audioItem.filePath)?.let { decodedFile ->
+                AudioItemRenderV2(
+                    audioItem = audioItem,
+                    decodePcmFile = decodedFile
+                )
+            }
         }
+
+        // ミックス処理をする
 
     }
 
@@ -208,17 +194,14 @@ class AudioRender(
     fun destroy() {
         inputStream?.close()
         inputStream = null
-        decodeScope.cancel()
+        audioDecodeManager.destroy()
         outPcmFile.delete()
-        pcmFolder.deleteRecursively()
+        outputDecodePcmFolder.deleteRecursively()
         tempFolder.deleteRecursively()
     }
 
-    /** デコード済みで使える素材一覧を返します */
-    private suspend fun getAudioItemRenderList() = decodeJobPairList.map { (job, _) -> job.await() }
-
     private fun createOutPcmFile(id: Long): File {
-        return pcmFolder.resolve("$DECODE_PCM_FILE_PREFIX$id")
+        return outputDecodePcmFolder.resolve("$DECODE_PCM_FILE_PREFIX$id")
     }
 
     companion object {

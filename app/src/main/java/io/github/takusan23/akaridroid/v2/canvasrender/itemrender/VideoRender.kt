@@ -65,7 +65,7 @@ class VideoRender(
         canvas.drawBitmap(preLoadBitmap, x, y, paint)
     }
 
-    override suspend fun destroy() {
+    override fun destroy() {
         videoFrameBitmapExtractor?.destroy()
     }
 
