@@ -13,6 +13,7 @@ import java.io.InputStream
 /**
  * 音声を合成して PCM を返す
  *
+ * @param context Uri を扱う場合に
  * @param outputDecodePcmFolder デコードした PCM データの保存先
  * @param outPcmFile 合成済みの PCM データ保存先
  * @param tempFolder 一時的な保存先
@@ -32,13 +33,13 @@ class AudioRender(
     )
 
     /** デコード済みで使える素材一覧 */
-    private var audioItemRenderList: List<AudioItemRenderV2> = emptyList()
+    private var audioItemRenderList: List<AudioItemRender> = emptyList()
 
     /** PCM をファイルから取り出すための[InputStream] */
     private var inputStream: InputStream? = null
 
     /** [audioRenderItem]をセットして、合成済みの PCM を作る */
-    suspend fun setRenderDataV2(
+    suspend fun setRenderData(
         audioRenderItem: List<RenderData.AudioItem>,
         durationMs: Long
     ) = withContext(Dispatchers.IO) {
@@ -73,9 +74,10 @@ class AudioRender(
         audioDecodeManager.awaitAllDecode()
 
         // AudioItemRender を作る
+        audioItemRenderList.forEach { it.destroy() }
         audioItemRenderList = audioList.mapNotNull { audioItem ->
             audioDecodeManager.getDecodedPcmFile(audioItem.filePath)?.let { decodedFile ->
-                AudioItemRenderV2(
+                AudioItemRender(
                     audioItem = audioItem,
                     decodePcmFile = decodedFile
                 )

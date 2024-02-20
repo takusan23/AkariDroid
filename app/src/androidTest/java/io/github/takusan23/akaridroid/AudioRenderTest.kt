@@ -3,6 +3,7 @@ package io.github.takusan23.akaridroid
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
+import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.test.R
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.RenderData
@@ -147,7 +148,10 @@ class AudioRenderTest {
     /** エンコードして、端末の音声フォルダへ保存する */
     private suspend fun encodeAndSaveAudio(pcmFile: File, testName: String) {
         val outFile = createTempFile("${testName}_${System.currentTimeMillis()}.aac")
-        AudioEncodeDecodeProcessor.encode(pcmFile, outFile)
+        AudioEncodeDecodeProcessor.encode(
+            input = pcmFile.toAkariCoreInputOutputData(),
+            output = outFile.toAkariCoreInputOutputData()
+        )
         MediaStoreTool.copyToAudioFolder(context, outFile)
     }
 

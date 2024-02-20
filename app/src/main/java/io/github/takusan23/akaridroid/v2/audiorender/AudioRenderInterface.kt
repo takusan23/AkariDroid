@@ -1,25 +1,28 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
-import io.github.takusan23.akaridroid.v2.RenderData
-import java.io.File
-
-/** [AudioItemRender]のインターフェース。今ん所継承してるの一個しか無いけど */
+/** [AudioItemRender]のインターフェース。今のところ実装してるの一個しか無いけど */
 interface AudioRenderInterface {
 
-    /** PCM にデコードしたファイル */
-    val outPcmFile: File
-
-    /** いつ描画すべきか */
-    val displayTime: RenderData.DisplayTime
+    /** [readPcmData]の前に呼び出されます */
+    suspend fun prepareRead()
 
     /**
-     * PCM にデコードする
+     * 音声素材の PCM データを読み出して、[ByteArray]で返す。
+     * 音量調整とかが必要な場合はここで適用して[ByteArray]に入れて返す。
      *
-     * @param tempFolder 一時的に使えるフォルダ。終わったら削除して良い
+     * @param readSize ByteArray のサイズ
+     * @return 読み出したデータが入った[ByteArray]
      */
-    suspend fun decode(tempFolder: File)
+    suspend fun readPcmData(readSize: Int): ByteArray
 
-    /** 同じデータかどうかを返す */
-    suspend fun isEquals(item: RenderData.AudioItem): Boolean
+    /**
+     * 再生すべき時間を渡すので、再生すべきかどうかを返す
+     *
+     * @param currentPositionMs 描画する時間
+     * @return true の場合描画する
+     */
+    fun isDisplayPosition(currentPositionMs: Long): Boolean
 
+    /** 破棄する */
+    fun destroy()
 }
