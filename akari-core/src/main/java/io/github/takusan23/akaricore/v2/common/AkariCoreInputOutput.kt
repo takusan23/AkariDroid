@@ -47,6 +47,9 @@ sealed interface AkariCoreInputOutput {
      * Android の[Uri]を入出力として使う
      * [Uri]はプロセス生きてる間だけ有効なので、[Uri]の永続化が必要なら[android.content.ContentResolver.takePersistableUriPermission]
      *
+     * [getReadOnlyFileDescriptor]と[getWritableFileDescriptor]ですが、
+     * フォトピッカーとか、StorageAccessFramework 経由で取り出した[Uri]は読み取りしか出来ないのでそのため。
+     *
      * @param context [Context]
      * @param uri [Uri]
      */
@@ -62,7 +65,13 @@ sealed interface AkariCoreInputOutput {
          * [FileDescriptor]が必要なとき用。
          * [MediaExtractorTool]で使う。
          */
-        fun getFileDescriptor(): ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "rw")!!
+        fun getReadOnlyFileDescriptor(): ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")!!
+
+        /**
+         * [FileDescriptor]が必要なとき用。
+         * [MediaMuxerTool]で使う。
+         */
+        fun getWritableFileDescriptor(): ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "rw")!!
     }
 
     /**

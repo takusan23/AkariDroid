@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.service.tool
+package io.github.takusan23.akaridroid.v2.encoder
 
 import android.content.BroadcastReceiver
 import android.content.Context

@@ -56,11 +56,13 @@ object MediaStoreTool {
         val contentValues = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             contentValuesOf(
                 MediaStore.MediaColumns.DISPLAY_NAME to file.name,
-                MediaStore.MediaColumns.RELATIVE_PATH to "${Environment.DIRECTORY_MOVIES}/AkariDroid"
+                MediaStore.MediaColumns.RELATIVE_PATH to "${Environment.DIRECTORY_MOVIES}/AkariDroid",
+                MediaStore.MediaColumns.MIME_TYPE to "video/mp4"
             )
         } else {
             contentValuesOf(
                 MediaStore.MediaColumns.DISPLAY_NAME to file.name,
+                MediaStore.MediaColumns.MIME_TYPE to "video/mp4"
             )
         }
         // MediaStoreへ登録

@@ -66,14 +66,21 @@ class VideoEditorPreviewPlayer(
         bitmapCanvasController.createCanvas(videoWidth, videoHeight)
     }
 
-    /** 動画で再生する音声素材をセットする */
+    /**
+     * 動画で再生する音声素材をセットする。
+     * 詳しくは[AudioRender.setRenderData]
+     */
     suspend fun setAudioRenderItem(
         audioRenderItemList: List<RenderData.AudioItem> = emptyList()
     ) = withContext(Dispatchers.Default) {
+        // TODO 音声の用意完了をUIに表示する
         audioRender.setRenderData(audioRenderItemList, _playerStatus.value.durationMs)
     }
 
-    /** 動画で再生するキャンパス要素をセットする */
+    /**
+     * 動画で再生するキャンパス要素をセットする
+     * 詳しくは[CanvasRender.setRenderData]
+     */
     suspend fun setCanvasRenderItem(
         canvasItemList: List<RenderData.CanvasItem> = emptyList(),
     ) = withContext(Dispatchers.Default) {
@@ -173,13 +180,15 @@ class VideoEditorPreviewPlayer(
     )
 
     companion object {
+        // TODO この3つのあたい、AudioRender の static のがよくない？
+
         /** 編集した音声の PCM 出力先 */
-        private const val OUT_PCM_FILE_NAME = "outpcm_file"
+        const val OUT_PCM_FILE_NAME = "outpcm_file"
 
         /** 音声素材をデコードした結果を持っておくフォルダ */
-        private const val DECODE_PCM_FOLDER_NAME = "decode_pcm_folder"
+        const val DECODE_PCM_FOLDER_NAME = "decode_pcm_folder"
 
         /** 一時的なフォルダ */
-        private const val TEMP_FOLDER_NAME = "temp_folder"
+        const val TEMP_FOLDER_NAME = "temp_folder"
     }
 }

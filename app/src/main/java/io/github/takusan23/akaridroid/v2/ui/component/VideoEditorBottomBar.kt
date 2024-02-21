@@ -33,11 +33,13 @@ import io.github.takusan23.akaridroid.v2.RenderData
  *
  * @param modifier [Modifier]
  * @param onCreateRenderItem [RenderData]を作成したら呼ばれます。動画以外は配列に一つだけ、動画の場合は音声と映像で2つ配列に入っています。
+ * @param onEncodeClick 仮だけどエンコードボタン
  */
 @Composable
 fun VideoEditorBottomBar(
     modifier: Modifier = Modifier,
-    onCreateRenderItem: (List<RenderData.RenderItem>) -> Unit
+    onCreateRenderItem: (List<RenderData.RenderItem>) -> Unit,
+    onEncodeClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -56,6 +58,13 @@ fun VideoEditorBottomBar(
             AddImageButton(onCreateRenderItem = { onCreateRenderItem(listOf(it)) })
             AddVideoButton(onCreateRenderItem = { tracks -> onCreateRenderItem(tracks) })
             AddAudioButton(onCreateRenderItem = { onCreateRenderItem(listOf(it)) })
+
+            // エンコードボタン、仮
+            VideoEditorBottomBarItem(
+                label = "エンコードする",
+                iconId = R.drawable.ic_outline_save_24,
+                onClick = onEncodeClick
+            )
         }
     }
 }

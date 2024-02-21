@@ -44,6 +44,11 @@ class AudioDecodeManager(
     /** デコード中、デコード済みのファイルの配列[AudioDecodeItem] */
     private var decodeItemList = listOf<AudioDecodeItem>()
 
+
+    fun printStatus(){
+        decodeItemList.forEach {            println(it) }
+    }
+
     /** 追加済みの[RenderData.FilePath] */
     val addedDecoderFilePathList: List<RenderData.FilePath>
         get() = decodeItemList.map { it.filePath }

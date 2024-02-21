@@ -22,9 +22,27 @@ object MediaExtractorTool {
         input: AkariCoreInputOutput.Input,
         mimeType: ExtractMimeType
     ): Triple<MediaExtractor, Int, MediaFormat>? = withContext(Dispatchers.IO) {
+        val mediaExtractor = createMediaExtractor(input)
+        // 映像トラックとインデックス番号のPairを作って返す
+        val (index, track) = (0 until mediaExtractor.trackCount)
+            .map { index -> index to mediaExtractor.getTrackFormat(index) }
+            .firstOrNull { (_, track) -> track.getString(MediaFormat.KEY_MIME)?.startsWith(mimeType.startWidth) == true } ?: return@withContext null
+        return@withContext Triple(mediaExtractor, index, track)
+    }
+
+    /**
+     * 引数に渡した動画[AkariCoreInputOutput.Input]から[MediaExtractor]を作る。
+     * 普通は[extractMedia]の方を使う。[MediaExtractor]だけ作りたい時用。
+     *
+     * @param input 動画ファイル。詳しくは[AkariCoreInputOutput]
+     * @return [MediaExtractor]
+     */
+    suspend fun createMediaExtractor(
+        input: AkariCoreInputOutput.Input,
+    ): MediaExtractor = withContext(Dispatchers.IO) {
         val mediaExtractor = MediaExtractor()
         when (input) {
-            is AkariCoreInputOutput.AndroidUri -> input.getFileDescriptor().use { mediaExtractor.setDataSource(it.fileDescriptor) }
+            is AkariCoreInputOutput.AndroidUri -> input.getReadOnlyFileDescriptor().use { mediaExtractor.setDataSource(it.fileDescriptor) }
             is AkariCoreInputOutput.JavaFile -> mediaExtractor.setDataSource(input.filePath)
             is AkariCoreInputOutput.InputJavaByteArray -> {
                 // TODO Android 6 以降のみ！
@@ -35,14 +53,10 @@ object MediaExtractorTool {
                 }
             }
         }
-        // 映像トラックとインデックス番号のPairを作って返す
-        val (index, track) = (0 until mediaExtractor.trackCount)
-            .map { index -> index to mediaExtractor.getTrackFormat(index) }
-            .firstOrNull { (_, track) -> track.getString(MediaFormat.KEY_MIME)?.startsWith(mimeType.startWidth) == true } ?: return@withContext null
-        return@withContext Triple(mediaExtractor, index, track)
+        return@withContext mediaExtractor
     }
 
-    /** [extractMedia]で渡すデータ */
+    /** [createMediaExtractor]で渡すデータ */
     enum class ExtractMimeType(val startWidth: String) {
         EXTRACT_MIME_AUDIO("audio/"),
         EXTRACT_MIME_VIDEO("video/")

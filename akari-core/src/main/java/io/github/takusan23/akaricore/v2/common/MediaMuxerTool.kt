@@ -2,7 +2,6 @@ package io.github.takusan23.akaricore.v2.common
 
 import android.annotation.SuppressLint
 import android.media.MediaCodec
-import android.media.MediaExtractor
 import android.media.MediaMuxer
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +14,8 @@ import java.nio.ByteBuffer
  * 音声と映像をコンテナフォーマットへしまって一つの動画にする関数がある
  * */
 object MediaMuxerTool {
+
+    private const val BUFFER_SIZE = 1024 * 4096
 
     /**
      * [AkariCoreInputOutput.Output]に対応した[MediaMuxer]
@@ -38,7 +39,7 @@ object MediaMuxerTool {
             is AkariCoreInputOutput.JavaFile -> MediaMuxer(output.filePath, format)
 
             is AkariCoreInputOutput.AndroidUri -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                output.getFileDescriptor().use {
+                output.getWritableFileDescriptor().use {
                     MediaMuxer(it.fileDescriptor, format)
                 }
             } else {
@@ -52,23 +53,23 @@ object MediaMuxerTool {
     /**
      * コンテナフォーマットへ格納する
      *
-     * @param resultFile 最終的なファイル
+     * @param output 最終的なファイル
      * @param containerFormat [MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4] など
-     * @param mergeFileList コンテナフォーマットへ入れる音声、映像データの[File]
+     * @param containerFormatTrackInputList コンテナフォーマットへ入れる音声、映像データの[File]
      * */
     @SuppressLint("WrongConstant")
     suspend fun mixed(
-        resultFile: File,
-        containerFormat: Int,
-        mergeFileList: List<File>,
+        output: AkariCoreInputOutput.Output,
+        containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        containerFormatTrackInputList: List<AkariCoreInputOutput.Input>,
     ) = withContext(Dispatchers.Default) {
         // 映像と音声を追加して一つの動画にする
-        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
+        val mediaMuxer = createMediaMuxer(output, containerFormat)
 
         // 音声、映像ファイルの トラック番号 と [MediaExtractor] の Pair
-        val trackIndexToExtractorPairList = mergeFileList.map {
+        val trackIndexToExtractorPairList = containerFormatTrackInputList.map {
             // MediaExtractorとフォーマット取得
-            val mediaExtractor = MediaExtractor().apply { setDataSource(it.path) }
+            val mediaExtractor = MediaExtractorTool.createMediaExtractor(it)
             val mediaFormat = mediaExtractor.getTrackFormat(0) // 音声には音声、映像には映像しか無いので 0
             mediaExtractor.selectTrack(0)
             mediaFormat to mediaExtractor
@@ -81,7 +82,7 @@ object MediaMuxerTool {
         mediaMuxer.start()
         // 映像と音声を一つの動画ファイルに書き込んでいく
         trackIndexToExtractorPairList.forEach { (index, extractor) ->
-            val byteBuffer = ByteBuffer.allocate(1024 * 4096)
+            val byteBuffer = ByteBuffer.allocate(BUFFER_SIZE)
             val bufferInfo = MediaCodec.BufferInfo()
             // データが無くなるまで回す
             while (isActive) {

@@ -5,6 +5,8 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import io.github.takusan23.akaricore.v2.common.AkariCoreInputOutput
+import io.github.takusan23.akaricore.v2.common.MediaMuxerTool
 import io.github.takusan23.akaricore.v2.video.gl.InputSurface
 import io.github.takusan23.akaricore.v2.video.gl.TextureRenderer
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -13,7 +15,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** Canvas から動画を作る */
 object CanvasVideoProcessor {
@@ -28,7 +29,7 @@ object CanvasVideoProcessor {
     /**
      * 処理を開始する
      *
-     * @param resultFile 出力先
+     * @param output 出力先ファイル。全てのバージョンで動くのは[AkariCoreInputOutput.JavaFile]のみです。
      * @param codecName コーデック名
      * @param containerFormat コンテナフォーマット
      * @param bitRate ビットレート
@@ -38,7 +39,7 @@ object CanvasVideoProcessor {
      * @param onCanvasDrawRequest Canvasの描画が必要になったら呼び出される。1フレームごとに呼ばれます（60fpsの場合は60回呼ばれる）。trueを返している間、動画を作成する
      */
     suspend fun start(
-        resultFile: File,
+        output: AkariCoreInputOutput.Output,
         bitRate: Int = 1_000_000,
         frameRate: Int = 30,
         outputVideoWidth: Int = 1280,
@@ -78,7 +79,7 @@ object CanvasVideoProcessor {
 
         // マルチプレクサ
         var videoTrackIndex = -1
-        val mediaMuxer = MediaMuxer(resultFile.path, containerFormat)
+        val mediaMuxer = MediaMuxerTool.createMediaMuxer(output, containerFormat)
 
         // 終了フラグ
         var outputDone = false

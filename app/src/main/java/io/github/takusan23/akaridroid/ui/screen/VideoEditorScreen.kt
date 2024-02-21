@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import io.github.takusan23.akaridroid.service.EncoderService
+import io.github.takusan23.akaridroid.v2.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.BottomSheetNavigation
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditMenuBottomSheetMenu
 import io.github.takusan23.akaridroid.ui.bottomsheet.data.BottomSheetInitData
@@ -81,7 +81,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel) {
                         scope.launch {
                             // ファイルに保存して、エンコーダーサービスにエンコードを依頼する
                             val projectData = viewModel.saveEncodeData()
-                            encoderService.value?.encodeAkariProject(projectData)
+                            // encoderService.value?.encodeAkariCore(projectData)
                         }
                     }
 

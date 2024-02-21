@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.service
+package io.github.takusan23.akaridroid.v2.encoder
 
 import android.app.PendingIntent
 import android.app.Service
@@ -22,19 +22,18 @@ import io.github.takusan23.akaricore.v1.data.VideoEncoderData
 import io.github.takusan23.akaricore.v1.data.VideoFileData
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.data.AkariProjectData
-import io.github.takusan23.akaridroid.service.tool.ServiceBroadcastReceiver
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.ui.tool.AkariCanvas
+import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -46,6 +45,9 @@ class EncoderService : Service() {
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
     private val localBinder = LocalBinder(this)
 
+    /** エンコードキャンセル用 [Job] */
+    private var encoderJob: Job? = null
+
     private val _isRunningEncode = MutableStateFlow(false)
 
     /** エンコード中かどうか */
@@ -54,13 +56,14 @@ class EncoderService : Service() {
     override fun onCreate() {
         super.onCreate()
         // ブロードキャスト
-        ServiceBroadcastReceiver
-            .collectReceivedBroadcast(this, EncoderServiceBroadcastAction.values().map { it.action })
-            .onEach { action ->
-                when (EncoderServiceBroadcastAction.resolve(action)) {
-                    EncoderServiceBroadcastAction.SERVICE_STOP -> stop()
+        scope.launch {
+            ServiceBroadcastReceiver.collectReceivedBroadcast(this@EncoderService, EncoderServiceBroadcastAction.entries.map { it.action })
+                .collect { action ->
+                    when (EncoderServiceBroadcastAction.resolve(action)) {
+                        EncoderServiceBroadcastAction.SERVICE_STOP -> stop()
+                    }
                 }
-            }.launchIn(scope)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder = localBinder
@@ -72,20 +75,30 @@ class EncoderService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stop()
+        scope.cancel()
     }
 
-    /** [AkariProjectData]をもとにエンコードを行う */
-    fun encodeAkariProject(akariProjectData: AkariProjectData) {
-        scope.launch {
-            // プロジェクトをロードしてエンコードする
-            encodeAkariCore(akariProjectData)
+    /** [RenderData]をもとにエンコードを行う */
+    fun encodeAkariCore(renderData: RenderData, projectFolder: File) {
+        encoderJob = scope.launch {
+            try {
+                _isRunningEncode.value = true
+                AkariCoreEncoder.encode(
+                    context = this@EncoderService,
+                    projectFolder = projectFolder,
+                    renderData = renderData
+                )
+            } finally {
+                _isRunningEncode.value = false
+            }
         }
     }
 
     /** 処理を止める */
     fun stop() {
-        scope.coroutineContext.cancelChildren()
+        scope.launch {
+            encoderJob?.cancelAndJoin()
+        }
     }
 
     /**
@@ -197,7 +210,7 @@ class EncoderService : Service() {
              *
              * @param action
              */
-            fun resolve(action: String): EncoderServiceBroadcastAction = values().first { it.action == action }
+            fun resolve(action: String): EncoderServiceBroadcastAction = entries.first { it.action == action }
         }
     }
 
@@ -211,8 +224,6 @@ class EncoderService : Service() {
 
         /** 通知ID */
         private const val NOTIFICATION_ID = 4545
-
-        /** サービスをフォアグラウンド化するか。エンコード中の場合はフォアグラウンド化して処理を継続させる */
 
         /**
          * サービスとバインドしてサービスのインスタンスを取得する

@@ -14,12 +14,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.takusan23.akaridroid.v2.encoder.EncoderService
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouter
@@ -30,6 +34,13 @@ import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 /** 動画編集画面 */
 @Composable
 fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current
+
+    /** バックグラウンドでエンコードできるようにエンコーダーサービス */
+    val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
+
+    val isEncoding = encoderService.value?.isRunningEncode?.collectAsStateWithLifecycle()
 
     /** 動画の素材や情報が入ったデータ */
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
@@ -42,6 +53,12 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
 
     /** ボトムシート */
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
+
+    // エンコード中の場合
+    if (isEncoding?.value == true) {
+        Text(text = "エンコード中です")
+        return
+    }
 
     // ボトムシート
     if (bottomSheetRouteData.value != null) {
@@ -68,6 +85,12 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
                     if (renderItemList.size == 1) {
                         viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItemList.first()))
                     }
+                },
+                onEncodeClick = {
+                    encoderService.value?.encodeAkariCore(
+                        renderData = renderData.value,
+                        projectFolder = viewModel.projectFolder
+                    )
                 }
             )
         }

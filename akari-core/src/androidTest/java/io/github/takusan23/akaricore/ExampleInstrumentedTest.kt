@@ -95,7 +95,7 @@ class ExampleInstrumentedTest {
         }
 
         CanvasVideoProcessor.start(
-            resultFile = resultFile,
+            output = resultFile.toAkariCoreInputOutputData(),
             codecName = MediaFormat.MIMETYPE_VIDEO_AVC,
             containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
             bitRate = 1_000_000,
@@ -236,7 +236,7 @@ class ExampleInstrumentedTest {
                 textSize = 80f
             }
             CanvasVideoProcessor.start(
-                resultFile = demoVideoFile,
+                output = demoVideoFile.toAkariCoreInputOutputData(),
                 codecName = MediaFormat.MIMETYPE_VIDEO_AVC,
                 containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
                 bitRate = 1_000_000,

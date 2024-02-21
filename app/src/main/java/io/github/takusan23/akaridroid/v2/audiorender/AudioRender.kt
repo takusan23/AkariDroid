@@ -14,13 +14,13 @@ import java.io.InputStream
  * 音声を合成して PCM を返す
  *
  * @param context Uri を扱う場合に
- * @param outputDecodePcmFolder デコードした PCM データの保存先
  * @param outPcmFile 合成済みの PCM データ保存先
+ * @param outputDecodePcmFolder デコードした PCM データの保存先
  * @param tempFolder 一時的な保存先
  */
 class AudioRender(
     context: Context,
-    private val outPcmFile: File,
+    val outPcmFile: File,
     private val outputDecodePcmFolder: File,
     private val tempFolder: File
 ) {
@@ -38,7 +38,10 @@ class AudioRender(
     /** PCM をファイルから取り出すための[InputStream] */
     private var inputStream: InputStream? = null
 
-    /** [audioRenderItem]をセットして、合成済みの PCM を作る */
+    /**
+     * [audioRenderItem]をセットして、合成済みの PCM を作る。
+     * デコードが終わるまで一時停止しますが、キャンセル可能です。キャンセルした場合でもデコードは続行します（別のコルーチンスコープなので）。
+     */
     suspend fun setRenderData(
         audioRenderItem: List<RenderData.AudioItem>,
         durationMs: Long
