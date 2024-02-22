@@ -63,6 +63,7 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             val filePath: FilePath,
+            // TODO テスト都合で nullable になっている、アプリ側は UriTool で取り出すようになってる
             val size: Size? = null
         ) : CanvasItem
 

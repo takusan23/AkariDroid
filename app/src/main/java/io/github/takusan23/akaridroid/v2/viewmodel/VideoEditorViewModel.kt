@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.v2.tool.UriTool
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBarAddItem
@@ -133,7 +134,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
-    fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) {
+    fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
         val addRenderItemList = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> listOf(
@@ -145,42 +146,48 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             )
             // 画像
             is VideoEditorBottomBarAddItem.Image -> {
-                // TODO 縦横サイズ
+                val size = UriTool.analyzeImage(context, addItem.uri)?.size ?: return@launch
                 listOf(
                     RenderData.CanvasItem.Image(
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                         displayTime = RenderData.DisplayTime(0, 10_000),
-                        position = RenderData.Position(0f, 0f)
+                        position = RenderData.Position(0f, 0f),
+                        size = RenderData.Size(size.width, size.height)
                     )
                 )
             }
-
             // 音声
             is VideoEditorBottomBarAddItem.Audio -> {
-                // TODO Uri から長さ解析
+                val durationMs = UriTool.analyzeAudio(context, addItem.uri)?.durationMs ?: return@launch
                 listOf(
                     RenderData.AudioItem.Audio(
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = RenderData.DisplayTime(0, 10_000)
+                        displayTime = RenderData.DisplayTime(0, durationMs)
                     )
                 )
             }
-
             // 動画
             is VideoEditorBottomBarAddItem.Video -> {
-                // TODO Uri から長さ解析
+                val analyzeVideo = UriTool.analyzeVideo(context, addItem.uri) ?: return@launch
+                val durationMs = analyzeVideo.durationMs
                 listOf(
                     RenderData.CanvasItem.Video(
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = RenderData.DisplayTime(0, 10_000),
+                        displayTime = RenderData.DisplayTime(0, durationMs),
                         position = RenderData.Position(0f, 0f),
-                    ),
-                    RenderData.AudioItem.Audio(
-                        id = System.currentTimeMillis() + 10,
-                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = RenderData.DisplayTime(0, 10_000)
+                        size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height)
                     )
-                )
+                ) + if (analyzeVideo.hasAudioTrack) {
+                    listOf(
+                        RenderData.AudioItem.Audio(
+                            id = System.currentTimeMillis() + 10,
+                            filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                            displayTime = RenderData.DisplayTime(0, durationMs)
+                        )
+                    )
+                } else {
+                    emptyList()
+                }
             }
         }
 
