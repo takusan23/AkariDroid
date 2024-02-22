@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 /** 設定画面、仮 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingScreenV2() {
+fun SettingScreen() {
     Scaffold(
         topBar = {
             LargeTopAppBar(title = { Text(text = "setting") })

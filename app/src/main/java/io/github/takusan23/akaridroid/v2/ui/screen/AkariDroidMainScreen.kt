@@ -7,21 +7,26 @@ import androidx.navigation.compose.rememberNavController
 
 /** 画面の切り替えを担当する */
 @Composable
-fun AkariDroidMainScreenV2() {
+fun AkariDroidMainScreen() {
     // 画面遷移
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = NavigationPathsV2.VideoEditor.path) {
         composable(NavigationPathsV2.VideoEditor.path) {
-            VideoEditorScreenV2()
+            VideoEditorScreen()
         }
         composable(NavigationPathsV2.Setting.path) {
-            SettingScreenV2()
+            SettingScreen()
         }
     }
 }
 
+/** 画面遷移先 */
 enum class NavigationPathsV2(val path: String) {
+
+    /** 動画編集画面 */
     VideoEditor("editor"),
-    Setting("setting"),
+
+    /** 設定画面 */
+    Setting("setting")
 }

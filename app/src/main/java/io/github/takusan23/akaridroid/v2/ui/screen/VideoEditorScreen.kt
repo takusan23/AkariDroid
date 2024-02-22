@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.v2.encoder.EncoderService
-import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.v2.ui.component.PreviewPlayerController
@@ -33,25 +32,21 @@ import io.github.takusan23.akaridroid.v2.viewmodel.VideoEditorViewModel
 
 /** 動画編集画面 */
 @Composable
-fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
+fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
 
-    /** バックグラウンドでエンコードできるようにエンコーダーサービス */
+    // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
-
+    // エンコード中かどうか
     val isEncoding = encoderService.value?.isRunningEncode?.collectAsStateWithLifecycle()
-
-    /** 動画の素材や情報が入ったデータ */
+    // 動画の素材や情報が入ったデータ
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
-
-    /** プレビューのプレイヤー状態 */
+    // プレビューのプレイヤー状態
     val previewPlayerStatus = viewModel.videoEditorPreviewPlayer.playerStatus.collectAsStateWithLifecycle()
-
-    /** プレビューのBitmap */
+    // プレビューのBitmap
     val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsStateWithLifecycle()
-
-    /** ボトムシート */
+    // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
 
     // エンコード中の場合
@@ -72,19 +67,9 @@ fun VideoEditorScreenV2(viewModel: VideoEditorViewModel = viewModel()) {
     Scaffold(
         bottomBar = {
             VideoEditorBottomBar(
-                onCreateRenderItem = { renderItemList ->
-                    // 素材を追加して
-                    renderItemList.forEach { renderItem ->
-                        when (renderItem) {
-                            is RenderData.AudioItem -> viewModel.addOrUpdateAudioRenderItem(renderItem)
-                            is RenderData.CanvasItem -> viewModel.addOrUpdateCanvasRenderItem(renderItem)
-                        }
-                    }
-                    // ボトムシートを出す。
-                    // 動画の場合は複数返ってくるので、、まあ出さないでいいか
-                    if (renderItemList.size == 1) {
-                        viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItemList.first()))
-                    }
+                onCreateRenderItem = { addItem ->
+                    // 素材を追加する
+                    viewModel.resolveVideoEditorBottomBarAddItem(addItem)
                 },
                 onEncodeClick = {
                     encoderService.value?.encodeAkariCore(

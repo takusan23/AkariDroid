@@ -8,6 +8,7 @@ import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.v2.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
+import io.github.takusan23.akaridroid.v2.ui.component.VideoEditorBottomBarAddItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -131,13 +132,81 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         _bottomSheetRouteData.value = null
     }
 
+    /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
+    fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) {
+        val addRenderItemList = when (addItem) {
+            // テキスト
+            VideoEditorBottomBarAddItem.Text -> listOf(
+                RenderData.CanvasItem.Text(
+                    text = "",
+                    displayTime = RenderData.DisplayTime(0, 10_000),
+                    position = RenderData.Position(0f, 0f)
+                )
+            )
+            // 画像
+            is VideoEditorBottomBarAddItem.Image -> {
+                // TODO 縦横サイズ
+                listOf(
+                    RenderData.CanvasItem.Image(
+                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 10_000),
+                        position = RenderData.Position(0f, 0f)
+                    )
+                )
+            }
+
+            // 音声
+            is VideoEditorBottomBarAddItem.Audio -> {
+                // TODO Uri から長さ解析
+                listOf(
+                    RenderData.AudioItem.Audio(
+                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 10_000)
+                    )
+                )
+            }
+
+            // 動画
+            is VideoEditorBottomBarAddItem.Video -> {
+                // TODO Uri から長さ解析
+                listOf(
+                    RenderData.CanvasItem.Video(
+                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 10_000),
+                        position = RenderData.Position(0f, 0f),
+                    ),
+                    RenderData.AudioItem.Audio(
+                        id = System.currentTimeMillis() + 10,
+                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                        displayTime = RenderData.DisplayTime(0, 10_000)
+                    )
+                )
+            }
+        }
+
+        // 追加する
+        addRenderItemList
+            .filterIsInstance<RenderData.AudioItem>()
+            .forEach { addOrUpdateAudioRenderItem(it) }
+        addRenderItemList
+            .filterIsInstance<RenderData.CanvasItem>()
+            .forEach { addOrUpdateCanvasRenderItem(it) }
+
+        // 編集画面を開く
+        openBottomSheet(
+            VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                renderItem = addRenderItemList.first()
+            )
+        )
+    }
+
     /**
      * [RenderData.CanvasItem]を追加する
      * 動画とか、テキストとか
      *
      * @param canvasItem [RenderData.CanvasItem]
      */
-    fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+    private fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.canvasRenderItem.any { it.id == canvasItem.id }) {
@@ -156,7 +225,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param audioItem [RenderData.AudioItem]
      */
-    fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
+    private fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.audioRenderItem.any { it.id == audioItem.id }) {
