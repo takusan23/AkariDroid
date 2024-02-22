@@ -5,7 +5,7 @@ import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.common.MediaMuxerTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
+import io.github.takusan23.akaridroid.v2.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.audiorender.AudioRender
 import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender

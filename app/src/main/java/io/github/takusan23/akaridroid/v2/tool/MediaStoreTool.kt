@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.tool
+package io.github.takusan23.akaridroid.v2.tool
 
 import android.content.Context
 import android.net.Uri

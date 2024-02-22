@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.theme
+package io.github.takusan23.akaridroid.v2.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

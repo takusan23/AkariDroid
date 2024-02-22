@@ -1,6 +1,5 @@
-package io.github.takusan23.akaridroid.tool
+package io.github.takusan23.akaridroid.v2.tool
 
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

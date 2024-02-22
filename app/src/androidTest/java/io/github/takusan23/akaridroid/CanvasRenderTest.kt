@@ -8,10 +8,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.v2.tool.MediaStoreTool
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -165,7 +166,7 @@ class CanvasRenderTest {
     ) {
         val resultFile = createFile(testName)
         CanvasVideoProcessor.start(
-            resultFile = resultFile,
+            output = resultFile.toAkariCoreInputOutputData(),
             outputVideoHeight = renderData.videoSize.height,
             outputVideoWidth = renderData.videoSize.width,
             onCanvasDrawRequest = { positionMs ->
