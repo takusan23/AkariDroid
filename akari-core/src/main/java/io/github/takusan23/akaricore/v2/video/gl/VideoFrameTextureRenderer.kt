@@ -26,7 +26,7 @@ import java.nio.FloatBuffer
 /**
  * Code for rendering a texture onto a surface using OpenGL ES 2.0.
  */
-class VideoFrameTextureRenderer {
+internal class VideoFrameTextureRenderer {
 
     private val mTriangleVertices: FloatBuffer
     private val mMVPMatrix = FloatArray(16)

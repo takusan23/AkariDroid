@@ -21,7 +21,7 @@ import android.opengl.EGLConfig
 import android.opengl.EGLExt
 import android.view.Surface
 
-class VideoFrameInputSurface(
+internal class VideoFrameInputSurface(
     private val surface: Surface,
     private val textureRenderer: VideoFrameTextureRenderer
 ) : SurfaceTexture.OnFrameAvailableListener {

@@ -16,14 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import io.github.takusan23.akaricore.v1.AkariCore
-import io.github.takusan23.akaricore.v1.data.AudioEncoderData
-import io.github.takusan23.akaricore.v1.data.VideoEncoderData
-import io.github.takusan23.akaricore.v1.data.VideoFileData
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.data.AkariProjectData
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
-import io.github.takusan23.akaridroid.ui.tool.AkariCanvas
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -82,14 +74,20 @@ class EncoderService : Service() {
     fun encodeAkariCore(renderData: RenderData, projectFolder: File) {
         encoderJob = scope.launch {
             try {
+                // フォアグラウンドサービスに昇格させる
                 _isRunningEncode.value = true
+                createOrUpdateForegroundNotification()
+
+                // エンコード
                 AkariCoreEncoder.encode(
                     context = this@EncoderService,
                     projectFolder = projectFolder,
                     renderData = renderData
                 )
             } finally {
+                // 完了時はフォアグラウンドサービスを通常サービスに
                 _isRunningEncode.value = false
+                ServiceCompat.stopForeground(this@EncoderService, ServiceCompat.STOP_FOREGROUND_REMOVE)
             }
         }
     }
@@ -102,77 +100,15 @@ class EncoderService : Service() {
     }
 
     /**
-     * エンコードを行う。
-     * [AkariCore]は別モジュールに実装してあります。
-     *
-     * @param akariProjectData [AkariProjectData]
-     */
-    private suspend fun encodeAkariCore(akariProjectData: AkariProjectData) {
-        val videoFile = File(akariProjectData.videoFileData!!.videoFilePath)
-        val resultFile = File(getExternalFilesDir(null), "result_${System.currentTimeMillis()}.mp4").apply {
-            delete()
-            createNewFile()
-        }
-        val tempFolder = File(getExternalFilesDir(null), "temp").apply { mkdir() }
-
-        // エンコーダーの値をそれぞれセットする
-        val outputFormat = akariProjectData.videoOutputFormat
-        val codec = outputFormat.videoCodec
-        val videoEncoder = VideoEncoderData(
-            codecName = codec.videoMediaCodecMimeType,
-            height = outputFormat.videoHeight,
-            width = outputFormat.videoWidth,
-            bitRate = outputFormat.bitRate,
-            frameRate = outputFormat.frameRate,
-        )
-        // TODO 音声素材の音量調節を個別に指定できるようにする
-        val audioAssetList = akariProjectData.audioAssetList
-        val audioEncoder = AudioEncoderData(
-            codecName = codec.audioMediaCodecMimeType,
-            mixingVolume = audioAssetList.first().volume
-        )
-        val videoFileData = VideoFileData(
-            videoFile = videoFile,
-            audioAssetFileList = audioAssetList.map { File(it.audioFilePath) },
-            tempWorkFolder = tempFolder,
-            containerFormat = codec.containerFormat.mediaMuxerVal,
-            outputFile = resultFile
-        )
-        val akariCore = AkariCore(videoFileData, videoEncoder, audioEncoder)
-
-        // エンコードを開始する。フォアグラウンドサービスにしてバインドが解除されても動くようにする。
-        _isRunningEncode.value = true
-        createOrUpdateForegroundNotification(title = "エンコード中です", text = "しばらくお待ちください、がんばってます。", isEncoding = true)
-
-        try {
-            // エンコーダーを開始する
-            withContext(Dispatchers.Default) {
-                akariCore.start { positionMs ->
-                    // this は Canvas
-                    // 動画の上に重ねるCanvasを描画する
-                    AkariCanvas.render(this, akariProjectData.canvasElementList)
-                }
-            }
-            // 動画フォルダへコピーする
-            MediaStoreTool.copyToVideoFolder(this, resultFile)
-            // コピー後のファイルを消す
-            resultFile.delete()
-        } catch (e: Exception) {
-            // TODO キャンセル時
-        } finally {
-            // 終了。フォアグラウンドを解除する
-            _isRunningEncode.value = false
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        }
-    }
-
-    /**
      * サービスをフォアグラウンドに昇格させる。そのための通知を作成する。
      *
      * @param title タイトル
      * @param text 通知本文
      */
-    private fun createOrUpdateForegroundNotification(title: String = "サービス起動中", text: String = "あかりどろいど より", isEncoding: Boolean = false) {
+    private fun createOrUpdateForegroundNotification(
+        title: String = "サービス起動中",
+        text: String = "あかりどろいど より"
+    ) {
         val channelId = "service_encoder_running"
         if (notificationManager.getNotificationChannel(channelId) == null) {
             val notificationChannel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW).apply {
@@ -185,9 +121,7 @@ class EncoderService : Service() {
             setContentText(text)
             setSmallIcon(R.drawable.akari_droid_icon)
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
-            if (isEncoding) {
-                addAction(R.drawable.ic_outline_close_24, "エンコード終了", PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
-            }
+            addAction(R.drawable.ic_outline_close_24, "エンコード終了", PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
         }.build()
         val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
