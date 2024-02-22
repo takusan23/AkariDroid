@@ -6,8 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.core.graphics.scale
 import androidx.core.net.toUri
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
-import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

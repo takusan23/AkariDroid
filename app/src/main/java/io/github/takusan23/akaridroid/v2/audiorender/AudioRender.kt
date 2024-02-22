@@ -1,9 +1,9 @@
 package io.github.takusan23.akaridroid.v2.audiorender
 
 import android.content.Context
-import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

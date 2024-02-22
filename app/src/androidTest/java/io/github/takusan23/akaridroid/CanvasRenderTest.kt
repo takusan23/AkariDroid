@@ -8,7 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
+import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender

@@ -2,7 +2,7 @@ package io.github.takusan23.akaridroid.v2.preview
 
 import android.content.Context
 import android.graphics.Bitmap
-import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.v2.RenderData
 import io.github.takusan23.akaridroid.v2.audiorender.AudioRender
 import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender

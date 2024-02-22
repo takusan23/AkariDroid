@@ -2,8 +2,8 @@ package io.github.takusan23.akaridroid
 
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.test.R
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.v2.RenderData

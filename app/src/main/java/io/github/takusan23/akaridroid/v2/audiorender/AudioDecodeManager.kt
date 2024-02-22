@@ -3,10 +3,10 @@ package io.github.takusan23.akaridroid.v2.audiorender
 import android.content.Context
 import android.media.MediaFormat
 import androidx.core.net.toUri
-import io.github.takusan23.akaricore.v2.audio.AkariCoreAudioProperties
-import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
-import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
+import io.github.takusan23.akaricore.audio.ReSamplingRateProcessor
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.v2.RenderData
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

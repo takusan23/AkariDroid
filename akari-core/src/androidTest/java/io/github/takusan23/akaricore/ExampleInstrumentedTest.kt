@@ -7,16 +7,16 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.github.takusan23.akaricore.v2.audio.AudioEncodeDecodeProcessor
-import io.github.takusan23.akaricore.v2.audio.AudioMixingProcessor
-import io.github.takusan23.akaricore.v2.audio.AudioVolumeProcessor
-import io.github.takusan23.akaricore.v2.audio.ReSamplingRateProcessor
-import io.github.takusan23.akaricore.v2.audio.SilenceAudioProcessor
-import io.github.takusan23.akaricore.v2.common.CutProcessor
-import io.github.takusan23.akaricore.v2.common.MediaExtractorTool
-import io.github.takusan23.akaricore.v2.common.toAkariCoreInputOutputData
-import io.github.takusan23.akaricore.v2.video.CanvasVideoProcessor
-import io.github.takusan23.akaricore.v2.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
+import io.github.takusan23.akaricore.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.audio.AudioVolumeProcessor
+import io.github.takusan23.akaricore.audio.ReSamplingRateProcessor
+import io.github.takusan23.akaricore.audio.SilenceAudioProcessor
+import io.github.takusan23.akaricore.common.CutProcessor
+import io.github.takusan23.akaricore.common.MediaExtractorTool
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaricore.video.CanvasVideoProcessor
+import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Test
@@ -34,6 +34,7 @@ class ExampleInstrumentedTest {
 
     // 各テストの保存先は /storage/emulated/0/Android/data/io.github.takusan23.akari_core.test/files
 
+    @Suppress("Since15")
     @Test
     fun test_音声を合成できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         // Context of the app under test.
