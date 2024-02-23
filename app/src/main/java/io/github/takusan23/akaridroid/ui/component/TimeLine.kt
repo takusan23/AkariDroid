@@ -77,6 +77,7 @@ fun TimeLine(
         TimeLineItemData(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500),
         TimeLineItemData(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000),
     ),
+    maxLaneCount: Int = 5,
     onClick: (TimeLineItemData) -> Unit = {}
 ) {
     val sushiItemList = remember { mutableStateOf(itemList) }
@@ -102,11 +103,9 @@ fun TimeLine(
 
             // タイムラインのアイテム
             // レーンの数だけ
-            sushiItemList
-                .value
-                .groupBy { it.laneIndex }
+            (0 until maxLaneCount)
+                .map { laneIndex -> laneIndex to sushiItemList.value.filter { it.laneIndex == laneIndex } }
                 .forEach { (laneIndex, itemList) ->
-
                     TimeLineSushiLane(
                         modifier = Modifier
                             .fillMaxWidth()
