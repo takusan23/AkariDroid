@@ -8,10 +8,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,9 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
-import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
+import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
@@ -113,6 +111,9 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
             )
 
+            TimeLine()
+
+/*
             renderData.value.canvasRenderItem.forEach { canvasItem ->
                 Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem)) }) {
                     Text(text = canvasItem.toString())
@@ -126,6 +127,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 }
                 Divider()
             }
+*/
         }
     }
 }
