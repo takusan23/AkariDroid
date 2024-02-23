@@ -46,7 +46,8 @@ class VideoEditorPreviewPlayer(
         PlayerStatus(
             isPlaying = false,
             currentPositionMs = 0,
-            durationMs = 0
+            durationMs = 0,
+            isProgressPreviewRender = false
         )
     )
 
@@ -73,8 +74,9 @@ class VideoEditorPreviewPlayer(
     suspend fun setAudioRenderItem(
         audioRenderItemList: List<RenderData.AudioItem> = emptyList()
     ) = withContext(Dispatchers.Default) {
-        // TODO 音声の用意完了をUIに表示する
+        _playerStatus.update { it.copy(isProgressPreviewRender = true) }
         audioRender.setRenderData(audioRenderItemList, _playerStatus.value.durationMs)
+        _playerStatus.update { it.copy(isProgressPreviewRender = false) }
     }
 
     /**
@@ -172,11 +174,13 @@ class VideoEditorPreviewPlayer(
      * @param isPlaying 再生中かどうか
      * @param currentPositionMs 再生位置
      * @param durationMs 動画の時間
+     * @param isProgressPreviewRender [VideoEditorPreviewPlayer]の準備中は true になる。この間は再生できない
      */
     data class PlayerStatus(
         val isPlaying: Boolean,
         val currentPositionMs: Long,
-        val durationMs: Long
+        val durationMs: Long,
+        val isProgressPreviewRender: Boolean,
     )
 
     companion object {

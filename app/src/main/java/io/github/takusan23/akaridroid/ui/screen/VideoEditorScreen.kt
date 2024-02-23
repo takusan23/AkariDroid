@@ -107,7 +107,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
 
             // シークバーとか
             PreviewPlayerController(
-                modifier = Modifier.padding(horizontal = 5.dp),
+                modifier = Modifier.padding(5.dp),
                 playerStatus = previewPlayerStatus.value,
                 onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
                 onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
