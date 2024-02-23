@@ -41,9 +41,13 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
+import io.github.takusan23.akaridroid.ui.component.data.durationMs
 import io.github.takusan23.akaridroid.ui.component.data.timeRange
 import java.text.SimpleDateFormat
 import java.util.Locale
+
+/** 1 ミリ秒をどれだけの幅で表すか */
+private const val MillisecondsWidthPx = 20
 
 /** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
 private val Long.msToWidthDp: Dp
@@ -53,7 +57,11 @@ private val Long.msToWidthDp: Dp
 
 /** 1 ミリ秒をどれだけの幅で表すか。[Int]版。 */
 private val Long.msToWidth: Int
-    get() = (this / 20).toInt()
+    get() = (this / MillisecondsWidthPx).toInt()
+
+/** 幅や位置は何 ミリ秒を表しているか */
+private val Int.widthToMs: Long
+    get() = (this * MillisecondsWidthPx).toLong()
 
 /** タイムライン */
 @Composable
@@ -230,9 +238,16 @@ private fun TimeLineSushiItem(
                     },
                     onDragEnd = {
                         isDragging.value = false
+                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                        val stopMsInDroppedPos = draggingOffset.value.x.widthToMs
+
                         // 移動できるか判定を上のコンポーネントでやる
                         val isAccept = onDragAndDropRequest(
-                            timeLineItemData,
+                            // 移動対象は copy して移動先に書き換えておく
+                            timeLineItemData.copy(
+                                startMs = stopMsInDroppedPos,
+                                stopMs = stopMsInDroppedPos + timeLineItemData.durationMs
+                            ),
                             startRect ?: return@detectDragGestures,
                             latestGlobalRect.value ?: return@detectDragGestures
                         )

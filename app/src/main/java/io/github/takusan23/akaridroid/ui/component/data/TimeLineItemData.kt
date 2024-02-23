@@ -12,3 +12,7 @@ data class TimeLineItemData(
 /** 表示時間の範囲を[LongRange]にする */
 val TimeLineItemData.timeRange: LongRange
     get() = this.startMs until this.stopMs
+
+/** 表示時間を時間にする */
+val TimeLineItemData.durationMs: Long
+    get() = this.stopMs - this.startMs
