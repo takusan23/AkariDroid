@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineDragAndDropData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
 import io.github.takusan23.akaridroid.ui.component.data.durationMs
 import io.github.takusan23.akaridroid.ui.component.data.timeRange
@@ -69,12 +70,12 @@ fun TimeLine(
     modifier: Modifier = Modifier,
     durationMs: Long = 30_000,
     itemList: List<TimeLineItemData> = listOf(
-        TimeLineItemData(laneIndex = 0, startMs = 0, stopMs = 10_000),
-        TimeLineItemData(laneIndex = 0, startMs = 10_000, stopMs = 20_000),
-        TimeLineItemData(laneIndex = 1, startMs = 1000, stopMs = 2000),
-        TimeLineItemData(laneIndex = 2, startMs = 0, stopMs = 2000),
-        TimeLineItemData(laneIndex = 3, startMs = 1000, stopMs = 1500),
-        TimeLineItemData(laneIndex = 4, startMs = 10_000, stopMs = 11_000),
+        TimeLineItemData(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000),
+        TimeLineItemData(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000),
+        TimeLineItemData(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000),
+        TimeLineItemData(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000),
+        TimeLineItemData(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500),
+        TimeLineItemData(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000),
     ),
     onClick: (TimeLineItemData) -> Unit = {}
 ) {
@@ -118,26 +119,40 @@ fun TimeLine(
                         laneIndex = laneIndex,
                         laneItemList = itemList,
                         onClick = onClick,
-                        onDragAndDropRequest = { target, start, stop ->
+                        onDragAndDropRequest = {
+                            val (_, start, stop) = it
                             // ドラッグアンドドロップで移動先に移動してよいか
                             // 移動元、移動先のレーン番号を取得
                             val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineSushiLane false
                             val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineSushiLane false
 
+                            // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                            val stopMsInDroppedPos = stop.left.widthToMs
+                            // 移動先の TimeLineItemData を作る
+                            val afterTarget = it.target.copy(
+                                laneIndex = toLaneIndex,
+                                startMs = stopMsInDroppedPos,
+                                stopMs = stopMsInDroppedPos + it.target.durationMs
+                            )
+
                             // 移動先のレーンに空きがあること
+                            // 同一レーンの移動の場合は自分自身も消す（時間調整できなくなる）
                             val isAcceptable = sushiItemList.value
-                                .filter { it.laneIndex == toLaneIndex }
+                                .filter { laneItem -> laneItem.laneIndex == afterTarget.laneIndex }
+                                .filter { laneItem -> laneItem.id != afterTarget.id }
                                 .all { laneItem ->
                                     // 空きがあること
-                                    val hasFreeSpace = target.startMs !in laneItem.timeRange && target.stopMs !in laneItem.timeRange
-                                    // 移動先に自分より小さいアイテムが居ないこと
-                                    val hasNotInclude = laneItem.startMs !in target.timeRange && laneItem.stopMs !in target.timeRange
+                                    val hasFreeSpace = afterTarget.startMs !in laneItem.timeRange && afterTarget.stopMs !in laneItem.timeRange
+                                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                                    val hasNotInclude = laneItem.startMs !in afterTarget.timeRange && laneItem.stopMs !in afterTarget.timeRange
                                     hasFreeSpace && hasNotInclude
                                 }
 
-                            if (isAcceptable) {
+                            sushiItemList.value = if (isAcceptable) {
                                 // データ変更
-                                sushiItemList.value = sushiItemList.value.filter { it.id != target.id } + target.copy(laneIndex = toLaneIndex)
+                                sushiItemList.value.filter { lineItem -> lineItem.id != afterTarget.id } + afterTarget
+                            } else {
+                                sushiItemList.value.toList()
                             }
 
                             // 受け入れられることを伝える
@@ -167,7 +182,7 @@ private fun TimeLineSushiLane(
     modifier: Modifier = Modifier,
     laneItemList: List<TimeLineItemData>,
     laneIndex: Int,
-    onDragAndDropRequest: (target: TimeLineItemData, start: IntRect, stop: IntRect) -> Boolean = { _, _, _ -> false },
+    onDragAndDropRequest: (TimeLineDragAndDropData) -> Boolean = { false },
     onClick: (TimeLineItemData) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -192,22 +207,33 @@ private fun TimeLineSushiLane(
     }
 }
 
-/** タイムラインに表示するアイテム */
+/**
+ * タイムラインに表示するアイテム
+ *
+ * @param modifier [Modifier]
+ * @param onClick 押したときに呼ばれる
+ * @param timeLineItemData タイムラインのデータ[TimeLineItemData]
+ * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
+ */
 @Composable
 private fun TimeLineSushiItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineItemData,
-    onDragAndDropRequest: (target: TimeLineItemData, start: IntRect, stop: IntRect) -> Boolean = { _, _, _ -> false },
+    onDragAndDropRequest: (TimeLineDragAndDropData) -> Boolean = { false },
     onClick: () -> Unit
 ) {
-    // アイテムの移動に必要
+    // アイテムが移動中かどうか
     val isDragging = remember { mutableStateOf(false) }
+    // アイテムの位置
     val latestGlobalRect = remember { mutableStateOf<IntRect?>(null) }
-    val draggingOffset = remember { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
+    // アイテムの移動中位置。アイテムが変化したら作り直す
+    val draggingOffset = remember(timeLineItemData) { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
 
     Surface(
         modifier = modifier
             .offset {
+                // 移動中の場合はそのオフセット
+                // 移動中じゃない場合は再生開始位置分オフセットでずらす
                 if (isDragging.value) {
                     draggingOffset.value
                 } else {
@@ -221,15 +247,18 @@ private fun TimeLineSushiItem(
                     .boundsInWindow()
                     .roundToIntRect()
             }
-            .pointerInput(Unit) {
+            .pointerInput(timeLineItemData) {
+                // アイテム移動のシステム
+                // データが変化したら pointerInput も再起動するようにキーに入れる
                 var startRect: IntRect? = null
-
                 detectDragGestures(
                     onDragStart = {
+                        // ドラッグアンドドロップ開始時。フラグを立てて開始位置を入れておく
                         isDragging.value = true
                         startRect = latestGlobalRect.value
                     },
                     onDrag = { change, dragAmount ->
+                        // 移動中
                         change.consume()
                         draggingOffset.value = IntOffset(
                             x = (draggingOffset.value.x + dragAmount.x).toInt(),
@@ -237,19 +266,15 @@ private fun TimeLineSushiItem(
                         )
                     },
                     onDragEnd = {
+                        // 移動終了
                         isDragging.value = false
-                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
-                        val stopMsInDroppedPos = draggingOffset.value.x.widthToMs
-
                         // 移動できるか判定を上のコンポーネントでやる
                         val isAccept = onDragAndDropRequest(
-                            // 移動対象は copy して移動先に書き換えておく
-                            timeLineItemData.copy(
-                                startMs = stopMsInDroppedPos,
-                                stopMs = stopMsInDroppedPos + timeLineItemData.durationMs
-                            ),
-                            startRect ?: return@detectDragGestures,
-                            latestGlobalRect.value ?: return@detectDragGestures
+                            TimeLineDragAndDropData(
+                                target = timeLineItemData,
+                                start = startRect ?: return@detectDragGestures,
+                                stop = latestGlobalRect.value ?: return@detectDragGestures
+                            )
                         )
                         // 出来ない場合は戻す
                         if (!isAccept) {

@@ -1,9 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component.data
 
-import kotlin.random.Random
-
 data class TimeLineItemData(
-    val id: Long = Random.nextLong(),
+    val id: Long = System.currentTimeMillis(),
     val laneIndex: Int,
     val startMs: Long,
     val stopMs: Long
