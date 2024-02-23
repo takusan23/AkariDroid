@@ -1,39 +1,51 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
+import java.text.SimpleDateFormat
+import java.util.Locale
+
+/** ミリ秒を秒にする */
+private val Long.second: Int
+    get() = (this / 1000).toInt()
+
+
+/** 1 秒間をどれだけの幅で表すか */
+private val Int.secondToWidth: Dp
+    get() = (this * 10).dp
+
+/** 1 ミリ秒をどれだけの幅で表すか */
+private val Long.msToWidth: Dp
+    get() = (this / 20).toInt().dp
+
+private fun List<TimeLineItemData>.groupByLaneIndex() = this.groupBy { it.laneIndex }
 
 /**
  * タイムライン
@@ -41,93 +53,93 @@ import io.github.takusan23.akaridroid.R
 @Composable
 fun TimeLine(
     modifier: Modifier = Modifier,
-    maxLines: Int = 5
+    durationMs: Long = 10_000,
+    itemList: List<TimeLineItemData> = listOf(
+        TimeLineItemData(0, 0, 10_000),
+        TimeLineItemData(1, 1000, 2000),
+        TimeLineItemData(2, 0, 2000),
+        TimeLineItemData(3, 1000, 1500),
+    )
 ) {
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .horizontalScroll(rememberScrollState())
+            .horizontalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
         // 時間を表示するやつ
-        Row {
-            repeat(10) { index ->
-                Text(
-                    modifier = Modifier.padding(start = (index + 100).dp),
-                    text = "00:00"
-                )
-            }
-        }
+        TimeLineTopTimeLabel(durationMs = durationMs)
 
         // タイムラインのアイテム
         // レーンの数だけ
-        repeat(maxLines) { index ->
-            Row(modifier = Modifier.height(50.dp)) {
-
-                TimeLineIndexText(
-                    modifier = Modifier.fillMaxHeight(),
-                    index = index + 1
+        itemList
+            .groupByLaneIndex()
+            .forEach { (laneIndex, itemList) ->
+                TimeLineSushiLane(
+                    modifier = Modifier.height(50.dp),
+                    laneIndex = laneIndex,
+                    laneItemList = itemList,
+                    onClick = {}
                 )
-
-                repeat(10) { index ->
-                    TimeLineView(
-                        modifier = Modifier.padding(start = (index + 100).dp),
-                        text = "画像 その $index",
-                        size = 200,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        onClick = { }
-                    )
-                }
             }
-        }
     }
 }
 
 /**
- * タイムラインの各レーン。回転寿司。
- * TODO [LazyRow]で実装できないか考える。[androidx.compose.foundation.lazy.LazyListState]だとスクロール位置をピクセル単位で返す value 無いんだよね
+ * タイムラインのレーンです。回転寿司。
+ * Box にしてオフセットで調整しています。
+ *
+ * 画面外にも描画するのでなんとかしたい所存。
  *
  * @param modifier [Modifier]
- * @param content [Row]と同じ
+ * @param laneIndex レーン番号
+ * @param laneItemList タイムラインに表示するアイテム[TimeLineItemData]
+ * @param onClick 押したときに呼ばれる
  */
 @Composable
 private fun TimeLineSushiLane(
     modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit
+    laneItemList: List<TimeLineItemData>,
+    laneIndex: Int,
+    onClick: (TimeLineItemData) -> Unit
 ) {
-    val density = LocalDensity.current
-    // Divider で線を引くために幅を取る必要がある
-    val width = remember { mutableIntStateOf(0) }
+    Box(modifier = modifier) {
 
-    Column(modifier = Modifier.onSizeChanged { width.intValue = it.width }) {
-        Row(
-            modifier = modifier,
-            content = content
-        )
-        Divider(
+        Text(
+            text = (laneIndex + 1).toString(),
             modifier = Modifier
-                .width(with(density) { width.intValue.toDp() })
+                .padding(start = 10.dp)
+                .alpha(0.5f)
+                .align(Alignment.Center),
+            fontSize = 20.sp,
+            color = MaterialTheme.colorScheme.primary
         )
+
+        laneItemList.forEach { timeLineItemData ->
+            TimeLineView(
+                modifier = Modifier
+                    .offset { IntOffset(timeLineItemData.startMs.msToWidth.toPx().toInt(), 0) },
+                timeLineItemData = timeLineItemData,
+                onClick = { onClick(timeLineItemData) }
+            )
+        }
     }
 }
 
-/**
- * タイムラインに表示するアイテム
- */
+/** タイムラインに表示するアイテム */
 @Composable
 private fun TimeLineView(
     modifier: Modifier = Modifier,
-    size: Int,
-    text: String,
-    color: Color,
+    timeLineItemData: TimeLineItemData,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
-            .width(size.dp)
+            .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidth)
             .fillMaxHeight(),
         shape = RoundedCornerShape(5.dp),
-        color = color,
+        color = MaterialTheme.colorScheme.primaryContainer,
         onClick = onClick
     ) {
         Row(
@@ -135,44 +147,37 @@ private fun TimeLineView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Icon(painter = painterResource(id = R.drawable.ic_outline_audiotrack_24), contentDescription = null)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_outline_audiotrack_24),
+                contentDescription = null
+            )
             Text(
-                text = text,
+                text = "素材 $timeLineItemData",
                 maxLines = 1
             )
         }
     }
 }
 
-/**
- * タイムラインのレーン番号を表示するテキスト
- *
- * @param modifier [Modifier]
- * @param index 番号
- */
+/** タイムラインの一番上に表示する時間 */
 @Composable
-private fun TimeLineIndexText(
+private fun TimeLineTopTimeLabel(
     modifier: Modifier = Modifier,
-    index: Int
+    durationMs: Long,
+    stepMs: Long = 10_000 // 10 秒間隔
 ) {
-    Box(
-        modifier = modifier
-            .height(IntrinsicSize.Max)
-            .aspectRatio(1f)
-    ) {
-        Text(
-            modifier = Modifier.align(Alignment.Center),
-            text = index.toString(),
-            color = MaterialTheme.colorScheme.secondary,
-            fontSize = 20.sp
-        )
-        // 縦の区切り線
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .align(Alignment.CenterEnd)
-                .width(1.dp)
-                .background(MaterialTheme.colorScheme.secondary)
-        )
+    val simpleDateFormat = remember { SimpleDateFormat("mm:ss", Locale.getDefault()) }
+    val labelList = remember(durationMs, stepMs) {
+        // 最後まで
+        ((0 until durationMs step stepMs) + durationMs).toList()
+    }
+
+    Row(modifier = modifier) {
+        labelList.forEach { timeMs ->
+            Text(
+                modifier = Modifier.width(stepMs.msToWidth),
+                text = simpleDateFormat.format(timeMs)
+            )
+        }
     }
 }
