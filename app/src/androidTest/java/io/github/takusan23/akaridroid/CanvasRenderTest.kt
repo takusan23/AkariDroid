@@ -10,9 +10,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
-import io.github.takusan23.akaridroid.v2.RenderData
-import io.github.takusan23.akaridroid.v2.canvasrender.CanvasRender
-import io.github.takusan23.akaridroid.v2.tool.MediaStoreTool
+import io.github.takusan23.akaridroid.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith

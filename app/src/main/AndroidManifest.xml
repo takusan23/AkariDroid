@@ -34,7 +34,7 @@
         </activity>
 
         <service
-            android:name=".v2.encoder.EncoderService"
+            android:name=".encoder.EncoderService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse">

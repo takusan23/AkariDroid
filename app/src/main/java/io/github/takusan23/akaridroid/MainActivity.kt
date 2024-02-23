@@ -4,8 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import io.github.takusan23.akaridroid.v2.ui.screen.AkariDroidMainScreen
-import io.github.takusan23.akaridroid.v2.ui.theme.AkariDroidTheme
+import io.github.takusan23.akaridroid.ui.screen.AkariDroidMainScreen
+import io.github.takusan23.akaridroid.ui.theme.AkariDroidTheme
 
 class MainActivity : ComponentActivity() {
 
