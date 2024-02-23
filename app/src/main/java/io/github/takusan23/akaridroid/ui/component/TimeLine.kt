@@ -6,14 +6,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,35 +53,49 @@ private val Long.msToWidth: Int
 @Composable
 fun TimeLine(
     modifier: Modifier = Modifier,
-    durationMs: Long = 10_000,
+    durationMs: Long = 30_000,
     itemList: List<TimeLineItemData> = listOf(
         TimeLineItemData(0, 0, 10_000),
+        TimeLineItemData(0, 10_000, 20_000),
+        TimeLineItemData(1, 1000, 2000),
+        TimeLineItemData(2, 0, 2000),
+        TimeLineItemData(3, 1000, 1500),
         TimeLineItemData(4, 10_000, 11_000),
     )
 ) {
-    Column(
+    // 一番遅い時間
+    val maxWidth = remember(itemList, durationMs) {
+        maxOf(itemList.maxBy { it.stopMs }.stopMs, durationMs)
+    }
+
+    Box(
         modifier = modifier
-            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .horizontalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
+        Column(
+            // 画面外にはみ出すので requiredWidth
+            modifier = modifier.requiredWidth(maxWidth.msToWidthDp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
 
-        // 時間を表示するやつ
-        TimeLineTopTimeLabel(durationMs = durationMs)
+            // 時間を表示するやつ
+            TimeLineTopTimeLabel(durationMs = durationMs)
 
-        // タイムラインのアイテム
-        // レーンの数だけ
-        itemList
-            .groupBy { it.laneIndex }
-            .forEach { (laneIndex, itemList) ->
-                TimeLineSushiLane(
-                    modifier = Modifier.height(50.dp),
-                    laneIndex = laneIndex,
-                    laneItemList = itemList,
-                    onClick = {}
-                )
-            }
+            // タイムラインのアイテム
+            // レーンの数だけ
+            itemList
+                .groupBy { it.laneIndex }
+                .forEach { (laneIndex, itemList) ->
+                    TimeLineSushiLane(
+                        modifier = Modifier.height(50.dp),
+                        laneIndex = laneIndex,
+                        laneItemList = itemList,
+                        onClick = {}
+                    )
+                    Divider()
+                }
+        }
     }
 }
 
