@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -36,33 +38,29 @@ import java.util.Locale
 private val Long.second: Int
     get() = (this / 1000).toInt()
 
+/** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
+private val Long.msToWidthDp: Dp
+    // Pixel to Dp
+    @Composable
+    get() = with(LocalDensity.current) { msToWidth.toDp() }
 
-/** 1 秒間をどれだけの幅で表すか */
-private val Int.secondToWidth: Dp
-    get() = (this * 10).dp
+/** 1 ミリ秒をどれだけの幅で表すか。[Int]版。 */
+private val Long.msToWidth: Int
+    get() = (this / 20).toInt()
 
-/** 1 ミリ秒をどれだけの幅で表すか */
-private val Long.msToWidth: Dp
-    get() = (this / 20).toInt().dp
-
-private fun List<TimeLineItemData>.groupByLaneIndex() = this.groupBy { it.laneIndex }
-
-/**
- * タイムライン
- */
+/** タイムライン */
 @Composable
 fun TimeLine(
     modifier: Modifier = Modifier,
     durationMs: Long = 10_000,
     itemList: List<TimeLineItemData> = listOf(
         TimeLineItemData(0, 0, 10_000),
-        TimeLineItemData(1, 1000, 2000),
-        TimeLineItemData(2, 0, 2000),
-        TimeLineItemData(3, 1000, 1500),
+        TimeLineItemData(4, 10_000, 11_000),
     )
 ) {
     Column(
         modifier = modifier
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .horizontalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -74,7 +72,7 @@ fun TimeLine(
         // タイムラインのアイテム
         // レーンの数だけ
         itemList
-            .groupByLaneIndex()
+            .groupBy { it.laneIndex }
             .forEach { (laneIndex, itemList) ->
                 TimeLineSushiLane(
                     modifier = Modifier.height(50.dp),
@@ -117,9 +115,7 @@ private fun TimeLineSushiLane(
         )
 
         laneItemList.forEach { timeLineItemData ->
-            TimeLineView(
-                modifier = Modifier
-                    .offset { IntOffset(timeLineItemData.startMs.msToWidth.toPx().toInt(), 0) },
+            TimeLineItem(
                 timeLineItemData = timeLineItemData,
                 onClick = { onClick(timeLineItemData) }
             )
@@ -129,14 +125,15 @@ private fun TimeLineSushiLane(
 
 /** タイムラインに表示するアイテム */
 @Composable
-private fun TimeLineView(
+private fun TimeLineItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineItemData,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
-            .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidth)
+            .offset { IntOffset(timeLineItemData.startMs.msToWidth, 0) }
+            .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidthDp)
             .fillMaxHeight(),
         shape = RoundedCornerShape(5.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -172,10 +169,11 @@ private fun TimeLineTopTimeLabel(
         ((0 until durationMs step stepMs) + durationMs).toList()
     }
 
-    Row(modifier = modifier) {
+    Box(modifier = modifier) {
         labelList.forEach { timeMs ->
             Text(
-                modifier = Modifier.width(stepMs.msToWidth),
+                modifier = Modifier
+                    .offset { IntOffset(timeMs.msToWidth, 0) },
                 text = simpleDateFormat.format(timeMs)
             )
         }
