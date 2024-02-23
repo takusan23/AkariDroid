@@ -119,7 +119,13 @@ fun TimeLine(
                             // 移動先のレーンに空きがあること
                             val isAcceptable = sushiItemList.value
                                 .filter { it.laneIndex == toLaneIndex }
-                                .any { laneItem -> target.startMs !in laneItem.timeRange && target.stopMs !in laneItem.timeRange }
+                                .all { laneItem ->
+                                    // 空きがあること
+                                    val hasFreeSpace = target.startMs !in laneItem.timeRange && target.stopMs !in laneItem.timeRange
+                                    // 移動先に自分より小さいアイテムが居ないこと
+                                    val hasNotInclude = laneItem.startMs !in target.timeRange && laneItem.stopMs !in target.timeRange
+                                    hasFreeSpace && hasNotInclude
+                                }
 
                             if (isAcceptable) {
                                 // データ変更
