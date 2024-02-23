@@ -1,9 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,20 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterIsInstance
 
 /**
  * タイムライン
@@ -48,18 +43,14 @@ fun TimeLine(
     modifier: Modifier = Modifier,
     maxLines: Int = 5
 ) {
-    // すべての LazyRow のスクロール位置を同期させる
-    val currentScrollPosition = remember { mutableFloatStateOf(0f) }
-
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-
-        Text(text = currentScrollPosition.floatValue.toString())
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .horizontalScroll(rememberScrollState())
+    ) {
 
         // 時間を表示するやつ
-        TimeLineSushiLane(
-            currentScrollPositionPixelAbsolute = currentScrollPosition.floatValue,
-            onScrollPositionPixelAbsolute = { position -> currentScrollPosition.floatValue = position }
-        ) {
+        Row {
             repeat(10) { index ->
                 Text(
                     modifier = Modifier.padding(start = (index + 100).dp),
@@ -67,17 +58,12 @@ fun TimeLine(
                 )
             }
         }
-        Divider()
 
         // タイムラインのアイテム
         // レーンの数だけ
         repeat(maxLines) { index ->
+            Row(modifier = Modifier.height(50.dp)) {
 
-            TimeLineSushiLane(
-                modifier = Modifier.height(50.dp),
-                currentScrollPositionPixelAbsolute = currentScrollPosition.floatValue,
-                onScrollPositionPixelAbsolute = { position -> currentScrollPosition.floatValue = position }
-            ) {
                 TimeLineIndexText(
                     modifier = Modifier.fillMaxHeight(),
                     index = index + 1
@@ -93,8 +79,6 @@ fun TimeLine(
                     )
                 }
             }
-
-            Divider()
         }
     }
 }
@@ -103,65 +87,28 @@ fun TimeLine(
  * タイムラインの各レーン。回転寿司。
  * TODO [LazyRow]で実装できないか考える。[androidx.compose.foundation.lazy.LazyListState]だとスクロール位置をピクセル単位で返す value 無いんだよね
  *
- * このタイムラインは、この[TimeLineSushiLane]を縦方向に並べることで作っている。
- * のでスクロール位置を合わせる必要がある。そのために[currentScrollPositionPixelAbsolute]がある。
- *
  * @param modifier [Modifier]
- * @param currentScrollPositionPixelAbsolute 他のレーンのスクロール位置、もしくは外からスクロール位置の変更があったら。単位はピクセル。スクロール中は無視される。
- * @param onScrollPositionPixelAbsolute スクロール時に呼び出す。単位はピクセル。他の[TimeLineSushiLane]のスクロール位置を合わせるために使う。
  * @param content [Row]と同じ
  */
 @Composable
 private fun TimeLineSushiLane(
     modifier: Modifier = Modifier,
-    currentScrollPositionPixelAbsolute: Float,
-    onScrollPositionPixelAbsolute: (Float) -> Unit,
     content: @Composable RowScope.() -> Unit
 ) {
-    val scrollState = rememberScrollState()
-    val isInputTouch = remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    // Divider で線を引くために幅を取る必要がある
+    val width = remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(key1 = currentScrollPositionPixelAbsolute) {
-        // 他のレーンとスクロール位置を合わせる
-        // ただし、自分がスクロール中の場合は無視する
-        if (!isInputTouch.value) {
-            scrollState.scrollBy(currentScrollPositionPixelAbsolute - scrollState.value)
-        }
+    Column(modifier = Modifier.onSizeChanged { width.intValue = it.width }) {
+        Row(
+            modifier = modifier,
+            content = content
+        )
+        Divider(
+            modifier = Modifier
+                .width(with(density) { width.intValue.toDp() })
+        )
     }
-
-    LaunchedEffect(key1 = scrollState) {
-        snapshotFlow { scrollState.value }
-            .distinctUntilChanged()
-            .collect {
-                // 自分がスクロール中のみ
-                if (isInputTouch.value) {
-                    onScrollPositionPixelAbsolute(it.toFloat())
-                }
-            }
-    }
-
-    LaunchedEffect(key1 = Unit) {
-        scrollState
-            .interactionSource
-            .interactions
-            .filterIsInstance<DragInteraction>()
-            .collect {
-                when (it) {
-                    is DragInteraction.Stop -> {
-                        isInputTouch.value = false
-                    }
-
-                    is DragInteraction.Start -> {
-                        isInputTouch.value = true
-                    }
-                }
-            }
-    }
-
-    Row(
-        modifier = modifier.horizontalScroll(scrollState),
-        content = content
-    )
 }
 
 /**
@@ -214,9 +161,7 @@ private fun TimeLineIndexText(
             .aspectRatio(1f)
     ) {
         Text(
-            modifier = Modifier
-                .fillMaxHeight()
-                .align(Alignment.Center),
+            modifier = Modifier.align(Alignment.Center),
             text = index.toString(),
             color = MaterialTheme.colorScheme.secondary,
             fontSize = 20.sp
