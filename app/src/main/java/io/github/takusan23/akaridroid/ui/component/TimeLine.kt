@@ -1,11 +1,13 @@
 package io.github.takusan23.akaridroid.ui.component
 
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -20,24 +22,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
+import io.github.takusan23.akaridroid.ui.component.data.timeRange
 import java.text.SimpleDateFormat
 import java.util.Locale
-
-/** ミリ秒を秒にする */
-private val Long.second: Int
-    get() = (this / 1000).toInt()
 
 /** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
 private val Long.msToWidthDp: Dp
@@ -55,18 +61,20 @@ fun TimeLine(
     modifier: Modifier = Modifier,
     durationMs: Long = 30_000,
     itemList: List<TimeLineItemData> = listOf(
-        TimeLineItemData(0, 0, 10_000),
-        TimeLineItemData(0, 10_000, 20_000),
-        TimeLineItemData(1, 1000, 2000),
-        TimeLineItemData(2, 0, 2000),
-        TimeLineItemData(3, 1000, 1500),
-        TimeLineItemData(4, 10_000, 11_000),
-    )
+        TimeLineItemData(laneIndex = 0, startMs = 0, stopMs = 10_000),
+        TimeLineItemData(laneIndex = 0, startMs = 10_000, stopMs = 20_000),
+        TimeLineItemData(laneIndex = 1, startMs = 1000, stopMs = 2000),
+        TimeLineItemData(laneIndex = 2, startMs = 0, stopMs = 2000),
+        TimeLineItemData(laneIndex = 3, startMs = 1000, stopMs = 1500),
+        TimeLineItemData(laneIndex = 4, startMs = 10_000, stopMs = 11_000),
+    ),
+    onClick: (TimeLineItemData) -> Unit = {}
 ) {
+    val sushiItemList = remember { mutableStateOf(itemList) }
     // 一番遅い時間
-    val maxWidth = remember(itemList, durationMs) {
-        maxOf(itemList.maxBy { it.stopMs }.stopMs, durationMs)
-    }
+    val maxWidth = remember(itemList, durationMs) { maxOf(itemList.maxBy { it.stopMs }.stopMs, durationMs) }
+    // レーンコンポーネントの位置と番号
+    val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
 
     Box(
         modifier = modifier
@@ -81,17 +89,46 @@ fun TimeLine(
 
             // 時間を表示するやつ
             TimeLineTopTimeLabel(durationMs = durationMs)
+            Divider()
 
             // タイムラインのアイテム
             // レーンの数だけ
-            itemList
+            sushiItemList
+                .value
                 .groupBy { it.laneIndex }
                 .forEach { (laneIndex, itemList) ->
+
                     TimeLineSushiLane(
-                        modifier = Modifier.height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .onGloballyPositioned {
+                                timeLineLaneIndexRectMap[laneIndex] = it
+                                    .boundsInWindow()
+                                    .roundToIntRect()
+                            },
                         laneIndex = laneIndex,
                         laneItemList = itemList,
-                        onClick = {}
+                        onClick = onClick,
+                        onDragAndDropRequest = { target, start, stop ->
+                            // ドラッグアンドドロップで移動先に移動してよいか
+                            // 移動元、移動先のレーン番号を取得
+                            val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineSushiLane false
+                            val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineSushiLane false
+
+                            // 移動先のレーンに空きがあること
+                            val isAcceptable = sushiItemList.value
+                                .filter { it.laneIndex == toLaneIndex }
+                                .any { laneItem -> target.startMs !in laneItem.timeRange && target.stopMs !in laneItem.timeRange }
+
+                            if (isAcceptable) {
+                                // データ変更
+                                sushiItemList.value = sushiItemList.value.filter { it.id != target.id } + target.copy(laneIndex = toLaneIndex)
+                            }
+
+                            // 受け入れられることを伝える
+                            isAcceptable
+                        }
                     )
                     Divider()
                 }
@@ -108,6 +145,7 @@ fun TimeLine(
  * @param modifier [Modifier]
  * @param laneIndex レーン番号
  * @param laneItemList タイムラインに表示するアイテム[TimeLineItemData]
+ * @param onDragAndDropRequest [TimeLineSushiItem]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
  * @param onClick 押したときに呼ばれる
  */
 @Composable
@@ -115,6 +153,7 @@ private fun TimeLineSushiLane(
     modifier: Modifier = Modifier,
     laneItemList: List<TimeLineItemData>,
     laneIndex: Int,
+    onDragAndDropRequest: (target: TimeLineItemData, start: IntRect, stop: IntRect) -> Boolean = { _, _, _ -> false },
     onClick: (TimeLineItemData) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -124,14 +163,15 @@ private fun TimeLineSushiLane(
             modifier = Modifier
                 .padding(start = 10.dp)
                 .alpha(0.5f)
-                .align(Alignment.Center),
+                .align(Alignment.CenterStart),
             fontSize = 20.sp,
             color = MaterialTheme.colorScheme.primary
         )
 
         laneItemList.forEach { timeLineItemData ->
-            TimeLineItem(
+            TimeLineSushiItem(
                 timeLineItemData = timeLineItemData,
+                onDragAndDropRequest = onDragAndDropRequest,
                 onClick = { onClick(timeLineItemData) }
             )
         }
@@ -140,16 +180,63 @@ private fun TimeLineSushiLane(
 
 /** タイムラインに表示するアイテム */
 @Composable
-private fun TimeLineItem(
+private fun TimeLineSushiItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineItemData,
+    onDragAndDropRequest: (target: TimeLineItemData, start: IntRect, stop: IntRect) -> Boolean = { _, _, _ -> false },
     onClick: () -> Unit
 ) {
+    // アイテムの移動に必要
+    val isDragging = remember { mutableStateOf(false) }
+    val latestGlobalRect = remember { mutableStateOf<IntRect?>(null) }
+    val draggingOffset = remember { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
+
     Surface(
         modifier = modifier
-            .offset { IntOffset(timeLineItemData.startMs.msToWidth, 0) }
+            .offset {
+                if (isDragging.value) {
+                    draggingOffset.value
+                } else {
+                    IntOffset(timeLineItemData.startMs.msToWidth, 0)
+                }
+            }
             .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidthDp)
-            .fillMaxHeight(),
+            .fillMaxHeight()
+            .onGloballyPositioned {
+                latestGlobalRect.value = it
+                    .boundsInWindow()
+                    .roundToIntRect()
+            }
+            .pointerInput(Unit) {
+                var startRect: IntRect? = null
+
+                detectDragGestures(
+                    onDragStart = {
+                        isDragging.value = true
+                        startRect = latestGlobalRect.value
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        draggingOffset.value = IntOffset(
+                            x = (draggingOffset.value.x + dragAmount.x).toInt(),
+                            y = (draggingOffset.value.y + dragAmount.y).toInt()
+                        )
+                    },
+                    onDragEnd = {
+                        isDragging.value = false
+                        // 移動できるか判定を上のコンポーネントでやる
+                        val isAccept = onDragAndDropRequest(
+                            timeLineItemData,
+                            startRect ?: return@detectDragGestures,
+                            latestGlobalRect.value ?: return@detectDragGestures
+                        )
+                        // 出来ない場合は戻す
+                        if (!isAccept) {
+                            draggingOffset.value = IntOffset(timeLineItemData.startMs.msToWidth, 0)
+                        }
+                    }
+                )
+            },
         shape = RoundedCornerShape(5.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         onClick = onClick
