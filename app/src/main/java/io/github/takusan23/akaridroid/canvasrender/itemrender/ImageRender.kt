@@ -24,6 +24,9 @@ class ImageRender(
     override val displayTime: RenderData.DisplayTime
         get() = image.displayTime
 
+    override val layerIndex: Int
+        get() = image.layerIndex
+
     override suspend fun prepare() = withContext(Dispatchers.IO) {
         val request = Glide
             .with(context)

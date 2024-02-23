@@ -45,14 +45,18 @@ data class RenderData(
         /** 描画する位置 */
         val position: Position
 
+        /** レイヤー。数字が大きいほど上に来る */
+        val layerIndex: Int
+
         /** テキスト */
         @Serializable
         data class Text(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
             override val displayTime: DisplayTime,
+            override val layerIndex: Int,
             val text: String,
-            val textSize: Float = 24f,
+            val textSize: Float = 50f,
             val fontColor: String = "#ffffff"
         ) : CanvasItem
 
@@ -62,6 +66,7 @@ data class RenderData(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
             override val displayTime: DisplayTime,
+            override val layerIndex: Int,
             val filePath: FilePath,
             // TODO テスト都合で nullable になっている、アプリ側は UriTool で取り出すようになってる
             val size: Size? = null
@@ -73,6 +78,7 @@ data class RenderData(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
             override val displayTime: DisplayTime,
+            override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size? = null,
             val cropTime: TimeCrop? = null,

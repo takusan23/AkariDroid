@@ -73,13 +73,16 @@ class CanvasRender(private val context: Context) {
             }
         }.joinAll()
         // 描画する
-        displayPositionItemList.forEach { itemRender ->
-            itemRender.draw(
-                canvas = canvas,
-                durationMs = durationMs,
-                currentPositionMs = currentPositionMs
-            )
-        }
+        // レイヤー順に
+        displayPositionItemList
+            .sortedBy { it.layerIndex }
+            .forEach { itemRender ->
+                itemRender.draw(
+                    canvas = canvas,
+                    durationMs = durationMs,
+                    currentPositionMs = currentPositionMs
+                )
+            }
     }
 
     /** 破棄する */

@@ -43,7 +43,6 @@ import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineDragAndDropData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
 import io.github.takusan23.akaridroid.ui.component.data.durationMs
-import io.github.takusan23.akaridroid.ui.component.data.timeRange
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -70,19 +69,19 @@ fun TimeLine(
     modifier: Modifier = Modifier,
     durationMs: Long = 30_000,
     itemList: List<TimeLineItemData> = listOf(
-        TimeLineItemData(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000),
-        TimeLineItemData(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000),
-        TimeLineItemData(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000),
-        TimeLineItemData(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000),
-        TimeLineItemData(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500),
-        TimeLineItemData(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000),
+        TimeLineItemData(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+        TimeLineItemData(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+        TimeLineItemData(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+        TimeLineItemData(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+        TimeLineItemData(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+        TimeLineItemData(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
     ),
     maxLaneCount: Int = 5,
+    onDragAndDropRequest: (afterTarget: TimeLineItemData, fromLane: Int, toLane: Int) -> Boolean,
     onClick: (TimeLineItemData) -> Unit = {}
 ) {
-    val sushiItemList = remember { mutableStateOf(itemList) }
     // 一番遅い時間
-    val maxWidth = remember(itemList, durationMs) { maxOf(itemList.maxBy { it.stopMs }.stopMs, durationMs) }
+    val maxWidth = remember(itemList, durationMs) { maxOf(itemList.maxOfOrNull { it.stopMs } ?: 0, durationMs) }
     // レーンコンポーネントの位置と番号
     val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
 
@@ -104,7 +103,7 @@ fun TimeLine(
             // タイムラインのアイテム
             // レーンの数だけ
             (0 until maxLaneCount)
-                .map { laneIndex -> laneIndex to sushiItemList.value.filter { it.laneIndex == laneIndex } }
+                .map { laneIndex -> laneIndex to itemList.filter { it.laneIndex == laneIndex } }
                 .forEach { (laneIndex, itemList) ->
                     TimeLineSushiLane(
                         modifier = Modifier
@@ -134,28 +133,8 @@ fun TimeLine(
                                 stopMs = stopMsInDroppedPos + it.target.durationMs
                             )
 
-                            // 移動先のレーンに空きがあること
-                            // 同一レーンの移動の場合は自分自身も消す（時間調整できなくなる）
-                            val isAcceptable = sushiItemList.value
-                                .filter { laneItem -> laneItem.laneIndex == afterTarget.laneIndex }
-                                .filter { laneItem -> laneItem.id != afterTarget.id }
-                                .all { laneItem ->
-                                    // 空きがあること
-                                    val hasFreeSpace = afterTarget.startMs !in laneItem.timeRange && afterTarget.stopMs !in laneItem.timeRange
-                                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                                    val hasNotInclude = laneItem.startMs !in afterTarget.timeRange && laneItem.stopMs !in afterTarget.timeRange
-                                    hasFreeSpace && hasNotInclude
-                                }
-
-                            sushiItemList.value = if (isAcceptable) {
-                                // データ変更
-                                sushiItemList.value.filter { lineItem -> lineItem.id != afterTarget.id } + afterTarget
-                            } else {
-                                sushiItemList.value.toList()
-                            }
-
-                            // 受け入れられることを伝える
-                            isAcceptable
+                            // 渡して処理させる
+                            onDragAndDropRequest(afterTarget, fromLaneIndex, toLaneIndex)
                         }
                     )
                     Divider()
@@ -292,11 +271,11 @@ private fun TimeLineSushiItem(
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_outline_audiotrack_24),
+                painter = painterResource(id = timeLineItemData.iconResId),
                 contentDescription = null
             )
             Text(
-                text = "素材 $timeLineItemData",
+                text = timeLineItemData.label,
                 maxLines = 1
             )
         }

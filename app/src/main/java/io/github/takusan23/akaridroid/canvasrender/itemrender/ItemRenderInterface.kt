@@ -9,6 +9,9 @@ interface ItemRenderInterface {
     /** いつ描画すべきか */
     val displayTime: RenderData.DisplayTime
 
+    /** レイヤー。タイムラインのレーン番号です */
+    val layerIndex: Int
+
     /**
      * 用意の際に呼ばれる
      * 別スレッドで呼ばれます

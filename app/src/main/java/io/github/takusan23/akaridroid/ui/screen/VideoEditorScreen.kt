@@ -46,6 +46,8 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsStateWithLifecycle()
     // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
+    // タイムライン
+    val timelineItemDataList = viewModel.timeLineItemDataList.collectAsStateWithLifecycle()
 
     // エンコード中の場合
     if (isEncoding?.value == true) {
@@ -111,23 +113,13 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
             )
 
-            TimeLine()
-
-/*
-            renderData.value.canvasRenderItem.forEach { canvasItem ->
-                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(canvasItem)) }) {
-                    Text(text = canvasItem.toString())
-                }
-                Divider()
-            }
-
-            renderData.value.audioRenderItem.forEach { audioItem ->
-                Surface(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(audioItem)) }) {
-                    Text(text = audioItem.toString())
-                }
-                Divider()
-            }
-*/
+            // タイムライン
+            TimeLine(
+                modifier = Modifier,
+                durationMs = renderData.value.durationMs,
+                itemList = timelineItemDataList.value,
+                onDragAndDropRequest = { afterTarget, fromLane, toLane -> viewModel.resolveDragAndDropRequest(afterTarget, fromLane, toLane) }
+            )
         }
     }
 }

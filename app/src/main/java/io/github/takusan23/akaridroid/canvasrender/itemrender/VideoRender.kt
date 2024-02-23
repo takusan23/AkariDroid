@@ -30,6 +30,9 @@ class VideoRender(
     override val displayTime: RenderData.DisplayTime
         get() = video.displayTime
 
+    override val layerIndex: Int
+        get() = video.layerIndex
+
     override suspend fun prepare() = withContext(Dispatchers.IO) {
         videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
             // Uri と File で分岐

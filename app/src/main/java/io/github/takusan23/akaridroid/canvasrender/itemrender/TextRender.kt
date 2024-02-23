@@ -16,6 +16,9 @@ class TextRender(
     override val displayTime: RenderData.DisplayTime
         get() = text.displayTime
 
+    override val layerIndex: Int
+        get() = text.layerIndex
+
     override suspend fun prepare() {
         // do nothing
     }
