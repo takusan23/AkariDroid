@@ -47,7 +47,8 @@ class VideoEditorPreviewPlayer(
             isPlaying = false,
             currentPositionMs = 0,
             durationMs = 0,
-            isProgressPreviewRender = false
+            isPrepareCompleteAudio = true,
+            isPrepareCompleteCanvas = true
         )
     )
 
@@ -74,9 +75,9 @@ class VideoEditorPreviewPlayer(
     suspend fun setAudioRenderItem(
         audioRenderItemList: List<RenderData.AudioItem> = emptyList()
     ) = withContext(Dispatchers.Default) {
-        _playerStatus.update { it.copy(isProgressPreviewRender = true) }
-        audioRender.setRenderData(audioRenderItemList, _playerStatus.value.durationMs)
-        _playerStatus.update { it.copy(isProgressPreviewRender = false) }
+        setProgress(ProgressType.AUDIO) {
+            audioRender.setRenderData(audioRenderItemList, _playerStatus.value.durationMs)
+        }
     }
 
     /**
@@ -86,7 +87,9 @@ class VideoEditorPreviewPlayer(
     suspend fun setCanvasRenderItem(
         canvasItemList: List<RenderData.CanvasItem> = emptyList(),
     ) = withContext(Dispatchers.Default) {
-        canvasRender.setRenderData(canvasItemList)
+        setProgress(ProgressType.CANVAS) {
+            canvasRender.setRenderData(canvasItemList)
+        }
     }
 
     /** シークする */
@@ -100,8 +103,10 @@ class VideoEditorPreviewPlayer(
     fun playInSingle() {
         playerScope.launch {
             val (_, currentPosition, videoDuration) = _playerStatus.first()
-            bitmapCanvasController.update { canvas ->
-                canvasRender.draw(canvas, videoDuration, currentPosition)
+            setProgress(ProgressType.CANVAS) {
+                bitmapCanvasController.update { canvas ->
+                    canvasRender.draw(canvas, videoDuration, currentPosition)
+                }
             }
         }
     }
@@ -169,19 +174,50 @@ class VideoEditorPreviewPlayer(
     }
 
     /**
+     * [PlayerStatus.isPrepareCompleteAudio]や[PlayerStatus.isPrepareCompleteCanvas]のフラグを書き換える
+     * [task]ブロックを抜けたら自動で false になります。
+     */
+    private inline fun setProgress(type: ProgressType, task: () -> Unit) {
+        _playerStatus.update {
+            when (type) {
+                ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = false)
+                ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = false)
+            }
+        }
+        task()
+        _playerStatus.update {
+            when (type) {
+                ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = true)
+                ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = true)
+            }
+        }
+    }
+
+    /**
      * プレイヤーの状態
      *
      * @param isPlaying 再生中かどうか
      * @param currentPositionMs 再生位置
      * @param durationMs 動画の時間
-     * @param isProgressPreviewRender [VideoEditorPreviewPlayer]の準備中は true になる。この間は再生できない
+     * @param isPrepareCompleteAudio 音声プレビューが利用できる場合は true。準備中の場合は false
+     * @param isPrepareCompleteCanvas 映像（キャンバス）プレビューが利用できる場合は true。準備中の場合は false
      */
     data class PlayerStatus(
         val isPlaying: Boolean,
         val currentPositionMs: Long,
         val durationMs: Long,
-        val isProgressPreviewRender: Boolean,
+        val isPrepareCompleteAudio: Boolean,
+        val isPrepareCompleteCanvas: Boolean
     )
+
+    /** [setProgress]に渡す引数 */
+    enum class ProgressType {
+        /** [PlayerStatus.isPrepareCompleteAudio] */
+        AUDIO,
+
+        /** [PlayerStatus.isPrepareCompleteCanvas] */
+        CANVAS
+    }
 
     companion object {
         // TODO この3つのあたい、AudioRender の static のがよくない？

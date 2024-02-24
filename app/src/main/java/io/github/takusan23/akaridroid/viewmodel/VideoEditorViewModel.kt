@@ -170,6 +170,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 追加できそうなレーン番号を出す
         fun calcLayerIndex(displayTime: RenderData.DisplayTime) = _timeLineItemDataList.value.calcInsertableLaneIndex(displayTime)
+
         val openEditItem = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> {
@@ -355,7 +356,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      */
     private fun List<TimeLineItemData>.calcInsertableLaneIndex(
         displayTime: RenderData.DisplayTime
-    ): Int = this
+    ): Int = this // TODO まず最低レーン分確保する
         .firstOrNull { laneItem ->
             // 空きがあること
             val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
