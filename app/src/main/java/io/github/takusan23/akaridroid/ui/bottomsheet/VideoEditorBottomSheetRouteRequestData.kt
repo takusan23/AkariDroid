@@ -12,4 +12,10 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      */
     data class OpenEditor(val renderItem: RenderData.RenderItem) : VideoEditorBottomSheetRouteRequestData
 
+    /**
+     * 動画情報の編集画面を開く
+     *
+     * @param renderData [RenderData]
+     */
+    data class OpenVideoInfo(val renderData: RenderData) : VideoEditorBottomSheetRouteRequestData
 }

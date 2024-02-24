@@ -42,3 +42,32 @@ fun BottomSheetHeader(
         }
     }
 }
+
+/**
+ * ボトムシートの共通しているヘッダー
+ * 削除無し
+ *
+ * @param modifier [Modifier]
+ * @param title タイトル
+ * @param onComplete 完了を押したとき
+ */
+@Composable
+fun BottomSheetHeader(
+    modifier: Modifier = Modifier,
+    title: String,
+    onComplete: () -> Unit
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = title,
+            fontSize = 24.sp
+        )
+        Button(onClick = onComplete) {
+            Text(text = "完了")
+        }
+    }
+}

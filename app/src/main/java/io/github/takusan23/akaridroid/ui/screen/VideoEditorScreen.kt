@@ -77,6 +77,9 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                         renderData = renderData.value,
                         projectFolder = viewModel.projectFolder
                     )
+                },
+                onVideoInfoClick = {
+                    viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))
                 }
             )
         }

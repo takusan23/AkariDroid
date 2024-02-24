@@ -17,6 +17,9 @@ sealed interface VideoEditorBottomSheetRouteResultData {
     /** 画像素材の更新 */
     data class ImageUpdate(val image: RenderData.CanvasItem.Image) : VideoEditorBottomSheetRouteResultData
 
+    /** 動画情報の更新 */
+    data class VideoInfoUpdate(val renderData: RenderData) : VideoEditorBottomSheetRouteResultData
+
     /** キャンバス要素や音声要素の削除 */
     data class DeleteRenderItem(val renderItem: RenderData.RenderItem) : VideoEditorBottomSheetRouteResultData
 

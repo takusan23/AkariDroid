@@ -54,6 +54,12 @@ fun VideoEditorBottomSheetRouter(
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
             }
+
+            // 動画情報編集画面
+            is VideoEditorBottomSheetRouteRequestData.OpenVideoInfo -> VideoInfoEditorBottomSheet(
+                renderData = videoEditorBottomSheetRouteRequestData.renderData,
+                onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.VideoInfoUpdate(it)) }
+            )
         }
     }
 }

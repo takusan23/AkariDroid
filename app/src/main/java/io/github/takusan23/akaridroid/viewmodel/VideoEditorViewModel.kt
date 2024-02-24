@@ -159,6 +159,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is VideoEditorBottomSheetRouteResultData.VideoUpdate -> addOrUpdateCanvasRenderItem(routeResultData.video)
             is VideoEditorBottomSheetRouteResultData.AudioUpdate -> addOrUpdateAudioRenderItem(routeResultData.audio)
             is VideoEditorBottomSheetRouteResultData.ImageUpdate -> addOrUpdateCanvasRenderItem(routeResultData.image)
+            is VideoEditorBottomSheetRouteResultData.VideoInfoUpdate -> _renderData.update { routeResultData.renderData }
         }
     }
 
