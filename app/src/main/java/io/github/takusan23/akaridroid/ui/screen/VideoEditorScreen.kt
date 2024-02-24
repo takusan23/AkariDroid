@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
+import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
@@ -118,7 +119,12 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 modifier = Modifier,
                 durationMs = renderData.value.durationMs,
                 itemList = timelineItemDataList.value,
-                onDragAndDropRequest = { afterTarget, fromLane, toLane -> viewModel.resolveDragAndDropRequest(afterTarget, fromLane, toLane) }
+                onDragAndDropRequest = { afterTarget, fromLane, toLane -> viewModel.resolveDragAndDropRequest(afterTarget, fromLane, toLane) },
+                onClick = { timeLineItem ->
+                    viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                        viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
+                    }
+                }
             )
         }
     }

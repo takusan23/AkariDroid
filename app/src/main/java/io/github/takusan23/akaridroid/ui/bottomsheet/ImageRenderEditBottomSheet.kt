@@ -61,7 +61,6 @@ fun ImageRenderEditBottomSheet(
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
         )
 
-        // TODO Uri からサイズを取り出していれる機能
         RenderItemSizeEditComponent(
             size = imageItem.value.size,
             onUpdate = { size -> update { it.copy(size = size) } }

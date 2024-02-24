@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.RenderData.RenderItem
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
@@ -169,88 +170,77 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 追加できそうなレーン番号を出す
         fun calcLayerIndex(displayTime: RenderData.DisplayTime) = _timeLineItemDataList.value.calcInsertableLaneIndex(displayTime)
-
-        val addRenderItemList = when (addItem) {
+        val openEditItem = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> {
                 val displayTime = RenderData.DisplayTime(0, 10_000)
-                listOf(
-                    RenderData.CanvasItem.Text(
-                        text = "",
-                        displayTime = displayTime,
-                        position = RenderData.Position(0f, 0f),
-                        layerIndex = calcLayerIndex(displayTime)
-                    )
+                val text = RenderData.CanvasItem.Text(
+                    text = "",
+                    displayTime = displayTime,
+                    position = RenderData.Position(0f, 0f),
+                    layerIndex = calcLayerIndex(displayTime)
                 )
+                addOrUpdateCanvasRenderItem(text)
+                text
             }
             // 画像
             is VideoEditorBottomBarAddItem.Image -> {
                 val size = UriTool.analyzeImage(context, addItem.uri)?.size ?: return@launch
                 val displayTime = RenderData.DisplayTime(0, 10_000)
-                listOf(
-                    RenderData.CanvasItem.Image(
-                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = displayTime,
-                        position = RenderData.Position(0f, 0f),
-                        size = RenderData.Size(size.width, size.height),
-                        layerIndex = calcLayerIndex(displayTime)
-                    )
+                val image = RenderData.CanvasItem.Image(
+                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                    displayTime = displayTime,
+                    position = RenderData.Position(0f, 0f),
+                    size = RenderData.Size(size.width, size.height),
+                    layerIndex = calcLayerIndex(displayTime)
                 )
+                addOrUpdateCanvasRenderItem(image)
+                image
             }
             // 音声
             is VideoEditorBottomBarAddItem.Audio -> {
                 val durationMs = UriTool.analyzeAudio(context, addItem.uri)?.durationMs ?: return@launch
                 val displayTime = RenderData.DisplayTime(0, durationMs)
-                listOf(
-                    RenderData.AudioItem.Audio(
-                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = displayTime,
-                        layerIndex = calcLayerIndex(displayTime)
-                    )
+                val audio = RenderData.AudioItem.Audio(
+                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                    displayTime = displayTime,
+                    layerIndex = calcLayerIndex(displayTime)
                 )
+                addOrUpdateAudioRenderItem(audio)
+                audio
             }
             // 動画
             is VideoEditorBottomBarAddItem.Video -> {
                 val analyzeVideo = UriTool.analyzeVideo(context, addItem.uri) ?: return@launch
                 val durationMs = analyzeVideo.durationMs
                 val displayTime = RenderData.DisplayTime(0, durationMs)
-                listOf(
-                    RenderData.CanvasItem.Video(
+
+                // 映像トラックを追加
+                val videoTrack = RenderData.CanvasItem.Video(
+                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
+                    displayTime = displayTime,
+                    position = RenderData.Position(0f, 0f),
+                    size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
+                    layerIndex = calcLayerIndex(displayTime)
+                )
+                addOrUpdateCanvasRenderItem(videoTrack)
+
+                // 音声トラックもあれば追加
+                if (analyzeVideo.hasAudioTrack) {
+                    val audioTrack = RenderData.AudioItem.Audio(
+                        id = System.currentTimeMillis() + 10,
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = displayTime,
-                        position = RenderData.Position(0f, 0f),
-                        size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
+                        displayTime = RenderData.DisplayTime(0, durationMs),
                         layerIndex = calcLayerIndex(displayTime)
                     )
-                ) + if (analyzeVideo.hasAudioTrack) {
-                    listOf(
-                        RenderData.AudioItem.Audio(
-                            id = System.currentTimeMillis() + 10,
-                            filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                            displayTime = RenderData.DisplayTime(0, durationMs),
-                            layerIndex = calcLayerIndex(displayTime)
-                        )
-                    )
-                } else {
-                    emptyList()
+                    addOrUpdateAudioRenderItem(audioTrack)
                 }
+                videoTrack
             }
         }
 
-        // 追加する
-        addRenderItemList
-            .filterIsInstance<RenderData.AudioItem>()
-            .forEach { addOrUpdateAudioRenderItem(it) }
-        addRenderItemList
-            .filterIsInstance<RenderData.CanvasItem>()
-            .forEach { addOrUpdateCanvasRenderItem(it) }
-
         // 編集画面を開く
-        openBottomSheet(
-            VideoEditorBottomSheetRouteRequestData.OpenEditor(
-                renderItem = addRenderItemList.first()
-            )
-        )
+        openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
     }
 
     /**
@@ -300,6 +290,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         return isAcceptable
     }
+
+    /** [RenderData.RenderItem.id] から [RenderItem] を返す */
+    fun getRenderItem(id: Long): RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
+        .firstOrNull { it.id == id }
 
     /**
      * [RenderData.CanvasItem]を追加する

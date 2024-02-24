@@ -81,7 +81,7 @@ fun TimeLine(
     onClick: (TimeLineItemData) -> Unit = {}
 ) {
     // 一番遅い時間
-    val maxWidth = remember(itemList, durationMs) { maxOf(itemList.maxOfOrNull { it.stopMs } ?: 0, durationMs) }
+    val maxDurationMs = remember(itemList, durationMs) { maxOf(itemList.maxOfOrNull { it.stopMs } ?: 0, durationMs) }
     // レーンコンポーネントの位置と番号
     val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
 
@@ -92,12 +92,12 @@ fun TimeLine(
     ) {
         Column(
             // 画面外にはみ出すので requiredWidth
-            modifier = modifier.requiredWidth(maxWidth.msToWidthDp),
+            modifier = Modifier.requiredWidth(maxDurationMs.msToWidthDp),
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
 
             // 時間を表示するやつ
-            TimeLineTopTimeLabel(durationMs = durationMs)
+            TimeLineTopTimeLabel(durationMs = maxDurationMs)
             Divider()
 
             // タイムラインのアイテム
