@@ -25,6 +25,13 @@ data class RenderData(
 
         /** 時間 */
         val displayTime: DisplayTime
+
+        /**
+         * タイムラインのレーン番号。
+         * [CanvasItem]の場合は重なり順になる。
+         * 音声の場合は重なり順とか関係なく合成されるため、タイムラインの表示のためだけにある。ここに入れるのもなんかあれな気がするけど。
+         */
+        val layerIndex: Int
     }
 
     /** 保存先。ファイルパスか android の Uri */
@@ -44,9 +51,6 @@ data class RenderData(
 
         /** 描画する位置 */
         val position: Position
-
-        /** レイヤー。数字が大きいほど上に来る */
-        val layerIndex: Int
 
         /** テキスト */
         @Serializable
@@ -68,8 +72,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
-            // TODO テスト都合で nullable になっている、アプリ側は UriTool で取り出すようになってる
-            val size: Size? = null
+            val size: Size
         ) : CanvasItem
 
         /** 動画（映像トラック） */
@@ -80,7 +83,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
-            val size: Size? = null,
+            val size: Size,
             val cropTime: TimeCrop? = null,
             val chromaKeyColor: Int? = null
         ) : CanvasItem
@@ -94,6 +97,7 @@ data class RenderData(
         data class Audio(
             override val id: Long = System.currentTimeMillis(),
             override val displayTime: DisplayTime,
+            override val layerIndex: Int,
             val filePath: FilePath,
             val cropTime: TimeCrop? = null,
             val volume: Float = DEFAULT_VOLUME

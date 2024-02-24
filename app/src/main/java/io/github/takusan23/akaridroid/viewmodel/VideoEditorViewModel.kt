@@ -16,6 +16,7 @@ import io.github.takusan23.akaridroid.ui.component.data.timeRange
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -89,8 +90,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 素材が更新されたらタイムラインにも反映
         viewModelScope.launch {
-            _renderData
-                .map { it.canvasRenderItem } // 音声も。ただいい感じに合成した Flow がとれない
+            combine(
+                _renderData.map { it.canvasRenderItem },
+                _renderData.map { it.audioRenderItem }
+            ) { canvas, audio -> canvas + audio }
                 .distinctUntilChanged()
                 .collect { renderItemList ->
                     // 入れる値
@@ -120,17 +123,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     renderItemList
                         .filterIsInstance<RenderData.AudioItem>()
                         .forEach { audioItem ->
-                            // 音声の場合は、レイヤーというか、重ね合わせの順番とか言う概念がないので、
-                            // AudioItem 自体にレイヤー（タイムラインのレーン番号）は無い
-                            // レーン番号がないので解決する
-                            // 既に同じIDでレーン番号を払い出している場合はそれ、なければ入りそうな場所を探す。
-                            val laneIndex =
-                                timeLineItemDataList.value.firstOrNull { audioItem.id == it.id }?.laneIndex
-                                    ?: timeLineItemDataArrayList.calcInsertableLaneIndex(audioItem.displayTime)
-
                             timeLineItemDataArrayList += TimeLineItemData(
                                 id = audioItem.id,
-                                laneIndex = laneIndex,
+                                laneIndex = audioItem.layerIndex,
                                 startMs = audioItem.displayTime.startMs,
                                 stopMs = audioItem.displayTime.stopMs,
                                 label = "音声",
@@ -173,7 +168,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
 
         // 追加できそうなレーン番号を出す
-        fun calcIndex(displayTime: RenderData.DisplayTime) = _timeLineItemDataList.value.calcInsertableLaneIndex(displayTime)
+        fun calcLayerIndex(displayTime: RenderData.DisplayTime) = _timeLineItemDataList.value.calcInsertableLaneIndex(displayTime)
 
         val addRenderItemList = when (addItem) {
             // テキスト
@@ -184,7 +179,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         text = "",
                         displayTime = displayTime,
                         position = RenderData.Position(0f, 0f),
-                        layerIndex = calcIndex(displayTime)
+                        layerIndex = calcLayerIndex(displayTime)
                     )
                 )
             }
@@ -198,7 +193,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         displayTime = displayTime,
                         position = RenderData.Position(0f, 0f),
                         size = RenderData.Size(size.width, size.height),
-                        layerIndex = calcIndex(displayTime)
+                        layerIndex = calcLayerIndex(displayTime)
                     )
                 )
             }
@@ -209,7 +204,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 listOf(
                     RenderData.AudioItem.Audio(
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = displayTime
+                        displayTime = displayTime,
+                        layerIndex = calcLayerIndex(displayTime)
                     )
                 )
             }
@@ -224,14 +220,15 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         displayTime = displayTime,
                         position = RenderData.Position(0f, 0f),
                         size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                        layerIndex = calcIndex(displayTime)
+                        layerIndex = calcLayerIndex(displayTime)
                     )
                 ) + if (analyzeVideo.hasAudioTrack) {
                     listOf(
                         RenderData.AudioItem.Audio(
                             id = System.currentTimeMillis() + 10,
                             filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                            displayTime = RenderData.DisplayTime(0, durationMs)
+                            displayTime = RenderData.DisplayTime(0, durationMs),
+                            layerIndex = calcLayerIndex(displayTime)
                         )
                     )
                 } else {
@@ -296,7 +293,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             val before = _renderData.value.audioRenderItem.first { it.id == afterTarget.id }
             addOrUpdateAudioRenderItem(
                 when (before) {
-                    is RenderData.AudioItem.Audio -> before.copy(displayTime = displayTime)
+                    is RenderData.AudioItem.Audio -> before.copy(displayTime = displayTime, layerIndex = layerIndex)
                 }
             )
         }

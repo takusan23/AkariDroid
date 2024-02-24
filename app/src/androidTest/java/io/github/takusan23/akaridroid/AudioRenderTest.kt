@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
+import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.test.R
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
-import io.github.takusan23.akaridroid.audiorender.AudioRender
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -51,6 +51,7 @@ class AudioRenderTest {
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(0, 10_000),
+                        layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path)
                     )
                 ),
@@ -79,16 +80,19 @@ class AudioRenderTest {
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(0, 3_000),
+                        layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
                     ),
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(3_000, 6_000),
+                        layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.5f
                     ),
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(6_000, 10_000),
+                        layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 1f
                     )
@@ -120,6 +124,7 @@ class AudioRenderTest {
                 audioRenderItem = (0 until 10).map { index ->
                     RenderData.AudioItem.Audio(
                         displayTime = RenderData.DisplayTime(index * 1_000L, 10_000L),
+                        layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
                     )

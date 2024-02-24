@@ -52,6 +52,7 @@ class CanvasRenderTest {
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(100f, 100f),
+                            layerIndex = 0,
                             text = "こんにちは",
                             fontColor = "#ffffff",
                             textSize = 100f
@@ -59,12 +60,14 @@ class CanvasRenderTest {
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(100f, 300f),
+                            layerIndex = 0,
                             text = "あかりどろいど",
                             fontColor = "#ff0000"
                         ),
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(3_000, 5_000),
                             position = RenderData.Position(100f, 700f),
+                            layerIndex = 0,
                             text = "3 ～ 5 の間しかでない文字",
                             fontColor = "#ff0000"
                         )
@@ -93,12 +96,14 @@ class CanvasRenderTest {
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(100f, 100f),
                             filePath = RenderData.FilePath.File(imagePath.path),
+                            layerIndex = 0,
                             size = RenderData.Size(100, 100)
                         ),
                         RenderData.CanvasItem.Image(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(300f, 300f),
                             filePath = RenderData.FilePath.File(imagePath.path),
+                            layerIndex = 0,
                             size = RenderData.Size(300, 300)
                         )
                     )
@@ -128,24 +133,28 @@ class CanvasRenderTest {
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(640f, 0f),
+                            layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(0f, 360f),
+                            layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(640f, 500f),
+                            layerIndex = 0,
                             text = "こんにちは",
                             fontColor = "#ffffff",
                             textSize = 100f
