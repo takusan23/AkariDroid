@@ -6,7 +6,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.RenderData.RenderItem
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
@@ -176,6 +175,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
     fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
 
+        // 真ん中らへんになるように
+        val centerPosition = RenderData.Position(
+            x = (renderData.value.videoSize.width / 2).toFloat(),
+            y = (renderData.value.videoSize.height / 2).toFloat()
+        )
+
         val openEditItem = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> {
@@ -183,7 +188,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 val text = RenderData.CanvasItem.Text(
                     text = "",
                     displayTime = displayTime,
-                    position = RenderData.Position(0f, 0f),
+                    position = centerPosition,
                     layerIndex = calcInsertableLaneIndex(displayTime)
                 )
                 addOrUpdateCanvasRenderItem(text)
@@ -196,7 +201,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 val image = RenderData.CanvasItem.Image(
                     filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                     displayTime = displayTime,
-                    position = RenderData.Position(0f, 0f),
+                    position = centerPosition,
                     size = RenderData.Size(size.width, size.height),
                     layerIndex = calcInsertableLaneIndex(displayTime)
                 )
@@ -225,7 +230,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 val videoTrack = RenderData.CanvasItem.Video(
                     filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                     displayTime = displayTime,
-                    position = RenderData.Position(0f, 0f),
+                    position = centerPosition,
                     size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
                     layerIndex = calcInsertableLaneIndex(displayTime)
                 )
@@ -252,7 +257,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /**
      * タイムラインの並び替え（ドラッグアンドドロップ）リクエストをさばく
      *
-     * @param request [io.github.takusan23.akaridroid.ui.component.TimeLineKt]からドラッグアンドドロップが終わると呼ばれる
+     * @param request [io.github.takusan23.akaridroid.ui.component.TimeLine]からドラッグアンドドロップが終わると呼ばれる
      * @return true でドラッグアンドドロップを受け入れたことになる。
      */
     fun resolveDragAndDropRequest(request: TimeLineData.DragAndDropRequest): Boolean {
@@ -265,7 +270,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         )
 
         // 移動先のレーンに空きがあること
-        val isAcceptable = _timeLineData.value!!
+        val isAcceptable = _timeLineData.value
             // すべてのレーンを取得したあと、指定レーンだけ取り出す
             .groupByLane()
             .first { (laneIndex, _) -> laneIndex == request.dragAndDroppedLaneIndex }
@@ -317,8 +322,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         return isAcceptable
     }
 
-    /** [RenderData.RenderItem.id] から [RenderItem] を返す */
-    fun getRenderItem(id: Long): RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
+    /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */
+    fun getRenderItem(id: Long): RenderData.RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
         .firstOrNull { it.id == id }
 
     /**
@@ -383,8 +388,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     private fun calcInsertableLaneIndex(displayTime: RenderData.DisplayTime): Int =
         _timeLineData.value
             // すべてのレーンから、空いているレーンを探す
-            ?.groupByLane()
-            ?.firstOrNull { (_, itemList) ->
+            .groupByLane()
+            .firstOrNull { (_, itemList) ->
                 itemList.all { laneItem ->
                     // 空きがあること
                     val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
@@ -393,7 +398,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     hasFreeSpace && hasNotInclude
                 }
             }?.first
-            ?: _timeLineData.value?.groupByLane()?.maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+            ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
             ?: 0 // どうしようもない
 
     companion object {

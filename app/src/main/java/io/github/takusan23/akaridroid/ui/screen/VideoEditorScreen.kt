@@ -60,7 +60,10 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     if (bottomSheetRouteData.value != null) {
         VideoEditorBottomSheetRouter(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
-            onResult = { routeResultData -> viewModel.resolveBottomSheetResult(routeResultData) },
+            onResult = { routeResultData ->
+                viewModel.resolveBottomSheetResult(routeResultData)
+                viewModel.closeBottomSheet()
+            },
             onClose = { viewModel.closeBottomSheet() }
         )
     }
@@ -118,20 +121,18 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
             )
 
             // タイムライン
-            if (timeLineData.value != null) {
-                TimeLine(
-                    modifier = Modifier,
-                    timeLineData = timeLineData.value!!,
-                    onDragAndDropRequest = { request ->
-                        viewModel.resolveDragAndDropRequest(request)
-                    },
-                    onClick = { timeLineItem ->
-                        viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                            viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
-                        }
+            TimeLine(
+                modifier = Modifier,
+                timeLineData = timeLineData.value,
+                onDragAndDropRequest = { request ->
+                    viewModel.resolveDragAndDropRequest(request)
+                },
+                onClick = { timeLineItem ->
+                    viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                        viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
                     }
-                )
-            }
+                }
+            )
         }
     }
 }
