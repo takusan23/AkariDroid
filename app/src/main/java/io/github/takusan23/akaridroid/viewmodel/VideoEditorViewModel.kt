@@ -12,8 +12,8 @@ import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
-import io.github.takusan23.akaridroid.ui.component.data.TimeLineItemData
-import io.github.takusan23.akaridroid.ui.component.data.timeRange
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
+import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -37,7 +37,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         )
     )
     private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
-    private val _timeLineItemDataList = MutableStateFlow<List<TimeLineItemData>>(emptyList())
+    private val _timeLineData = MutableStateFlow(
+        TimeLineData(
+            durationMs = _renderData.value.durationMs,
+            laneCount = 5,
+            itemList = emptyList()
+        )
+    )
 
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
     val projectFolder = context.getExternalFilesDir(null)!!.resolve(PROJECT_FOLDER_NAME).apply { mkdir() }
@@ -55,7 +61,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     val bottomSheetRouteData = _bottomSheetRouteData.asStateFlow()
 
     /** タイムラインに表示するデータ。[RenderData]と同期する */
-    val timeLineItemDataList = _timeLineItemDataList.asStateFlow()
+    val timeLineData = _timeLineData.asStateFlow()
 
     init {
         // 動画の情報が更新されたら
@@ -66,6 +72,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .distinctUntilChanged()
                 .collect { (videoSize, durationMs) ->
                     videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs)
+                    _timeLineData.update { it.copy(durationMs = durationMs) }
                 }
         }
 
@@ -98,12 +105,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .distinctUntilChanged()
                 .collect { renderItemList ->
                     // 入れる値
-                    val timeLineItemDataArrayList = arrayListOf<TimeLineItemData>()
+                    val timeLineItemDataArrayList = arrayListOf<TimeLineData.Item>()
                     // キャンバス
                     renderItemList
                         .filterIsInstance<RenderData.CanvasItem>()
                         .forEach { renderItem ->
-                            timeLineItemDataArrayList += TimeLineItemData(
+                            timeLineItemDataArrayList += TimeLineData.Item(
                                 id = renderItem.id,
                                 laneIndex = renderItem.layerIndex,
                                 startMs = renderItem.displayTime.startMs,
@@ -124,7 +131,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     renderItemList
                         .filterIsInstance<RenderData.AudioItem>()
                         .forEach { audioItem ->
-                            timeLineItemDataArrayList += TimeLineItemData(
+                            timeLineItemDataArrayList += TimeLineData.Item(
                                 id = audioItem.id,
                                 laneIndex = audioItem.layerIndex,
                                 startMs = audioItem.displayTime.startMs,
@@ -134,7 +141,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                             )
                         }
                     // 入れる
-                    _timeLineItemDataList.value = timeLineItemDataArrayList
+                    _timeLineData.update { it.copy(itemList = timeLineItemDataArrayList) }
                 }
         }
     }
@@ -168,9 +175,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
     fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
 
-        // 追加できそうなレーン番号を出す
-        fun calcLayerIndex(displayTime: RenderData.DisplayTime) = _timeLineItemDataList.value.calcInsertableLaneIndex(displayTime)
-
         val openEditItem = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> {
@@ -179,7 +183,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     text = "",
                     displayTime = displayTime,
                     position = RenderData.Position(0f, 0f),
-                    layerIndex = calcLayerIndex(displayTime)
+                    layerIndex = calcInsertableLaneIndex(displayTime)
                 )
                 addOrUpdateCanvasRenderItem(text)
                 text
@@ -193,7 +197,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     displayTime = displayTime,
                     position = RenderData.Position(0f, 0f),
                     size = RenderData.Size(size.width, size.height),
-                    layerIndex = calcLayerIndex(displayTime)
+                    layerIndex = calcInsertableLaneIndex(displayTime)
                 )
                 addOrUpdateCanvasRenderItem(image)
                 image
@@ -205,7 +209,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 val audio = RenderData.AudioItem.Audio(
                     filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                     displayTime = displayTime,
-                    layerIndex = calcLayerIndex(displayTime)
+                    layerIndex = calcInsertableLaneIndex(displayTime)
                 )
                 addOrUpdateAudioRenderItem(audio)
                 audio
@@ -222,7 +226,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     displayTime = displayTime,
                     position = RenderData.Position(0f, 0f),
                     size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                    layerIndex = calcLayerIndex(displayTime)
+                    layerIndex = calcInsertableLaneIndex(displayTime)
                 )
                 addOrUpdateCanvasRenderItem(videoTrack)
 
@@ -232,7 +236,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         id = System.currentTimeMillis() + 10,
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                         displayTime = RenderData.DisplayTime(0, durationMs),
-                        layerIndex = calcLayerIndex(displayTime)
+                        layerIndex = calcInsertableLaneIndex(displayTime)
                     )
                     addOrUpdateAudioRenderItem(audioTrack)
                 }
@@ -247,45 +251,65 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /**
      * タイムラインの並び替え（ドラッグアンドドロップ）リクエストをさばく
      *
-     * @param afterTarget 移動先の位置になっている[TimeLineItemData]。TODO これ全部はいらないから startMs / stopMs / id だけ貰えばいいはず
-     * @param fromLane 移動元レーン番号
-     * @param toLine 移動先レーン番号
+     * @param request [io.github.takusan23.akaridroid.ui.component.TimeLineKt]からドラッグアンドドロップが終わると呼ばれる
      * @return true でドラッグアンドドロップを受け入れたことになる。
      */
-    fun resolveDragAndDropRequest(afterTarget: TimeLineItemData, fromLane: Int, toLine: Int): Boolean {
+    fun resolveDragAndDropRequest(request: TimeLineData.DragAndDropRequest): Boolean {
+        // ドラッグアンドドロップ対象の RenderItem を取る
+        val renderItem = getRenderItem(request.id)!!
+        // ドラッグアンドドロップ移動先に合った DisplayTime を作る
+        val dragAndDroppedDisplayTime = RenderData.DisplayTime(
+            startMs = request.dragAndDroppedStartMs,
+            stopMs = request.dragAndDroppedStartMs + renderItem.displayTime.durationMs
+        )
+
         // 移動先のレーンに空きがあること
-        // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
-        val isAcceptable = _timeLineItemDataList.value
-            .filter { laneItem -> laneItem.laneIndex == toLine }
-            .filter { laneItem -> laneItem.id != afterTarget.id }
+        val isAcceptable = _timeLineData.value!!
+            // すべてのレーンを取得したあと、指定レーンだけ取り出す
+            .groupByLane()
+            .first { (laneIndex, _) -> laneIndex == request.dragAndDroppedLaneIndex }
+            .second
+            // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
+            .filter { laneItem -> laneItem.id != request.id }
+            // 判定を行う
             .all { laneItem ->
                 // 空きがあること
-                val hasFreeSpace = afterTarget.startMs !in laneItem.timeRange && afterTarget.stopMs !in laneItem.timeRange
+                val hasFreeSpace = dragAndDroppedDisplayTime.startMs !in laneItem.timeRange && dragAndDroppedDisplayTime.stopMs !in laneItem.timeRange
                 // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                val hasNotInclude = laneItem.startMs !in afterTarget.timeRange && laneItem.stopMs !in afterTarget.timeRange
+                val hasNotInclude = laneItem.startMs !in dragAndDroppedDisplayTime && laneItem.stopMs !in dragAndDroppedDisplayTime
                 hasFreeSpace && hasNotInclude
             }
 
         // RenderData を更新する
         // タイムラインも RenderData の Flow から再構築される
-        val displayTime = RenderData.DisplayTime(afterTarget.startMs, afterTarget.stopMs)
-        val layerIndex = afterTarget.laneIndex
-        val isCanvas = _renderData.value.canvasRenderItem.any { it.id == afterTarget.id }
-        if (isCanvas) {
-            val before = _renderData.value.canvasRenderItem.first { it.id == afterTarget.id }
-            addOrUpdateCanvasRenderItem(
-                when (before) {
-                    is RenderData.CanvasItem.Image -> before.copy(displayTime = displayTime, layerIndex = layerIndex)
-                    is RenderData.CanvasItem.Text -> before.copy(displayTime = displayTime, layerIndex = layerIndex)
-                    is RenderData.CanvasItem.Video -> before.copy(displayTime = displayTime, layerIndex = layerIndex)
-                }
+        val layerIndex = request.dragAndDroppedLaneIndex
+        when (renderItem) {
+            is RenderData.AudioItem.Audio -> addOrUpdateAudioRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
             )
-        } else {
-            val before = _renderData.value.audioRenderItem.first { it.id == afterTarget.id }
-            addOrUpdateAudioRenderItem(
-                when (before) {
-                    is RenderData.AudioItem.Audio -> before.copy(displayTime = displayTime, layerIndex = layerIndex)
-                }
+
+            is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
+            )
+
+            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
+            )
+
+            is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
             )
         }
 
@@ -349,23 +373,27 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /**
-     * [TimeLineItemData]を追加する際に、位置[RenderData.DisplayTime]に被らないレーン番号を取得する
+     * [TimeLineData.Item]を追加する際に、位置[RenderData.DisplayTime]に被らないレーン番号を取得する。
+     * 素材追加時にどのレーンに入れればいいかを判定する
      *
      * @param displayTime 追加したい時間（開始、終了位置）
      * @return 入れられるレーン番号。なければ今ある最大のレーン番号 + 1 を返す。レーンがない場合は 0 を返す。
      */
-    private fun List<TimeLineItemData>.calcInsertableLaneIndex(
-        displayTime: RenderData.DisplayTime
-    ): Int = this // TODO まず最低レーン分確保する
-        .firstOrNull { laneItem ->
-            // 空きがあること
-            val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
-            // 移動先に重なる形で自分より小さいアイテムが居ないこと
-            val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
-            hasFreeSpace && hasNotInclude
-        }?.laneIndex
-        ?: this.maxOfOrNull { it.laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-        ?: 0 // どうしようもない
+    private fun calcInsertableLaneIndex(displayTime: RenderData.DisplayTime): Int =
+        _timeLineData.value
+            // すべてのレーンから、空いているレーンを探す
+            ?.groupByLane()
+            ?.firstOrNull { (_, itemList) ->
+                itemList.all { laneItem ->
+                    // 空きがあること
+                    val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
+                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                    val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
+                    hasFreeSpace && hasNotInclude
+                }
+            }?.first
+            ?: _timeLineData.value?.groupByLane()?.maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+            ?: 0 // どうしようもない
 
     companion object {
         /** プロジェクト保存先、複数プロジェクトが出来るようになればこの辺も分ける */

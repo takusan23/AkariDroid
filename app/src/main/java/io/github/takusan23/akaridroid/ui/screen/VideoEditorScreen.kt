@@ -48,7 +48,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
     // タイムライン
-    val timelineItemDataList = viewModel.timeLineItemDataList.collectAsStateWithLifecycle()
+    val timeLineData = viewModel.timeLineData.collectAsStateWithLifecycle()
 
     // エンコード中の場合
     if (isEncoding?.value == true) {
@@ -115,17 +115,20 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
             )
 
             // タイムライン
-            TimeLine(
-                modifier = Modifier,
-                durationMs = renderData.value.durationMs,
-                itemList = timelineItemDataList.value,
-                onDragAndDropRequest = { afterTarget, fromLane, toLane -> viewModel.resolveDragAndDropRequest(afterTarget, fromLane, toLane) },
-                onClick = { timeLineItem ->
-                    viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                        viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
+            if (timeLineData.value != null) {
+                TimeLine(
+                    modifier = Modifier,
+                    timeLineData = timeLineData.value!!,
+                    onDragAndDropRequest = { request ->
+                        viewModel.resolveDragAndDropRequest(request)
+                    },
+                    onClick = { timeLineItem ->
+                        viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                            viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }

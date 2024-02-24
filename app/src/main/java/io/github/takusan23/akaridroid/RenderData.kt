@@ -151,6 +151,10 @@ data class RenderData(
             get() = startMs
         override val endInclusive: Long
             get() = stopMs
+
+        /** 時間を出す */
+        val durationMs: Long
+            get() = stopMs - start
     }
 
     /**
