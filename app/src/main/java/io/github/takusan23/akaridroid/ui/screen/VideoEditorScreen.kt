@@ -21,8 +21,8 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
-import io.github.takusan23.akaridroid.ui.component.TouchPreviewCanvas
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBar
+import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
 /** 動画編集画面 */
@@ -46,7 +46,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     // タイムライン
     val timeLineData = viewModel.timeLineData.collectAsStateWithLifecycle()
     // タッチ編集
-    val touchPreviewData = viewModel.touchPreviewData.collectAsStateWithLifecycle()
+    val touchEditorData = viewModel.touchEditorData.collectAsStateWithLifecycle()
 
     // エンコード中の場合
     if (isEncoding?.value == true) {
@@ -92,14 +92,14 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
         ) {
 
             // プレビュー
-            TouchPreviewCanvas(
+            VideoPlayerPreviewAndTouchEditor(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.5f),
                 previewBitmap = previewBitmap.value?.asImageBitmap(),
-                touchPreviewData = touchPreviewData.value,
+                touchEditorData = touchEditorData.value,
                 onDragAndDropEnd = { request ->
-                    viewModel.resolveTouchPreviewDragAndDropRequest(request)
+                    viewModel.resolveTouchEditorDragAndDropRequest(request)
                 }
             )
 

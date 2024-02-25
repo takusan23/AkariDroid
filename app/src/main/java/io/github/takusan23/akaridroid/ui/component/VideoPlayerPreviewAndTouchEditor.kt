@@ -1,7 +1,6 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -28,23 +27,27 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.data.TouchPreviewData
+import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 
 /** ピクセル単位を DP に変換する */
 @Composable
 private fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
 
 /**
- * [io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer]で素材を直感的に移動できるようにするやつ
- * あとプレビューを映し出す機能。
- * TODO タッチ編集機能付きプレビューコンポーネント とかに名前を変えたほうがいい
+ * [io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer]
+ * プレビューを表示する機能と、キャンバス要素をタッチで移動できるようにするやつ
+ *
+ * @param modifier [Modifier]
+ * @param previewBitmap プレビューBitmap。[io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer.previewBitmap]
+ * @param touchEditorData 現在表示されているキャンバス要素を[TouchEditorData]で
+ * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
  */
 @Composable
-fun TouchPreviewCanvas(
+fun VideoPlayerPreviewAndTouchEditor(
     modifier: Modifier = Modifier,
     previewBitmap: ImageBitmap?,
-    touchPreviewData: TouchPreviewData,
-    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
+    touchEditorData: TouchEditorData,
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
 ) {
     Box(
         modifier = modifier.border(1.dp, MaterialTheme.colorScheme.primary),
@@ -62,21 +65,29 @@ fun TouchPreviewCanvas(
         }
 
         // キャンバス要素をドラッグアンドドロップで移動できるように
-        TouchPreviewView(
+        TouchEditor(
             modifier = Modifier.matchParentSize(),
-            videoSize = touchPreviewData.videoSize,
-            touchPreviewItemList = touchPreviewData.visibleCanvasItemList,
+            videoSize = touchEditorData.videoSize,
+            touchEditorItemList = touchEditorData.visibleTouchEditorItemList,
             onDragAndDropEnd = onDragAndDropEnd
         )
     }
 }
 
+/**
+ * キャンバス要素自体をタッチ操作で直感的に移動できるようにする
+ *
+ * @param modifier [Modifier]
+ * @param videoSize 動画のサイズ。実際は動画のサイズに収まるように表示はスケールされます。
+ * @param touchEditorItemList キャンバス要素。再生位置に合わせて必要なやつだけ。
+ * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
+ */
 @Composable
-private fun TouchPreviewView(
+private fun TouchEditor(
     modifier: Modifier = Modifier,
     videoSize: RenderData.Size,
-    touchPreviewItemList: List<TouchPreviewData.TouchPreviewItem>,
-    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
+    touchEditorItemList: List<TouchEditorData.TouchEditorItem>,
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
 ) {
     val parentComponentSize = remember { mutableStateOf<IntSize?>(null) }
 
@@ -88,6 +99,7 @@ private fun TouchPreviewView(
         if (parentComponentSize.value != null) {
 
             // 動画の縦横サイズと、実際のプレビューで使えるコンポーネントのサイズ。画面外にはみ出さないようにスケールを出す
+            // 横動画と縦動画
             val scale = if (videoSize.height < videoSize.width) {
                 parentComponentSize.value!!.width / videoSize.width.toFloat()
             } else {
@@ -101,33 +113,38 @@ private fun TouchPreviewView(
                     .requiredHeight(videoSize.height.pxToDp())
                     // 動画のサイズを指定するとはみ出すので、scale を使って画面内に収まるように調整する
                     .scale(scale)
-                    .background(Color.Red.copy(.5f))
             ) {
                 // 枠線とドラッグできるやつ
-                touchPreviewItemList.forEach { previewItem ->
-                    TouchPreviewItem(
-                        touchPreviewItem = previewItem,
+                touchEditorItemList.forEach { previewItem ->
+                    TouchEditorItem(
+                        touchEditorItem = previewItem,
                         onDragAndDropEnd = onDragAndDropEnd
                     )
                 }
             }
         }
     }
-
 }
 
+/**
+ * [TouchEditor]で表示するそれぞれのアイテム
+ *
+ * @param modifier [Modifier]
+ * @param touchEditorItem キャンバス要素[TouchEditorData.TouchEditorItem]
+ * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
+ */
 @Composable
-private fun TouchPreviewItem(
+private fun TouchEditorItem(
     modifier: Modifier = Modifier,
-    touchPreviewItem: TouchPreviewData.TouchPreviewItem,
-    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
+    touchEditorItem: TouchEditorData.TouchEditorItem,
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
 ) {
     // 動かしてるときの位置
-    val offset = remember(touchPreviewItem) {
+    val offset = remember(touchEditorItem) {
         mutableStateOf(
             IntOffset(
-                x = touchPreviewItem.position.x.toInt(),
-                y = touchPreviewItem.position.y.toInt()
+                x = touchEditorItem.position.x.toInt(),
+                y = touchEditorItem.position.y.toInt()
             )
         )
     }
@@ -135,13 +152,13 @@ private fun TouchPreviewItem(
     Box(
         modifier = modifier
             // ピクセル単位で指定する必要あり
-            .width(touchPreviewItem.size.width.pxToDp())
-            .height(touchPreviewItem.size.height.pxToDp())
+            .width(touchEditorItem.size.width.pxToDp())
+            .height(touchEditorItem.size.height.pxToDp())
             // 移動位置を Offset で指定
             .offset { offset.value }
             .border(1.dp, Color.Yellow, RectangleShape)
             // ドラッグアンドドロップで移動させる
-            .pointerInput(touchPreviewItem) {
+            .pointerInput(touchEditorItem) {
                 detectDragGestures(
                     onDrag = { change, dragAmount ->
                         change.consume()
@@ -153,9 +170,9 @@ private fun TouchPreviewItem(
                     onDragEnd = {
                         // 終了時は上に伝える
                         onDragAndDropEnd(
-                            TouchPreviewData.PositionUpdateRequest(
-                                id = touchPreviewItem.id,
-                                size = touchPreviewItem.size,
+                            TouchEditorData.PositionUpdateRequest(
+                                id = touchEditorItem.id,
+                                size = touchEditorItem.size,
                                 position = RenderData.Position(
                                     offset.value.x.toFloat(),
                                     offset.value.y.toFloat()

@@ -13,7 +13,7 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
-import io.github.takusan23.akaridroid.ui.component.data.TouchPreviewData
+import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,10 +45,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             itemList = emptyList()
         )
     )
-    private val _touchPreviewData = MutableStateFlow(
-        TouchPreviewData(
+    private val _touchEditorData = MutableStateFlow(
+        TouchEditorData(
             videoSize = _renderData.value.videoSize,
-            visibleCanvasItemList = emptyList()
+            visibleTouchEditorItemList = emptyList()
         )
     )
 
@@ -70,8 +70,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** タイムラインに表示するデータ。[RenderData]と同期する */
     val timeLineData = _timeLineData.asStateFlow()
 
-    /**  */
-    val touchPreviewData = _touchPreviewData.asStateFlow()
+    /** タッチ操作でキャンバス要素編集できるやつ */
+    val touchEditorData = _touchEditorData.asStateFlow()
 
     init {
         // 動画の情報が更新されたら
@@ -83,7 +83,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .collect { (videoSize, durationMs) ->
                     videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs)
                     _timeLineData.update { it.copy(durationMs = durationMs) }
-                    _touchPreviewData.update { it.copy(videoSize = videoSize) }
+                    _touchEditorData.update { it.copy(videoSize = videoSize) }
                 }
         }
 
@@ -159,16 +159,16 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // タッチ編集の更新
         viewModelScope.launch {
 
-            fun createVisibleTouchPreviewItemList() = renderData.value.canvasRenderItem
+            fun createVisibleTouchEditorItemList() = renderData.value.canvasRenderItem
                 .filter { videoEditorPreviewPlayer.playerStatus.value.currentPositionMs in it.displayTime }
                 .map { canvasItem ->
                     val measure = canvasItem.measureSize()
-                    TouchPreviewData.TouchPreviewItem(
+                    TouchEditorData.TouchEditorItem(
                         id = canvasItem.id,
                         size = measure,
-                        position = if(canvasItem is RenderData.CanvasItem.Text){
-                            canvasItem.position.copy(y =  canvasItem.position.y - measure.height)
-                        }else{
+                        position = if (canvasItem is RenderData.CanvasItem.Text) {
+                            canvasItem.position.copy(y = canvasItem.position.y - measure.height)
+                        } else {
                             canvasItem.position
                         }
                     )
@@ -178,17 +178,17 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             val triggerPreviewPosition = videoEditorPreviewPlayer.playerStatus
                 .map { it.currentPositionMs }
                 .distinctUntilChanged()
-                .map { createVisibleTouchPreviewItemList() }
+                .map { createVisibleTouchEditorItemList() }
             // 素材が変化したら
             val triggerCanvasItem = renderData
                 .map { it.canvasRenderItem }
                 .distinctUntilChanged()
-                .map { createVisibleTouchPreviewItemList() }
+                .map { createVisibleTouchEditorItemList() }
             // 2箇所をトリガーに更新する
             combine(triggerPreviewPosition, triggerCanvasItem) { a, b -> a + b }
-                .collect { visibleTouchPreviewItemList ->
-                    _touchPreviewData.update {
-                        it.copy(visibleCanvasItemList = visibleTouchPreviewItemList)
+                .collect { visibleTouchEditorItem ->
+                    _touchEditorData.update {
+                        it.copy(visibleTouchEditorItemList = visibleTouchEditorItem)
                     }
                 }
         }
@@ -372,7 +372,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
 
-    fun resolveTouchPreviewDragAndDropRequest(request: TouchPreviewData.PositionUpdateRequest) {
+    fun resolveTouchEditorDragAndDropRequest(request: TouchEditorData.PositionUpdateRequest) {
         // RenderData を更新する
         // そのほかも RenderData の Flow から再構築される
         when (val renderItem = getRenderItem(request.id)!!) {
