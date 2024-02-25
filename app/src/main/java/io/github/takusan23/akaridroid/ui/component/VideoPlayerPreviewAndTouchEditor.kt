@@ -3,13 +3,19 @@ package io.github.takusan23.akaridroid.ui.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -49,14 +55,16 @@ fun VideoPlayerPreviewAndTouchEditor(
     touchEditorData: TouchEditorData,
     onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
 ) {
-    Box(
-        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center
-    ) {
+    // タッチ移動機能の ON/OFF
+    val isEnableTouchEditor = remember { mutableStateOf(true) }
+
+    Box(modifier = modifier.border(1.dp, MaterialTheme.colorScheme.primary)) {
         // プレビューを出す
         if (previewBitmap != null) {
             Image(
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier
+                    .matchParentSize()
+                    .align(Alignment.Center),
                 bitmap = previewBitmap,
                 contentDescription = null
             )
@@ -65,11 +73,23 @@ fun VideoPlayerPreviewAndTouchEditor(
         }
 
         // キャンバス要素をドラッグアンドドロップで移動できるように
-        TouchEditor(
-            modifier = Modifier.matchParentSize(),
-            videoSize = touchEditorData.videoSize,
-            touchEditorItemList = touchEditorData.visibleTouchEditorItemList,
-            onDragAndDropEnd = onDragAndDropEnd
+        // ON/OFF 切り替えできるように
+        if (isEnableTouchEditor.value) {
+            TouchEditor(
+                modifier = Modifier
+                    .matchParentSize()
+                    .align(Alignment.Center),
+                videoSize = touchEditorData.videoSize,
+                touchEditorItemList = touchEditorData.visibleTouchEditorItemList,
+                onDragAndDropEnd = onDragAndDropEnd
+            )
+        }
+
+        // タッチ移動モードスイッチ
+        TouchEditSwitch(
+            modifier = Modifier.align(Alignment.TopEnd),
+            isEnable = isEnableTouchEditor.value,
+            onChange = { isEnableTouchEditor.value = it }
         )
     }
 }
@@ -183,4 +203,34 @@ private fun TouchEditorItem(
                 )
             }
     )
+}
+
+/**
+ * タッチ移動モード変更スイッチ
+ *
+ * @param modifier [Modifier]
+ * @param isEnable 有効かどうか
+ * @param onChange 変更時
+ */
+@Composable
+private fun TouchEditSwitch(
+    modifier: Modifier = Modifier,
+    isEnable: Boolean,
+    onChange: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = modifier,
+        checked = isEnable,
+        onCheckedChange = { onChange(!isEnable) },
+        shape = RoundedCornerShape(5.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(text = "タッチ移動")
+            Switch(checked = isEnable, onCheckedChange = null)
+        }
+    }
 }
