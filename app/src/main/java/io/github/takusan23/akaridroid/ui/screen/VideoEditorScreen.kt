@@ -1,19 +1,14 @@
 package io.github.takusan23.akaridroid.ui.screen
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +21,7 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
+import io.github.takusan23.akaridroid.ui.component.TouchPreviewCanvas
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
@@ -94,23 +90,13 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
         ) {
 
             // プレビュー
-            Box(
+            TouchPreviewCanvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.5f)
-                    .border(1.dp, MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                if (previewBitmap.value != null) {
-                    Image(
-                        modifier = Modifier.matchParentSize(),
-                        bitmap = previewBitmap.value!!.asImageBitmap(),
-                        contentDescription = null
-                    )
-                } else {
-                    Text(text = "生成中です...")
-                }
-            }
+                    .fillMaxHeight(0.5f),
+                previewBitmap = previewBitmap.value?.asImageBitmap(),
+                canvasItemList = renderData.value.canvasRenderItem
+            )
 
             // シークバーとか
             PreviewPlayerController(
