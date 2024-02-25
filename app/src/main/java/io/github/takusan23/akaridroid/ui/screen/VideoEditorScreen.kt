@@ -45,6 +45,8 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
     // タイムライン
     val timeLineData = viewModel.timeLineData.collectAsStateWithLifecycle()
+    // タッチ編集
+    val touchPreviewData = viewModel.touchPreviewData.collectAsStateWithLifecycle()
 
     // エンコード中の場合
     if (isEncoding?.value == true) {
@@ -95,7 +97,10 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                     .fillMaxWidth()
                     .fillMaxHeight(0.5f),
                 previewBitmap = previewBitmap.value?.asImageBitmap(),
-                canvasItemList = renderData.value.canvasRenderItem
+                touchPreviewData = touchPreviewData.value,
+                onDragAndDropEnd = { request ->
+                    viewModel.resolveTouchPreviewDragAndDropRequest(request)
+                }
             )
 
             // シークバーとか
@@ -111,7 +116,7 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 modifier = Modifier,
                 timeLineData = timeLineData.value,
                 onDragAndDropRequest = { request ->
-                    viewModel.resolveDragAndDropRequest(request)
+                    viewModel.resolveTimeLineDragAndDropRequest(request)
                 },
                 onClick = { timeLineItem ->
                     viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->

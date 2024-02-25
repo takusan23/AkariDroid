@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -25,44 +24,33 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.ui.component.data.TouchPreviewData
+
+/** ピクセル単位を DP に変換する */
+@Composable
+private fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
 
 /**
  * [io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer]で素材を直感的に移動できるようにするやつ
+ * あとプレビューを映し出す機能。
+ * TODO タッチ編集機能付きプレビューコンポーネント とかに名前を変えたほうがいい
  */
 @Composable
 fun TouchPreviewCanvas(
     modifier: Modifier = Modifier,
     previewBitmap: ImageBitmap?,
-
-    // TODO TouchPreviewData とかで RenderData.CanvasItem 自体をもらうのはやめる
-    canvasItemList: List<RenderData.CanvasItem>
+    touchPreviewData: TouchPreviewData,
+    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
 ) {
-    // アスペクト比
-    val aspectRate = remember(previewBitmap) { previewBitmap?.let { it.width / it.height.toFloat() } ?: 1f }
-
-
-    val canvasItemList = remember(canvasItemList) { mutableStateOf(canvasItemList) }
-
-    LaunchedEffect(key1 = canvasItemList.value) {
-        println(canvasItemList.value)
-    }
-
-    // 画面サイズにプレビューが入るようにスケールする
-    // Image とかはいい感じにやってくれるのですが、タッチイベントの処理の部分は自前で...
-    val previewComponentSize = remember { mutableStateOf<IntSize?>(null) }
-
     Box(
-        modifier = modifier
-            .border(1.dp, MaterialTheme.colorScheme.primary)
-            .onSizeChanged { previewComponentSize.value = it },
+        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center
     ) {
+        // プレビューを出す
         if (previewBitmap != null) {
             Image(
                 modifier = Modifier.matchParentSize(),
@@ -73,95 +61,109 @@ fun TouchPreviewCanvas(
             Text(text = "生成中です...")
         }
 
-        // タッチイベントを処理する
-        val canvasWidth = 1280
-        val canvasHeight = 720
-        val touchPreviewScale = previewComponentSize.value?.let { size ->
-            if (canvasHeight < canvasWidth) {
-                previewComponentSize.value!!.width / canvasWidth.toFloat()
-            } else {
-                canvasWidth.toFloat() / previewComponentSize.value!!.width
-            }
-        } ?: 1f
-
-        Box(
-            modifier = Modifier
-                // TODO やめるこれ
-                .requiredWidth(canvasWidth.pxToDp())
-                .requiredHeight(canvasHeight.pxToDp())
-                // requiredWidth だと画面外にはみ出す場合があるので、scale を使って画面内に収まるように調整する
-                .scale(touchPreviewScale)
-                // todo 消す
-                .background(Color.Red.copy(0.1f))
-        ) {
-            canvasItemList.value.forEach { canvasItem ->
-
-                val sizePx = when (canvasItem) {
-                    is RenderData.CanvasItem.Image -> canvasItem.size
-                    is RenderData.CanvasItem.Text -> canvasItem.measureSize()
-                    is RenderData.CanvasItem.Video -> canvasItem.size
-                }
-
-                val offset = remember(canvasItem.position) {
-                    mutableStateOf(
-                        IntOffset(
-                            x = canvasItem.position.x.toInt(),
-                            y = canvasItem.position.y.toInt()
-                        )
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .width(sizePx.width.pxToDp())
-                        .height(sizePx.height.pxToDp())
-                        .offset { offset.value }
-                        .border(1.dp, Color.Yellow, RectangleShape)
-                        .pointerInput(canvasItem) {
-                            var moveItemId: Long? = null
-                            detectDragGestures(
-                                onDragStart = {
-                                    moveItemId = canvasItem.id
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    offset.value = IntOffset(
-                                        x = (offset.value.x + dragAmount.x).toInt(),
-                                        y = (offset.value.y + dragAmount.y).toInt()
-                                    )
-                                },
-                                onDragEnd = {
-                                    canvasItemList.value = canvasItemList.value.map {
-                                        if (it.id == moveItemId) {
-                                            val position = it.position.copy(
-                                                x = offset.value.x * touchPreviewScale,
-                                                y = offset.value.y * touchPreviewScale
-                                            )
-                                            when (it) {
-                                                is RenderData.CanvasItem.Image -> it.copy(position = position)
-                                                is RenderData.CanvasItem.Text -> it.copy(position = position)
-                                                is RenderData.CanvasItem.Video -> it.copy(position = position)
-                                            }
-                                        } else {
-                                            it
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                )
-            }
-        }
+        // キャンバス要素をドラッグアンドドロップで移動できるように
+        TouchPreviewView(
+            modifier = Modifier.matchParentSize(),
+            videoSize = touchPreviewData.videoSize,
+            touchPreviewItemList = touchPreviewData.visibleCanvasItemList,
+            onDragAndDropEnd = onDragAndDropEnd
+        )
     }
 }
 
 @Composable
-private fun RenderData.CanvasItem.Text.measureSize(): RenderData.Size {
-    val textMeasurer = rememberTextMeasurer()
-    val pxToSp = with(LocalDensity.current) { textSize.toSp() }
-    val size = textMeasurer.measure(this.text, TextStyle(fontSize = pxToSp)).size
-    return RenderData.Size(size.width, size.height)
+private fun TouchPreviewView(
+    modifier: Modifier = Modifier,
+    videoSize: RenderData.Size,
+    touchPreviewItemList: List<TouchPreviewData.TouchPreviewItem>,
+    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
+) {
+    val parentComponentSize = remember { mutableStateOf<IntSize?>(null) }
+
+    // 親の大きさを出す
+    Box(
+        modifier = modifier.onSizeChanged { parentComponentSize.value = it },
+        contentAlignment = Alignment.Center
+    ) {
+        if (parentComponentSize.value != null) {
+
+            // 動画の縦横サイズと、実際のプレビューで使えるコンポーネントのサイズ。画面外にはみ出さないようにスケールを出す
+            val scale = if (videoSize.height < videoSize.width) {
+                parentComponentSize.value!!.width / videoSize.width.toFloat()
+            } else {
+                parentComponentSize.value!!.height / videoSize.height.toFloat()
+            }
+
+            Box(
+                modifier = Modifier
+                    // 動画のサイズの Box を作る
+                    .requiredWidth(videoSize.width.pxToDp())
+                    .requiredHeight(videoSize.height.pxToDp())
+                    // 動画のサイズを指定するとはみ出すので、scale を使って画面内に収まるように調整する
+                    .scale(scale)
+                    .background(Color.Red.copy(.5f))
+            ) {
+                // 枠線とドラッグできるやつ
+                touchPreviewItemList.forEach { previewItem ->
+                    TouchPreviewItem(
+                        touchPreviewItem = previewItem,
+                        onDragAndDropEnd = onDragAndDropEnd
+                    )
+                }
+            }
+        }
+    }
+
 }
 
 @Composable
-fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
+private fun TouchPreviewItem(
+    modifier: Modifier = Modifier,
+    touchPreviewItem: TouchPreviewData.TouchPreviewItem,
+    onDragAndDropEnd: (TouchPreviewData.PositionUpdateRequest) -> Unit
+) {
+    // 動かしてるときの位置
+    val offset = remember(touchPreviewItem) {
+        mutableStateOf(
+            IntOffset(
+                x = touchPreviewItem.position.x.toInt(),
+                y = touchPreviewItem.position.y.toInt()
+            )
+        )
+    }
+
+    Box(
+        modifier = modifier
+            // ピクセル単位で指定する必要あり
+            .width(touchPreviewItem.size.width.pxToDp())
+            .height(touchPreviewItem.size.height.pxToDp())
+            // 移動位置を Offset で指定
+            .offset { offset.value }
+            .border(1.dp, Color.Yellow, RectangleShape)
+            // ドラッグアンドドロップで移動させる
+            .pointerInput(touchPreviewItem) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        offset.value = IntOffset(
+                            x = (offset.value.x + dragAmount.x).toInt(),
+                            y = (offset.value.y + dragAmount.y).toInt()
+                        )
+                    },
+                    onDragEnd = {
+                        // 終了時は上に伝える
+                        onDragAndDropEnd(
+                            TouchPreviewData.PositionUpdateRequest(
+                                id = touchPreviewItem.id,
+                                size = touchPreviewItem.size,
+                                position = RenderData.Position(
+                                    offset.value.x.toFloat(),
+                                    offset.value.y.toFloat()
+                                )
+                            )
+                        )
+                    }
+                )
+            }
+    )
+}

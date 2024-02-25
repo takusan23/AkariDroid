@@ -11,7 +11,7 @@ class TextRender(
 ) : ItemRenderInterface {
 
     /** 文字の大きさとか */
-    private val paint = Paint()
+    private val paint = createPaint(text)
 
     override val displayTime: RenderData.DisplayTime
         get() = text.displayTime
@@ -40,5 +40,21 @@ class TextRender(
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
         return currentPositionMs in text.displayTime
+    }
+
+    companion object {
+
+        /**
+         * [TextRender]で利用されている[Paint]を返す。
+         * 文字を書くときに必要な縦横サイズの測定に。
+         *
+         * @param text 文字サイズとか。[RenderData.CanvasItem.Text]
+         * @return [Paint]
+         */
+        fun createPaint(text: RenderData.CanvasItem.Text): Paint = Paint().apply {
+            color = Color.parseColor(text.fontColor)
+            textSize = text.textSize
+        }
+
     }
 }

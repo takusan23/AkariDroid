@@ -66,6 +66,7 @@ class VideoEditorPreviewPlayer(
     ) {
         _playerStatus.update { it.copy(durationMs = durationMs) }
         bitmapCanvasController.createCanvas(videoWidth, videoHeight)
+        playInSingle()
     }
 
     /**

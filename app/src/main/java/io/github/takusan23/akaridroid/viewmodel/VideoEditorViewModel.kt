@@ -6,12 +6,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
+import io.github.takusan23.akaridroid.ui.component.data.TouchPreviewData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreenKt]用の ViewModel */
+/** [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel */
 class VideoEditorViewModel(private val application: Application) : AndroidViewModel(application) {
     private val context: Context
         get() = application.applicationContext
@@ -41,6 +43,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             durationMs = _renderData.value.durationMs,
             laneCount = 5,
             itemList = emptyList()
+        )
+    )
+    private val _touchPreviewData = MutableStateFlow(
+        TouchPreviewData(
+            videoSize = _renderData.value.videoSize,
+            visibleCanvasItemList = emptyList()
         )
     )
 
@@ -62,6 +70,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** タイムラインに表示するデータ。[RenderData]と同期する */
     val timeLineData = _timeLineData.asStateFlow()
 
+    /**  */
+    val touchPreviewData = _touchPreviewData.asStateFlow()
+
     init {
         // 動画の情報が更新されたら
         viewModelScope.launch {
@@ -72,6 +83,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .collect { (videoSize, durationMs) ->
                     videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs)
                     _timeLineData.update { it.copy(durationMs = durationMs) }
+                    _touchPreviewData.update { it.copy(videoSize = videoSize) }
                 }
         }
 
@@ -141,6 +153,43 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         }
                     // 入れる
                     _timeLineData.update { it.copy(itemList = timeLineItemDataArrayList) }
+                }
+        }
+
+        // タッチ編集の更新
+        viewModelScope.launch {
+
+            fun createVisibleTouchPreviewItemList() = renderData.value.canvasRenderItem
+                .filter { videoEditorPreviewPlayer.playerStatus.value.currentPositionMs in it.displayTime }
+                .map { canvasItem ->
+                    val measure = canvasItem.measureSize()
+                    TouchPreviewData.TouchPreviewItem(
+                        id = canvasItem.id,
+                        size = measure,
+                        position = if(canvasItem is RenderData.CanvasItem.Text){
+                            canvasItem.position.copy(y =  canvasItem.position.y - measure.height)
+                        }else{
+                            canvasItem.position
+                        }
+                    )
+                }
+
+            // 時間が変化したら
+            val triggerPreviewPosition = videoEditorPreviewPlayer.playerStatus
+                .map { it.currentPositionMs }
+                .distinctUntilChanged()
+                .map { createVisibleTouchPreviewItemList() }
+            // 素材が変化したら
+            val triggerCanvasItem = renderData
+                .map { it.canvasRenderItem }
+                .distinctUntilChanged()
+                .map { createVisibleTouchPreviewItemList() }
+            // 2箇所をトリガーに更新する
+            combine(triggerPreviewPosition, triggerCanvasItem) { a, b -> a + b }
+                .collect { visibleTouchPreviewItemList ->
+                    _touchPreviewData.update {
+                        it.copy(visibleCanvasItemList = visibleTouchPreviewItemList)
+                    }
                 }
         }
     }
@@ -260,7 +309,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      * @param request [io.github.takusan23.akaridroid.ui.component.TimeLine]からドラッグアンドドロップが終わると呼ばれる
      * @return true でドラッグアンドドロップを受け入れたことになる。
      */
-    fun resolveDragAndDropRequest(request: TimeLineData.DragAndDropRequest): Boolean {
+    fun resolveTimeLineDragAndDropRequest(request: TimeLineData.DragAndDropRequest): Boolean {
         // ドラッグアンドドロップ対象の RenderItem を取る
         val renderItem = getRenderItem(request.id)!!
         // ドラッグアンドドロップ移動先に合った DisplayTime を作る
@@ -322,6 +371,21 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         return isAcceptable
     }
 
+
+    fun resolveTouchPreviewDragAndDropRequest(request: TouchPreviewData.PositionUpdateRequest) {
+        // RenderData を更新する
+        // そのほかも RenderData の Flow から再構築される
+        when (val renderItem = getRenderItem(request.id)!!) {
+            is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            is RenderData.AudioItem.Audio -> {
+                // キャンバス要素だけなのでここに来ることはない
+                // do nothing
+            }
+        }
+    }
+
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */
     fun getRenderItem(id: Long): RenderData.RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
         .firstOrNull { it.id == id }
@@ -374,6 +438,20 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             when (renderItem) {
                 is RenderData.AudioItem -> it.copy(audioRenderItem = it.audioRenderItem.filter { it.id != renderItem.id })
                 is RenderData.CanvasItem -> it.copy(canvasRenderItem = it.canvasRenderItem.filter { it.id != renderItem.id })
+            }
+        }
+    }
+
+    /** [RenderData.CanvasItem]から[RenderData.Size]をだす */
+    private fun RenderData.CanvasItem.measureSize(): RenderData.Size {
+        return when (this) {
+            is RenderData.CanvasItem.Image -> this.size
+            is RenderData.CanvasItem.Video -> this.size
+            is RenderData.CanvasItem.Text -> {
+                // テキストには Size が生えていないので計算する
+                val paint = TextRender.createPaint(this)
+                val measure = paint.measureText(this.text)
+                RenderData.Size(width = measure.toInt(), height = paint.textSize.toInt())
             }
         }
     }
