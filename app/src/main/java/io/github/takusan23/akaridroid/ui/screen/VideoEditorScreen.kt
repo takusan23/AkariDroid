@@ -25,9 +25,16 @@ import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
-/** 動画編集画面 */
+/**
+ * 動画編集画面
+ *
+ * @param onNavigate 画面遷移時に呼ばれる
+ */
 @Composable
-fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
+fun VideoEditorScreen(
+    viewModel: VideoEditorViewModel = viewModel(),
+    onNavigate: (NavigationPaths) -> Unit
+) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
 
@@ -81,6 +88,9 @@ fun VideoEditorScreen(viewModel: VideoEditorViewModel = viewModel()) {
                 },
                 onVideoInfoClick = {
                     viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))
+                },
+                onSettingClick = {
+                    onNavigate(NavigationPaths.Setting)
                 }
             )
         }

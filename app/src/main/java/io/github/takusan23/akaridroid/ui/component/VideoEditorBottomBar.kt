@@ -50,13 +50,15 @@ sealed interface VideoEditorBottomBarAddItem {
  * @param onCreateRenderItem 素材を追加すると呼ばれる[VideoEditorBottomBarAddItem]
  * @param onEncodeClick 仮だけどエンコードボタン
  * @param onVideoInfoClick 仮だけど動画情報編集画面を開くボタン
+ * @param onSettingClick 設定画面を開く（仮）
  */
 @Composable
 fun VideoEditorBottomBar(
     modifier: Modifier = Modifier,
     onCreateRenderItem: (VideoEditorBottomBarAddItem) -> Unit,
     onEncodeClick: () -> Unit,
-    onVideoInfoClick: () -> Unit
+    onVideoInfoClick: () -> Unit,
+    onSettingClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -88,6 +90,12 @@ fun VideoEditorBottomBar(
                 label = "エンコードする",
                 iconId = R.drawable.ic_outline_save_24,
                 onClick = onEncodeClick
+            )
+
+            VideoEditorBottomBarItem(
+                label = "設定",
+                iconId = R.drawable.ic_outline_settings_24px,
+                onClick = onSettingClick
             )
         }
     }
