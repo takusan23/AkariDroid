@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen.about
 
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.AdvHiroin
 import io.github.takusan23.akaridroid.ui.component.AdvMenuBar
 import io.github.takusan23.akaridroid.ui.component.AdvRouteSelect
 import io.github.takusan23.akaridroid.ui.component.AdvTextArea
 import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
+
+private const val GitHubUrl = "https://github.com/takusan23/AkariDroid"
 
 /** このアプリについて画面の UI ステート */
 sealed interface AboutScreenUiState {
@@ -76,9 +80,12 @@ fun AboutScreen(
 
                 AboutScreenUiState.RouteSelect -> RouteSelectScreen(onRouteSelect = {
                     when (it) {
-                        AboutScreenUiState.AdvScenario.Sushi -> onBack()
-                        AboutScreenUiState.AdvScenario.GitHub -> onBack()
+                        AboutScreenUiState.AdvScenario.Sushi -> onNavigate(NavigationPaths.SushiScreen)
                         AboutScreenUiState.AdvScenario.None -> onBack()
+                        AboutScreenUiState.AdvScenario.GitHub -> {
+                            val intent = Intent(Intent.ACTION_VIEW, GitHubUrl.toUri())
+                            context.startActivity(intent)
+                        }
                     }
                 })
             }

@@ -29,7 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -101,6 +101,10 @@ fun TimeLine(
     // レーンとレーンのアイテムの Map
     val laneItemMap = remember(timeLineData) { timeLineData.groupByLane() }
 
+    // はみ出しているタイムラインの LayoutCoordinates
+    // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
+    val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+
     Box(
         modifier = modifier
             .verticalScroll(rememberScrollState())
@@ -108,7 +112,9 @@ fun TimeLine(
     ) {
         Column(
             // 画面外にはみ出すので requiredWidth
-            modifier = Modifier.requiredWidth(maxDurationMs.msToWidthDp),
+            modifier = Modifier
+                .requiredWidth(maxDurationMs.msToWidthDp)
+                .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
 
@@ -116,42 +122,46 @@ fun TimeLine(
             TimeLineTopTimeLabel(durationMs = maxDurationMs)
             Divider()
 
-            // タイムラインのアイテム
-            // レーンの数だけ
-            laneItemMap.forEach { (laneIndex, itemList) ->
-                TimeLineLane(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .onGloballyPositioned {
-                            timeLineLaneIndexRectMap[laneIndex] = it
-                                .boundsInWindow()
-                                .roundToIntRect()
-                        },
-                    laneIndex = laneIndex,
-                    laneItemList = itemList,
-                    onClick = onClick,
-                    onDragAndDropRequest = {
-                        val (id, start, stop) = it
-                        // ドラッグアンドドロップで移動先に移動してよいか
-                        // 移動元、移動先のレーン番号を取得
-                        val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineLane false
-                        val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineLane false
+            if (timelineScrollableAreaCoordinates.value != null) {
 
-                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
-                        val stopMsInDroppedPos = stop.left.widthToMs
-                        // 移動先の TimeLineItemData を作る
-                        val request = TimeLineData.DragAndDropRequest(
-                            id = id,
-                            dragAndDroppedStartMs = stopMsInDroppedPos,
-                            dragAndDroppedLaneIndex = toLaneIndex
-                        )
+                // タイムラインのアイテム
+                // レーンの数だけ
+                laneItemMap.forEach { (laneIndex, itemList) ->
+                    TimeLineLane(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .onGloballyPositioned {
+                                timeLineLaneIndexRectMap[laneIndex] = timelineScrollableAreaCoordinates.value!!
+                                    .localBoundingBoxOf(it)
+                                    .roundToIntRect()
+                            },
+                        laneIndex = laneIndex,
+                        laneItemList = itemList,
+                        onClick = onClick,
+                        timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
+                        onDragAndDropRequest = {
+                            val (id, start, stop) = it
+                            // ドラッグアンドドロップで移動先に移動してよいか
+                            // 移動元、移動先のレーン番号を取得
+                            val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineLane false
+                            val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineLane false
 
-                        // 渡して処理させる
-                        onDragAndDropRequest(request)
-                    }
-                )
-                Divider()
+                            // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                            val stopMsInDroppedPos = stop.left.widthToMs
+                            // 移動先の TimeLineItemData を作る
+                            val request = TimeLineData.DragAndDropRequest(
+                                id = id,
+                                dragAndDroppedStartMs = stopMsInDroppedPos,
+                                dragAndDroppedLaneIndex = toLaneIndex
+                            )
+
+                            // 渡して処理させる
+                            onDragAndDropRequest(request)
+                        }
+                    )
+                    Divider()
+                }
             }
         }
     }
@@ -166,6 +176,7 @@ fun TimeLine(
  * @param modifier [Modifier]
  * @param laneIndex レーン番号
  * @param laneItemList タイムラインに表示するアイテムの配列[TimeLineData.Item]
+ * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest [TimeLineItemComponentDragAndDropData]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
  * @param onClick 押したときに呼ばれる
  */
@@ -174,6 +185,7 @@ private fun TimeLineLane(
     modifier: Modifier = Modifier,
     laneItemList: List<TimeLineData.Item>,
     laneIndex: Int,
+    timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onClick: (TimeLineData.Item) -> Unit
 ) {
@@ -193,6 +205,7 @@ private fun TimeLineLane(
             TimeLineItem(
                 timeLineItemData = timeLineItemData,
                 onDragAndDropRequest = onDragAndDropRequest,
+                timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                 onClick = { onClick(timeLineItemData) }
             )
         }
@@ -205,12 +218,14 @@ private fun TimeLineLane(
  * @param modifier [Modifier]
  * @param onClick 押したときに呼ばれる
  * @param timeLineItemData タイムラインのデータ[TimeLineData.Item]
+ * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineItemComponentDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
  */
 @Composable
 private fun TimeLineItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineData.Item,
+    timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onClick: () -> Unit
 ) {
@@ -235,8 +250,9 @@ private fun TimeLineItem(
             .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidthDp)
             .fillMaxHeight()
             .onGloballyPositioned {
-                latestGlobalRect.value = it
-                    .boundsInWindow()
+                // timeLineScrollableAreaCoordinates の理由は TimeLine() コンポーネント参照
+                latestGlobalRect.value = timeLineScrollableAreaCoordinates
+                    .localBoundingBoxOf(it)
                     .roundToIntRect()
             }
             .pointerInput(timeLineItemData) {

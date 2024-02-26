@@ -5,6 +5,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.takusan23.akaridroid.ui.screen.about.AboutScreen
+import io.github.takusan23.akaridroid.ui.screen.about.AboutSushiScreen
 
 /** 画面の切り替えを担当する */
 @Composable
@@ -12,7 +13,7 @@ fun AkariDroidMainScreen() {
     // 画面遷移
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = NavigationPaths.About.path) {
+    NavHost(navController = navController, startDestination = NavigationPaths.SushiScreen.path) {
         composable(NavigationPaths.VideoEditor.path) {
             VideoEditorScreen(
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
@@ -30,6 +31,11 @@ fun AkariDroidMainScreen() {
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
             )
         }
+        composable(NavigationPaths.SushiScreen.path) {
+            AboutSushiScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -43,5 +49,8 @@ enum class NavigationPaths(val path: String) {
     Setting("setting"),
 
     /** このアプリについて画面 */
-    About("about")
+    About("about"),
+
+    /** おまけ画面 */
+    SushiScreen("sushi")
 }
