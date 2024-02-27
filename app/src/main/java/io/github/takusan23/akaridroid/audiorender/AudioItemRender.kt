@@ -29,10 +29,10 @@ class AudioItemRender(
         inputStream = decodePcmFile.inputStream()
         // 音声ファイルをカットする場合
         // 読み出し開始位置を skip して調整しておく
-        if (audioItem.positionOffset != null) {
+        if (audioItem.displayOffset != null) {
             // 秒にする
             // TODO ミリ秒単位の調整には対応していない
-            val startSec = audioItem.positionOffset.offsetFirstMs / 1_000
+            val startSec = audioItem.displayOffset.offsetFirstMs / 1_000
             val skipBytes = startSec * AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE
             inputStream?.skip(skipBytes)
         }

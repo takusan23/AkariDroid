@@ -196,7 +196,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360),
-                            positionOffset = RenderData.PositionOffset(4_000) // 4秒 スキップ
+                            displayOffset = RenderData.DisplayOffset(4_000) // 4秒 スキップ
                         ),
                         RenderData.CanvasItem.Video(
                             displayTime = RenderData.DisplayTime(8_000, 10_000),
@@ -204,7 +204,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360),
-                            positionOffset = RenderData.PositionOffset(8_000) // 8秒 スキップ
+                            displayOffset = RenderData.DisplayOffset(8_000) // 8秒 スキップ
                         ),
                         RenderData.CanvasItem.Text(
                             displayTime = RenderData.DisplayTime(0, 10_000),

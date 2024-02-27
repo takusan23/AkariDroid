@@ -394,7 +394,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /**
      * タイムラインのアイテム分割リクエストをさばく
      *
-     * @param timeLineItem 分割したいタイムラインのアイテム
+     * @param request 分割したいタイムラインのアイテム
      */
     fun resolveTimeLineCutRequest(request: TimeLineData.Item) {
         val cutPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
@@ -403,7 +403,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 分割したいアイテム
         val targetItem = getRenderItem(request.id)!!
-
         // 2つに分けるので、表示する時間も2つにする
         val displayTimeA = targetItem.displayTime.copy(
             startMs = targetItem.displayTime.startMs,
@@ -414,33 +413,56 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             stopMs = targetItem.displayTime.stopMs
         )
 
-        fun processTextOrImage() {
-            // テキストと画像はそのまま2つに分ければいい
-            val (newA, newB) = listOf(displayTimeA, displayTimeB)
-                .mapNotNull { displayTime ->
-                    when (targetItem) {
-                        // TODO ユニークなIDを払い出す何か。currentTimeMillis をループの中で使うと同じの来そうで怖い
-                        is RenderData.CanvasItem.Image -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
-                        is RenderData.CanvasItem.Text -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
-                        else -> null
-                    }
+        // テキストと画像はそのまま2つに分ければいい
+        fun processTextOrImage(): List<RenderData.RenderItem> = listOf(displayTimeA, displayTimeB)
+            .mapNotNull { displayTime ->
+                when (targetItem) {
+                    // TODO ユニークなIDを払い出す何か。currentTimeMillis をループの中で使うと同じの来そうで怖い
+                    is RenderData.CanvasItem.Image -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                    is RenderData.CanvasItem.Text -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                    is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> null
                 }
-            addOrUpdateCanvasRenderItem(newA)
-            addOrUpdateCanvasRenderItem(newB)
-        }
+            }
 
-        fun processAudioOrVideo() {
-            // 音声と映像の場合は再生位置の調整が必要なので分岐しています、、、！
-            // todo 続き
+        // 音声と映像の場合は再生位置の調整が必要なので分岐しています、、、！
+        fun processAudioOrVideo(): List<RenderData.RenderItem> {
+            // あと、PositionOffset 付きのを分割する可能性もあるので、考慮する
+            val targetOffsetFirstMsOrZero = when (targetItem) {
+                is RenderData.AudioItem.Audio -> targetItem.displayOffset
+                is RenderData.CanvasItem.Video -> targetItem.displayOffset
+                is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> null
+            }?.offsetFirstMs ?: 0
+            // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
+            val cutPositionMsInTargetItem = cutPositionMs - targetItem.displayTime.startMs
+            val displayOffsetA = RenderData.DisplayOffset(targetOffsetFirstMsOrZero)
+            val displayOffsetB = RenderData.DisplayOffset(cutPositionMsInTargetItem - targetOffsetFirstMsOrZero)
+            return listOf(
+                displayTimeA to displayOffsetA,
+                displayTimeB to displayOffsetB
+            ).mapNotNull { (displayTime, displayOffset) ->
+                when (targetItem) {
+                    is RenderData.CanvasItem.Image -> null
+                    is RenderData.CanvasItem.Text -> null
+                    is RenderData.AudioItem.Audio -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
+                    is RenderData.CanvasItem.Video -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
+                }
+            }
         }
 
         // テキストと画像。音声と映像ではやるべきことが違うので
-        when (targetItem) {
-            is RenderData.CanvasItem.Image -> processTextOrImage()
-            is RenderData.CanvasItem.Text -> processTextOrImage()
-            is RenderData.AudioItem.Audio -> processAudioOrVideo()
-            is RenderData.CanvasItem.Video -> processAudioOrVideo()
+        val cutItemList = when (targetItem) {
+            is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> processTextOrImage()
+            is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> processAudioOrVideo()
         }
+        // 分割前のアイテムは消す
+        deleteRenderItem(targetItem)
+        // 追加する
+        cutItemList
+            .filterIsInstance<RenderData.CanvasItem>()
+            .forEach { addOrUpdateCanvasRenderItem(it) }
+        cutItemList
+            .filterIsInstance<RenderData.AudioItem>()
+            .forEach { addOrUpdateAudioRenderItem(it) }
     }
 
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */

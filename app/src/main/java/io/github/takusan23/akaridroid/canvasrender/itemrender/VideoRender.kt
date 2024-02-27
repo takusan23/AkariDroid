@@ -50,7 +50,7 @@ class VideoRender(
 
         // カットする場合は考慮した時間を
         val framePositionFromCurrentPositionMs = currentPositionMs - video.displayTime.startMs
-        val includeOffsetFramePositionMs = framePositionFromCurrentPositionMs + (video.positionOffset?.offsetFirstMs ?: 0)
+        val includeOffsetFramePositionMs = framePositionFromCurrentPositionMs + (video.displayOffset?.offsetFirstMs ?: 0)
         preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(includeOffsetFramePositionMs).let { origin ->
             // リサイズする場合
             val (width, height) = video.size

@@ -84,7 +84,7 @@ data class RenderData(
             override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size,
-            val positionOffset: PositionOffset? = null,
+            val displayOffset: DisplayOffset? = null, // TODO nullable めんどい。DisplayOffset(0) 初期値にしたい
             val chromaKeyColor: Int? = null
         ) : CanvasItem
     }
@@ -99,7 +99,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
-            val positionOffset: PositionOffset? = null,
+            val displayOffset: DisplayOffset? = null,
             val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
 
@@ -163,13 +163,13 @@ data class RenderData(
      *
      * [DisplayTime]とは違う。
      * [DisplayTime]は表示すべき位置です。
-     * [PositionOffset]は[DisplayTime]で表示することになった際に、動画素材や音声素材の開始、終了位置の調整に使われます。
+     * [DisplayOffset]は[DisplayTime]で表示することになった際に、動画素材や音声素材の開始、終了位置の調整に使われます。
      *
      * [DisplayTime]で2秒表示するけど、表示する動画は5秒から始めたい。とかの時に使います。
-     * なので、[DisplayTime.durationMs]分は存在している必要があります。それ以上[PositionOffset.offsetFirstMs]等で削ってはいけない。
+     * なので、[DisplayTime.durationMs]分は存在している必要があります。それ以上[DisplayOffset.offsetFirstMs]等で削ってはいけない。
      *
      * @param offsetFirstMs 最初からどれだけカットして利用するか
      */
     @Serializable
-    data class PositionOffset(val offsetFirstMs: Long)
+    data class DisplayOffset(val offsetFirstMs: Long)
 }

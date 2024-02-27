@@ -391,6 +391,14 @@ private fun TimeLineItemContextMenu(
             },
             leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_cut_24px), contentDescription = null) }
         )
+        DropdownMenuItem(
+            text = { Text("削除") },
+            onClick = {
+                // todo あしたやる
+                onDismissRequest()
+            },
+            leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_delete_24px), contentDescription = null) }
+        )
     }
 }
 
