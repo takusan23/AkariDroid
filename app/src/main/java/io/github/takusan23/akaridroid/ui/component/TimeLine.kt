@@ -1,6 +1,8 @@
 package io.github.takusan23.akaridroid.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +24,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -105,16 +109,26 @@ fun TimeLine(
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
+    // 再生位置
+    // タイムラインの再生位置を出すための赤い棒
+    val currentPositionMs = remember { mutableLongStateOf(0) }
+
     Box(
         modifier = modifier
             .verticalScroll(rememberScrollState())
             .horizontalScroll(rememberScrollState()),
     ) {
+        // 横に長ーいタイムラインを作る
+        // 画面外にはみ出すので requiredWidth
         Column(
-            // 画面外にはみ出すので requiredWidth
             modifier = Modifier
                 .requiredWidth(maxDurationMs.msToWidthDp)
-                .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
+                // タイムラインにあるアイテムの座標出すのに使う
+                .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it }
+                // 再生位置の移動。タイムラインの棒を移動させる
+                .pointerInput(Unit) {
+                    detectTapGestures { currentPositionMs.longValue = it.x.toInt().widthToMs }
+                },
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
 
@@ -164,6 +178,14 @@ fun TimeLine(
                 }
             }
         }
+
+        // タイムラインの縦の棒
+        // タイムラインに重ねて使う
+        TimeLineCurrentPositionBar(
+            modifier = Modifier
+                .height(with(LocalDensity.current) { (timelineScrollableAreaCoordinates.value?.size?.height ?: 0).toDp() }),
+            currentPositionMs = currentPositionMs.longValue
+        )
     }
 }
 
@@ -334,4 +356,23 @@ private fun TimeLineTopTimeLabel(
             )
         }
     }
+}
+
+/**
+ * タイムラインで今のプレビュー位置を表示するためのバー。あの赤い棒。
+ *
+ * @param modifier [Modifier]
+ * @param currentPositionMs 再生位置
+ */
+@Composable
+private fun TimeLineCurrentPositionBar(
+    modifier: Modifier = Modifier,
+    currentPositionMs: Long
+) {
+    Box(
+        modifier = modifier
+            .width(2.dp)
+            .offset { IntOffset(currentPositionMs.msToWidth, 0) }
+            .background(Color.Red)
+    )
 }

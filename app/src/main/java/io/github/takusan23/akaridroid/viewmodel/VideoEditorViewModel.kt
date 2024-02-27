@@ -31,7 +31,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     private val _renderData = MutableStateFlow(
         RenderData(
-            durationMs = 10_000L,
+            durationMs = 60_000L,
             videoSize = RenderData.Size(1280, 720),
             canvasRenderItem = emptyList(),
             audioRenderItem = emptyList()
