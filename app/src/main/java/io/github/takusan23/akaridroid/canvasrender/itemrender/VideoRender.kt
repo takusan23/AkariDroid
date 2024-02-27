@@ -49,16 +49,12 @@ class VideoRender(
         val videoFrameBitmapExtractor = videoFrameBitmapExtractor ?: return@withContext
 
         // カットする場合は考慮した時間を
-        val framePositionMs = currentPositionMs - video.displayTime.startMs
-        val cropIncludedFramePositionMs = framePositionMs - (video.cropTime?.cropStartMs ?: 0)
-        preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(cropIncludedFramePositionMs).let { origin ->
+        val framePositionFromCurrentPositionMs = currentPositionMs - video.displayTime.startMs
+        val includeOffsetFramePositionMs = framePositionFromCurrentPositionMs + (video.positionOffset?.offsetFirstMs ?: 0)
+        preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(includeOffsetFramePositionMs).let { origin ->
             // リサイズする場合
-            if (video.size != null) {
-                val (width, height) = video.size
-                origin.scale(width, height)
-            } else {
-                origin
-            }
+            val (width, height) = video.size
+            origin.scale(width, height)
         }
     }
 
@@ -76,18 +72,5 @@ class VideoRender(
         return renderItem == video
     }
 
-    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
-        // 範囲内にいること
-        if (currentPositionMs !in video.displayTime) {
-            return false
-        }
-        val framePositionMs = currentPositionMs - video.displayTime.startMs
-
-        // 動画をカットする場合で、カットした時間外の場合
-        if (video.cropTime != null && framePositionMs !in video.cropTime) {
-            return false
-        }
-
-        return true
-    }
+    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in video.displayTime
 }

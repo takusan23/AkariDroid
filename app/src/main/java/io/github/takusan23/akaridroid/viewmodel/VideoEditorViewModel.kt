@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 /** [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel */
 class VideoEditorViewModel(private val application: Application) : AndroidViewModel(application) {
@@ -371,7 +372,11 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         return isAcceptable
     }
 
-
+    /**
+     * プレビューのタッチ編集から来たアイテム移動リクエストをさばく
+     *
+     * @param request 移動したアイテムの [TouchEditorData.PositionUpdateRequest]
+     */
     fun resolveTouchEditorDragAndDropRequest(request: TouchEditorData.PositionUpdateRequest) {
         // RenderData を更新する
         // そのほかも RenderData の Flow から再構築される
@@ -383,6 +388,58 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 // キャンバス要素だけなのでここに来ることはない
                 // do nothing
             }
+        }
+    }
+
+    /**
+     * タイムラインのアイテム分割リクエストをさばく
+     *
+     * @param timeLineItem 分割したいタイムラインのアイテム
+     */
+    fun resolveTimeLineCutRequest(request: TimeLineData.Item) {
+        val cutPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+        // そもそも範囲内にいない場合は
+        if (cutPositionMs !in request.timeRange) return
+
+        // 分割したいアイテム
+        val targetItem = getRenderItem(request.id)!!
+
+        // 2つに分けるので、表示する時間も2つにする
+        val displayTimeA = targetItem.displayTime.copy(
+            startMs = targetItem.displayTime.startMs,
+            stopMs = cutPositionMs
+        )
+        val displayTimeB = targetItem.displayTime.copy(
+            startMs = cutPositionMs,
+            stopMs = targetItem.displayTime.stopMs
+        )
+
+        fun processTextOrImage() {
+            // テキストと画像はそのまま2つに分ければいい
+            val (newA, newB) = listOf(displayTimeA, displayTimeB)
+                .mapNotNull { displayTime ->
+                    when (targetItem) {
+                        // TODO ユニークなIDを払い出す何か。currentTimeMillis をループの中で使うと同じの来そうで怖い
+                        is RenderData.CanvasItem.Image -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                        is RenderData.CanvasItem.Text -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                        else -> null
+                    }
+                }
+            addOrUpdateCanvasRenderItem(newA)
+            addOrUpdateCanvasRenderItem(newB)
+        }
+
+        fun processAudioOrVideo() {
+            // 音声と映像の場合は再生位置の調整が必要なので分岐しています、、、！
+            // todo 続き
+        }
+
+        // テキストと画像。音声と映像ではやるべきことが違うので
+        when (targetItem) {
+            is RenderData.CanvasItem.Image -> processTextOrImage()
+            is RenderData.CanvasItem.Text -> processTextOrImage()
+            is RenderData.AudioItem.Audio -> processAudioOrVideo()
+            is RenderData.CanvasItem.Video -> processAudioOrVideo()
         }
     }
 

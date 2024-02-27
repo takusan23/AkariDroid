@@ -100,7 +100,7 @@ fun TimeLine(
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
-    onCut: (TimeLineData.Item) -> Unit
+    onCut: (TimeLineData.Item) -> Unit // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
 ) {
     // 一番遅い時間
     val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }

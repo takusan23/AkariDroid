@@ -55,7 +55,7 @@ data class RenderData(
         /** テキスト */
         @Serializable
         data class Text(
-            override val id: Long = System.currentTimeMillis(),
+            override val id: Long = System.currentTimeMillis(), // TODO UnixTime ぽいのを入れているが、全然時間以外のも入って来ていい
             override val position: Position,
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
@@ -84,7 +84,7 @@ data class RenderData(
             override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size,
-            val cropTime: TimeCrop? = null,
+            val positionOffset: PositionOffset? = null,
             val chromaKeyColor: Int? = null
         ) : CanvasItem
     }
@@ -99,7 +99,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
-            val cropTime: TimeCrop? = null,
+            val positionOffset: PositionOffset? = null,
             val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
 
@@ -158,18 +158,18 @@ data class RenderData(
     }
 
     /**
-     * カットできる素材の場合（一部分のみを使う）
-     * [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.RenderItem.Video]と[AudioItem]くらい？
+     * 再生位置のオフセット。
+     * 動画トラックと、音声トラックは分割できて、途中の再生から使うとかあるので。その値。
+     *
+     * [DisplayTime]とは違う。
+     * [DisplayTime]は表示すべき位置です。
+     * [PositionOffset]は[DisplayTime]で表示することになった際に、動画素材や音声素材の開始、終了位置の調整に使われます。
+     *
+     * [DisplayTime]で2秒表示するけど、表示する動画は5秒から始めたい。とかの時に使います。
+     * なので、[DisplayTime.durationMs]分は存在している必要があります。それ以上[PositionOffset.offsetFirstMs]等で削ってはいけない。
+     *
+     * @param offsetFirstMs 最初からどれだけカットして利用するか
      */
     @Serializable
-    data class TimeCrop(
-        val cropStartMs: Long,
-        val cropStopMs: Long
-    ) : ClosedRange<Long> {
-        // ClosedRange<Long> を実装することで、 in が使えるようになる
-        override val start: Long
-            get() = cropStartMs
-        override val endInclusive: Long
-            get() = cropStopMs
-    }
+    data class PositionOffset(val offsetFirstMs: Long)
 }

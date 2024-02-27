@@ -29,10 +29,10 @@ class AudioItemRender(
         inputStream = decodePcmFile.inputStream()
         // 音声ファイルをカットする場合
         // 読み出し開始位置を skip して調整しておく
-        if (audioItem.cropTime != null) {
+        if (audioItem.positionOffset != null) {
             // 秒にする
             // TODO ミリ秒単位の調整には対応していない
-            val startSec = audioItem.cropTime.cropStartMs / 1_000
+            val startSec = audioItem.positionOffset.offsetFirstMs / 1_000
             val skipBytes = startSec * AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE
             inputStream?.skip(skipBytes)
         }
@@ -60,19 +60,7 @@ class AudioItemRender(
         readByteArray
     }
 
-    override fun isDisplayPosition(currentPositionMs: Long): Boolean {
-        // 範囲内にいること
-        if (currentPositionMs !in audioItem.displayTime) {
-            return false
-        }
-        val framePositionMs = currentPositionMs - audioItem.displayTime.startMs
-
-        // 動画をカットする場合で、カットした時間外の場合
-        if (audioItem.cropTime != null && framePositionMs !in audioItem.cropTime) {
-            return false
-        }
-        return true
-    }
+    override fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in audioItem.displayTime
 
     /** 破棄する */
     override fun destroy() {

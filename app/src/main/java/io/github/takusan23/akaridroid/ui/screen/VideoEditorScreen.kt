@@ -108,9 +108,7 @@ fun VideoEditorScreen(
                     .fillMaxHeight(0.5f),
                 previewBitmap = previewBitmap.value?.asImageBitmap(),
                 touchEditorData = touchEditorData.value,
-                onDragAndDropEnd = { request ->
-                    viewModel.resolveTouchEditorDragAndDropRequest(request)
-                }
+                onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) }
             )
 
             // シークバーとか
@@ -133,9 +131,7 @@ fun VideoEditorScreen(
                         viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
                     }
                 },
-                onCut = {
-                    TODO()
-                }
+                onCut = {timeLineItem-> viewModel.resolveTimeLineCutRequest(timeLineItem) }
             )
         }
     }

@@ -166,6 +166,61 @@ class CanvasRenderTest {
         testToomoMp4.delete()
     }
 
+    @Test
+    fun test_動画のRenderDataから動画を作る_オフセット付き() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // TODO あらかじめ app/src/androidTest/res/raw/test_toomo.mp4 ファイルを置いておく
+        // File しか受け付けないのでとりあえずコピー
+        val testToomoMp4 = createFile("test_toomo").also { testToomoMp4 ->
+            testToomoMp4.outputStream().use { outputStream ->
+                context.resources
+                    .openRawResource(io.github.takusan23.akaridroid.test.R.raw.test_toomo)
+                    .copyTo(outputStream)
+            }
+        }
+        encode(
+            testName = "test_動画のRenderDataから動画を作る",
+            durationMs = 10_000,
+            canvasRender = CanvasRender(targetContext).apply {
+                setRenderData(
+                    canvasRenderItem = listOf(
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(640, 360)
+                        ),
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(4_000, 10_000),
+                            position = RenderData.Position(640f, 0f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(640, 360),
+                            positionOffset = RenderData.PositionOffset(4_000) // 4秒 スキップ
+                        ),
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(8_000, 10_000),
+                            position = RenderData.Position(0f, 360f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(640, 360),
+                            positionOffset = RenderData.PositionOffset(8_000) // 8秒 スキップ
+                        ),
+                        RenderData.CanvasItem.Text(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(640f, 500f),
+                            layerIndex = 0,
+                            text = "こんにちは",
+                            fontColor = "#ffffff",
+                            textSize = 100f
+                        )
+                    )
+                )
+            }
+        )
+        testToomoMp4.delete()
+    }
+
     /** [CanvasRender]を渡したらエンコードして動画フォルダに保存してくれるやつ */
     private suspend fun encode(
         testName: String,
