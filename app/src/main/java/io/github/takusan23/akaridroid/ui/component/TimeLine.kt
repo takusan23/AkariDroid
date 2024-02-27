@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,7 +94,9 @@ fun TimeLine(
             TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
         )
     ),
+    currentPositionMs: Long,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
+    onSeek: (positionMs: Long) -> Unit,
     onClick: (TimeLineData.Item) -> Unit = {}
 ) {
     // 一番遅い時間
@@ -108,10 +109,6 @@ fun TimeLine(
     // はみ出しているタイムラインの LayoutCoordinates
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // 再生位置
-    // タイムラインの再生位置を出すための赤い棒
-    val currentPositionMs = remember { mutableLongStateOf(0) }
 
     Box(
         modifier = modifier
@@ -127,7 +124,7 @@ fun TimeLine(
                 .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it }
                 // 再生位置の移動。タイムラインの棒を移動させる
                 .pointerInput(Unit) {
-                    detectTapGestures { currentPositionMs.longValue = it.x.toInt().widthToMs }
+                    detectTapGestures { onSeek(it.x.toInt().widthToMs) }
                 },
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
@@ -184,7 +181,7 @@ fun TimeLine(
         TimeLineCurrentPositionBar(
             modifier = Modifier
                 .height(with(LocalDensity.current) { (timelineScrollableAreaCoordinates.value?.size?.height ?: 0).toDp() }),
-            currentPositionMs = currentPositionMs.longValue
+            currentPositionMs = currentPositionMs
         )
     }
 }

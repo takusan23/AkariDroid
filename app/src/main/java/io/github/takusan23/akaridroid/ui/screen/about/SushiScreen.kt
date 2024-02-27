@@ -9,6 +9,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ private const val SUSHI_EMOJI = "\uD83C\uDF63"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutSushiScreen(onBack: () -> Unit) {
+    val currentPosition = remember { mutableLongStateOf(0) }
     val sushiData = remember {
         mutableStateOf(
             TimeLineData(
@@ -57,6 +59,8 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                 .padding(it)
                 .fillMaxSize(),
             timeLineData = sushiData.value,
+            currentPositionMs = currentPosition.longValue,
+            onSeek = { positionMs -> currentPosition.longValue = positionMs },
             onDragAndDropRequest = { request ->
                 // 位置更新のみ、入るかの判定はしていない。
                 sushiData.value = sushiData.value.copy(
