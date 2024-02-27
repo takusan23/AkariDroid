@@ -13,7 +13,7 @@ fun AkariDroidMainScreen() {
     // 画面遷移
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = NavigationPaths.VideoEditor.path) {
+    NavHost(navController = navController, startDestination = NavigationPaths.SushiScreen.path) {
         composable(NavigationPaths.VideoEditor.path) {
             VideoEditorScreen(
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }

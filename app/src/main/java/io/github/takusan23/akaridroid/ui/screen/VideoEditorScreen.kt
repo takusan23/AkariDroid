@@ -128,10 +128,13 @@ fun VideoEditorScreen(
                 currentPositionMs = previewPlayerStatus.value.currentPositionMs,
                 onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
                 onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
-                onClick = { timeLineItem ->
+                onEdit = { timeLineItem ->
                     viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
                         viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
                     }
+                },
+                onCut = {
+                    TODO()
                 }
             )
         }

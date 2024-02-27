@@ -19,6 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -97,7 +99,8 @@ fun TimeLine(
     currentPositionMs: Long,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit,
-    onClick: (TimeLineData.Item) -> Unit = {}
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit
 ) {
     // 一番遅い時間
     val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }
@@ -149,7 +152,8 @@ fun TimeLine(
                             },
                         laneIndex = laneIndex,
                         laneItemList = itemList,
-                        onClick = onClick,
+                        onEdit = onEdit,
+                        onCut = onCut,
                         timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
                         onDragAndDropRequest = {
                             val (id, start, stop) = it
@@ -178,11 +182,13 @@ fun TimeLine(
 
         // タイムラインの縦の棒
         // タイムラインに重ねて使う
-        TimeLineCurrentPositionBar(
-            modifier = Modifier
-                .height(with(LocalDensity.current) { (timelineScrollableAreaCoordinates.value?.size?.height ?: 0).toDp() }),
-            currentPositionMs = currentPositionMs
-        )
+        if (timelineScrollableAreaCoordinates.value != null) {
+            TimeLineCurrentPositionBar(
+                modifier = Modifier
+                    .height(with(LocalDensity.current) { timelineScrollableAreaCoordinates.value!!.size.height.toDp() }),
+                currentPositionMs = currentPositionMs
+            )
+        }
     }
 }
 
@@ -198,6 +204,8 @@ fun TimeLine(
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest [TimeLineItemComponentDragAndDropData]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
  * @param onClick 押したときに呼ばれる
+ * @param onEdit メニューで値の編集を押した
+ * @param onCut メニューで分割を押した
  */
 @Composable
 private fun TimeLineLane(
@@ -206,7 +214,8 @@ private fun TimeLineLane(
     laneIndex: Int,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
-    onClick: (TimeLineData.Item) -> Unit
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit
 ) {
     Box(modifier = modifier) {
 
@@ -225,7 +234,8 @@ private fun TimeLineLane(
                 timeLineItemData = timeLineItemData,
                 onDragAndDropRequest = onDragAndDropRequest,
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
-                onClick = { onClick(timeLineItemData) }
+                onEdit = { onEdit(timeLineItemData) },
+                onCut = { onCut(timeLineItemData) }
             )
         }
     }
@@ -239,6 +249,8 @@ private fun TimeLineLane(
  * @param timeLineItemData タイムラインのデータ[TimeLineData.Item]
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineItemComponentDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
+ * @param onEdit メニューで値の編集を押した
+ * @param onCut メニューで分割を押した
  */
 @Composable
 private fun TimeLineItem(
@@ -246,7 +258,8 @@ private fun TimeLineItem(
     timeLineItemData: TimeLineData.Item,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
-    onClick: () -> Unit
+    onEdit: () -> Unit,
+    onCut: () -> Unit
 ) {
     // アイテムが移動中かどうか
     val isDragging = remember { mutableStateOf(false) }
@@ -254,6 +267,8 @@ private fun TimeLineItem(
     val latestGlobalRect = remember { mutableStateOf<IntRect?>(null) }
     // アイテムの移動中位置。アイテムが変化したら作り直す
     val draggingOffset = remember(timeLineItemData) { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
+    // メニューを表示するか
+    val isVisibleMenu = remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier
@@ -312,7 +327,7 @@ private fun TimeLineItem(
             },
         shape = RoundedCornerShape(5.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
-        onClick = onClick
+        onClick = { isVisibleMenu.value = true }
     ) {
         Row(
             modifier = Modifier.padding(5.dp),
@@ -328,6 +343,54 @@ private fun TimeLineItem(
                 maxLines = 1
             )
         }
+
+        // ドロップダウンメニュー
+        // ボトムシートを出すとか
+        TimeLineItemContextMenu(
+            isVisibleMenu = isVisibleMenu.value,
+            onDismissRequest = { isVisibleMenu.value = false },
+            onEdit = onEdit,
+            onCut = onCut
+        )
+    }
+}
+
+/**
+ * アイテムを押したときのメニューです。
+ * 値の編集、この位置で分割など。
+ *
+ * @param isVisibleMenu 表示する場合は true
+ * @param onDismissRequest 非表示にして欲しいときに呼ばれる
+ * @param onEdit 値の編集を押した
+ * @param onCut 分割を押した
+ */
+@Composable
+private fun TimeLineItemContextMenu(
+    isVisibleMenu: Boolean,
+    onDismissRequest: () -> Unit,
+    onEdit: () -> Unit,
+    onCut: () -> Unit
+) {
+    DropdownMenu(
+        expanded = isVisibleMenu,
+        onDismissRequest = onDismissRequest
+    ) {
+        DropdownMenuItem(
+            text = { Text("値の編集") },
+            onClick = {
+                onEdit()
+                onDismissRequest()
+            },
+            leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_edit_24px), contentDescription = null) }
+        )
+        DropdownMenuItem(
+            text = { Text("この位置で分割する") },
+            onClick = {
+                onCut()
+                onDismissRequest()
+            },
+            leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_cut_24px), contentDescription = null) }
+        )
     }
 }
 

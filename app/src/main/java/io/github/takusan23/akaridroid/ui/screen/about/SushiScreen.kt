@@ -1,6 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen.about
 
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
@@ -24,7 +25,9 @@ private const val SUSHI_EMOJI = "\uD83C\uDF63"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutSushiScreen(onBack: () -> Unit) {
-    val currentPosition = remember { mutableLongStateOf(0) }
+    val currentPositionMs = remember { mutableLongStateOf(0) }
+    val editItem = remember { mutableStateOf<TimeLineData.Item?>(null) }
+
     val sushiData = remember {
         mutableStateOf(
             TimeLineData(
@@ -54,28 +57,46 @@ fun AboutSushiScreen(onBack: () -> Unit) {
             )
         }
     ) {
-        TimeLine(
-            modifier = Modifier
-                .padding(it)
-                .fillMaxSize(),
-            timeLineData = sushiData.value,
-            currentPositionMs = currentPosition.longValue,
-            onSeek = { positionMs -> currentPosition.longValue = positionMs },
-            onDragAndDropRequest = { request ->
-                // 位置更新のみ、入るかの判定はしていない。
-                sushiData.value = sushiData.value.copy(
-                    itemList = sushiData.value.itemList.map { sushi ->
-                        if (sushi.id == request.id) {
-                            sushi.copy(
-                                laneIndex = request.dragAndDroppedLaneIndex,
-                                startMs = request.dragAndDroppedStartMs,
-                                stopMs = request.dragAndDroppedStartMs + (sushi.stopMs - sushi.startMs)
-                            )
-                        } else sushi
-                    }
-                )
-                true
-            }
-        )
+        Column(modifier = Modifier.padding(it)) {
+            TimeLine(
+                modifier = Modifier.weight(1f),
+                timeLineData = sushiData.value,
+                currentPositionMs = currentPositionMs.longValue,
+                onSeek = { positionMs -> currentPositionMs.longValue = positionMs },
+                onDragAndDropRequest = { request ->
+                    // 位置更新のみ、入るかの判定はしていない。
+                    sushiData.value = sushiData.value.copy(
+                        itemList = sushiData.value.itemList.map { sushi ->
+                            if (sushi.id == request.id) {
+                                sushi.copy(
+                                    laneIndex = request.dragAndDroppedLaneIndex,
+                                    startMs = request.dragAndDroppedStartMs,
+                                    stopMs = request.dragAndDroppedStartMs + (sushi.stopMs - sushi.startMs)
+                                )
+                            } else sushi
+                        }
+                    )
+                    true
+                },
+                onCut = { cutItem ->
+                    // 分割する前に、シーク位置が重なっているか
+                    if (currentPositionMs.longValue !in cutItem.timeRange) return@TimeLine
+                    // 分割するので2つ作る
+                    val id = cutItem.id
+                    // ID 被らんように
+                    val a = cutItem.copy(id = id * 100, stopMs = currentPositionMs.longValue)
+                    val b = cutItem.copy(id = id * 1000, startMs = currentPositionMs.longValue)
+                    // 元のアイテムは消して、入れる
+                    sushiData.value = sushiData.value.copy(
+                        itemList = sushiData.value.itemList.filter { it.id != id } + listOf(a, b)
+                    )
+                },
+                onEdit = { editItem.value = it }
+            )
+            Text(
+                modifier = Modifier.padding(10.dp),
+                text = editItem.value.toString()
+            )
+        }
     }
 }
