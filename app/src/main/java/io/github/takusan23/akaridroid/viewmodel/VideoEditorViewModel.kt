@@ -159,38 +159,34 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // タッチ編集の更新
         viewModelScope.launch {
-
-            fun createVisibleTouchEditorItemList() = renderData.value.canvasRenderItem
-                .filter { videoEditorPreviewPlayer.playerStatus.value.currentPositionMs in it.displayTime }
-                .map { canvasItem ->
-                    val measure = canvasItem.measureSize()
-                    TouchEditorData.TouchEditorItem(
-                        id = canvasItem.id,
-                        size = measure,
-                        position = if (canvasItem is RenderData.CanvasItem.Text) {
-                            canvasItem.position.copy(y = canvasItem.position.y - measure.height)
-                        } else {
-                            canvasItem.position
-                        }
-                    )
-                }
-
-            // 時間が変化したら
-            val triggerPreviewPosition = videoEditorPreviewPlayer.playerStatus
+            // 時間が変化したらタッチ編集の方も更新。
+            // あ、あと素材が変化したときも
+            videoEditorPreviewPlayer.playerStatus
                 .map { it.currentPositionMs }
-                .distinctUntilChanged()
-                .map { createVisibleTouchEditorItemList() }
-            // 素材が変化したら
-            val triggerCanvasItem = renderData
-                .map { it.canvasRenderItem }
-                .distinctUntilChanged()
-                .map { createVisibleTouchEditorItemList() }
-            // 2箇所をトリガーに更新する
-            combine(triggerPreviewPosition, triggerCanvasItem) { a, b -> a + b }
-                .collect { visibleTouchEditorItem ->
-                    _touchEditorData.update {
-                        it.copy(visibleTouchEditorItemList = visibleTouchEditorItem)
-                    }
+                // 時間が変化したら、↓ の Flow 収集をキャンセルしてやり直すため collectLatest
+                .collectLatest { currentPositionMs ->
+                    renderData
+                        .map { it.canvasRenderItem }
+                        .map { canvasRenderItem -> canvasRenderItem.filter { currentPositionMs in it.displayTime } }
+                        .map { canvasRenderItem ->
+                            canvasRenderItem.map { canvasItem ->
+                                val measure = canvasItem.measureSize()
+                                TouchEditorData.TouchEditorItem(
+                                    id = canvasItem.id,
+                                    size = measure,
+                                    position = if (canvasItem is RenderData.CanvasItem.Text) {
+                                        canvasItem.position.copy(y = canvasItem.position.y - measure.height)
+                                    } else {
+                                        canvasItem.position
+                                    }
+                                )
+                            }
+                        }
+                        .collect { visibleTouchEditorItemList ->
+                            _touchEditorData.update {
+                                it.copy(visibleTouchEditorItemList = visibleTouchEditorItemList)
+                            }
+                        }
                 }
         }
     }
