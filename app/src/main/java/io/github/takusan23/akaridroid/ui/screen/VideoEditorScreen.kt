@@ -131,7 +131,8 @@ fun VideoEditorScreen(
                         viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
                     }
                 },
-                onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) }
+                onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
+                onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) }
             )
         }
     }

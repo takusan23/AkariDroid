@@ -100,7 +100,8 @@ fun TimeLine(
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
-    onCut: (TimeLineData.Item) -> Unit // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
+    onCut: (TimeLineData.Item) -> Unit, // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
+    onDelete: (TimeLineData.Item) -> Unit
 ) {
     // 一番遅い時間
     val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }
@@ -154,6 +155,7 @@ fun TimeLine(
                         laneItemList = itemList,
                         onEdit = onEdit,
                         onCut = onCut,
+                        onDelete = onDelete,
                         timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
                         onDragAndDropRequest = {
                             val (id, start, stop) = it
@@ -206,6 +208,7 @@ fun TimeLine(
  * @param onClick 押したときに呼ばれる
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
+ * @param onDelete メニューで削除を押した
  */
 @Composable
 private fun TimeLineLane(
@@ -215,7 +218,8 @@ private fun TimeLineLane(
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: (TimeLineData.Item) -> Unit,
-    onCut: (TimeLineData.Item) -> Unit
+    onCut: (TimeLineData.Item) -> Unit,
+    onDelete: (TimeLineData.Item) -> Unit
 ) {
     Box(modifier = modifier) {
 
@@ -235,7 +239,8 @@ private fun TimeLineLane(
                 onDragAndDropRequest = onDragAndDropRequest,
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                 onEdit = { onEdit(timeLineItemData) },
-                onCut = { onCut(timeLineItemData) }
+                onCut = { onCut(timeLineItemData) },
+                onDelete = { onDelete(timeLineItemData) }
             )
         }
     }
@@ -251,6 +256,7 @@ private fun TimeLineLane(
  * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineItemComponentDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
+ * @param onDelete 削除を押した
  */
 @Composable
 private fun TimeLineItem(
@@ -259,7 +265,8 @@ private fun TimeLineItem(
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: () -> Unit,
-    onCut: () -> Unit
+    onCut: () -> Unit,
+    onDelete: () -> Unit
 ) {
     // アイテムが移動中かどうか
     val isDragging = remember { mutableStateOf(false) }
@@ -350,7 +357,8 @@ private fun TimeLineItem(
             isVisibleMenu = isVisibleMenu.value,
             onDismissRequest = { isVisibleMenu.value = false },
             onEdit = onEdit,
-            onCut = onCut
+            onCut = onCut,
+            onDelete = onDelete
         )
     }
 }
@@ -363,13 +371,15 @@ private fun TimeLineItem(
  * @param onDismissRequest 非表示にして欲しいときに呼ばれる
  * @param onEdit 値の編集を押した
  * @param onCut 分割を押した
+ * @param onDelete 削除を押した
  */
 @Composable
 private fun TimeLineItemContextMenu(
     isVisibleMenu: Boolean,
     onDismissRequest: () -> Unit,
     onEdit: () -> Unit,
-    onCut: () -> Unit
+    onCut: () -> Unit,
+    onDelete: () -> Unit
 ) {
     DropdownMenu(
         expanded = isVisibleMenu,
@@ -394,7 +404,7 @@ private fun TimeLineItemContextMenu(
         DropdownMenuItem(
             text = { Text("削除") },
             onClick = {
-                // todo あしたやる
+                onDelete()
                 onDismissRequest()
             },
             leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_delete_24px), contentDescription = null) }

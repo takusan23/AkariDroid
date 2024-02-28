@@ -91,7 +91,14 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                         itemList = sushiData.value.itemList.filter { it.id != id } + listOf(a, b)
                     )
                 },
-                onEdit = { editItem.value = it }
+                onEdit = {
+                    editItem.value = it
+                },
+                onDelete = { deleteItem ->
+                    sushiData.value = sushiData.value.copy(
+                        itemList = sushiData.value.itemList.filter { it.id != deleteItem.id }
+                    )
+                }
             )
             Text(
                 modifier = Modifier.padding(10.dp),

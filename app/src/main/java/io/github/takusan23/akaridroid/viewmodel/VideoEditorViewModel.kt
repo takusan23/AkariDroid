@@ -459,6 +459,16 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             .forEach { addOrUpdateAudioRenderItem(it) }
     }
 
+    /**
+     * タイムラインのアイテムを削除する
+     *
+     * @param id 削除したいアイテムのID。[RenderData.RenderItem.id]
+     */
+    fun deleteTimeLineItem(id: Long) {
+        val deleteItem = getRenderItem(id) ?: return
+        deleteRenderItem(deleteItem)
+    }
+
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */
     fun getRenderItem(id: Long): RenderData.RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
         .firstOrNull { it.id == id }
