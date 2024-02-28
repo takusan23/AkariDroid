@@ -9,6 +9,7 @@ import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +52,9 @@ class VideoEditorPreviewPlayer(
             isPrepareCompleteCanvas = true
         )
     )
+
+    /** [playInSingle]を複数回呼び出した時にキャンセルできるように */
+    private var playInSingleJob: Job? = null
 
     /** プレビュープレイヤーのプレイヤー状態 Flow */
     val playerStatus = _playerStatus.asStateFlow()
@@ -103,10 +107,15 @@ class VideoEditorPreviewPlayer(
     /** 現在位置のプレビューを更新する。更新は一回だけ */
     fun playInSingle() {
         playerScope.launch {
-            val (_, currentPosition, videoDuration) = _playerStatus.first()
-            setProgress(ProgressType.CANVAS) {
-                bitmapCanvasController.update { canvas ->
-                    canvasRender.draw(canvas, videoDuration, currentPosition)
+            // 既にプレビュー進行中ならキャンセル
+            playInSingleJob?.cancelAndJoin()
+
+            playInSingleJob = launch {
+                val (_, currentPosition, videoDuration) = _playerStatus.first()
+                setProgress(ProgressType.CANVAS) {
+                    bitmapCanvasController.update { canvas ->
+                        canvasRender.draw(canvas, videoDuration, currentPosition)
+                    }
                 }
             }
         }

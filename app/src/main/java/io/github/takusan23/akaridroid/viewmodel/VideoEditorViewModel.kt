@@ -426,23 +426,21 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 音声と映像の場合は再生位置の調整が必要なので分岐しています、、、！
         fun processAudioOrVideo(): List<RenderData.RenderItem> {
-            // あと、PositionOffset 付きのを分割する可能性もあるので、考慮する
-            val targetOffsetFirstMsOrZero = when (targetItem) {
+            // すでに DisplayOffset 持っていれば考慮（分割したアイテムをさらに分割）
+            val targetOffsetFirstMs = when (targetItem) {
                 is RenderData.AudioItem.Audio -> targetItem.displayOffset
                 is RenderData.CanvasItem.Video -> targetItem.displayOffset
                 is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> null
-            }?.offsetFirstMs ?: 0
+            }?.offsetFirstMs!!
             // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
-            val cutPositionMsInTargetItem = cutPositionMs - targetItem.displayTime.startMs
-            val displayOffsetA = RenderData.DisplayOffset(targetOffsetFirstMsOrZero)
-            val displayOffsetB = RenderData.DisplayOffset(cutPositionMsInTargetItem - targetOffsetFirstMsOrZero)
+            val displayOffsetA = RenderData.DisplayOffset(targetOffsetFirstMs)
+            val displayOffsetB = RenderData.DisplayOffset(offsetFirstMs = targetOffsetFirstMs + (displayTimeB.startMs - displayTimeA.startMs))
             return listOf(
                 displayTimeA to displayOffsetA,
                 displayTimeB to displayOffsetB
             ).mapNotNull { (displayTime, displayOffset) ->
                 when (targetItem) {
-                    is RenderData.CanvasItem.Image -> null
-                    is RenderData.CanvasItem.Text -> null
+                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> null
                     is RenderData.AudioItem.Audio -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                     is RenderData.CanvasItem.Video -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                 }

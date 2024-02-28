@@ -23,19 +23,16 @@ class AudioItemRender(
 
     private var inputStream: FileInputStream? = null
 
-    override suspend fun prepareRead() = withContext(Dispatchers.IO) {
+    override suspend fun prepareRead(): Unit = withContext(Dispatchers.IO) {
         // InputStream を開く
         inputStream?.close()
         inputStream = decodePcmFile.inputStream()
         // 音声ファイルをカットする場合
         // 読み出し開始位置を skip して調整しておく
-        if (audioItem.displayOffset != null) {
-            // 秒にする
-            // TODO ミリ秒単位の調整には対応していない
-            val startSec = audioItem.displayOffset.offsetFirstMs / 1_000
-            val skipBytes = startSec * AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE
-            inputStream?.skip(skipBytes)
-        }
+        // TODO ミリ秒単位の調整には対応していない
+        val startSec = audioItem.displayOffset.offsetFirstMs / 1_000
+        val skipBytes = startSec * AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE
+        inputStream?.skip(skipBytes)
     }
 
     override suspend fun readPcmData(readSize: Int): ByteArray = withContext(Dispatchers.IO) {

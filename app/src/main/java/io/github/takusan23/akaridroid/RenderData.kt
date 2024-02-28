@@ -84,7 +84,7 @@ data class RenderData(
             override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size,
-            val displayOffset: DisplayOffset? = null, // TODO nullable めんどい。DisplayOffset(0) 初期値にしたい
+            val displayOffset: DisplayOffset = DisplayOffset(0),
             val chromaKeyColor: Int? = null
         ) : CanvasItem
     }
@@ -99,7 +99,7 @@ data class RenderData(
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
-            val displayOffset: DisplayOffset? = null,
+            val displayOffset: DisplayOffset = DisplayOffset(0),
             val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
 
