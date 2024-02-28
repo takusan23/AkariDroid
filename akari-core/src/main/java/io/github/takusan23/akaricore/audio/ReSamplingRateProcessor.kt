@@ -39,8 +39,8 @@ object ReSamplingRateProcessor {
         sonic.chordPitch = false
         sonic.quality = 0
 
-        input.inputStream().use { inputStream ->
-            output.outputStream().use { outputStream ->
+        input.inputStream().buffered().use { inputStream ->
+            output.outputStream().buffered().use { outputStream ->
 
                 do {
                     numRead = inputStream.read(inByteArray, 0, BUFFER_SIZE)

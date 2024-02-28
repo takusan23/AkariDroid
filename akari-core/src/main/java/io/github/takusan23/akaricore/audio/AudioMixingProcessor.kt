@@ -27,7 +27,7 @@ object AudioMixingProcessor {
         // 音声を合成する
 
         // 出力先ファイルの OutputStream
-        output.outputStream().use { outputStream ->
+        output.outputStream().buffered().use { outputStream ->
 
             // 音を重ねていく
             // サンプリングレートの分だけ
@@ -38,16 +38,8 @@ object AudioMixingProcessor {
                 // 合成対象の ByteArray たち
                 // 毎秒取り出す
                 val byteArrayList = onMixingByteArrays(sec, AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
-
-                // 結果をいれる
-                // 音声の合成が終わった後に毎回書き込んでいると遅い？
-                // 書き込み回数を減らせば早くなるかもしれないので
-                val resultByteArray = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
-
                 // ByteArray 読み出し位置
                 var pcmReadPosition = 0
-                // resultByteArray 書き込み位置
-                var resultByteArrayWritePosition = 0
 
                 repeat(AkariCoreAudioProperties.SAMPLING_RATE) {
                     // それぞれの配列から同じ位置のデータを取り出す
@@ -74,17 +66,13 @@ object AudioMixingProcessor {
                     val leftByteArray = min(Short.MAX_VALUE.toInt(), leftSum).toShort().toByteArray()
                     val rightByteArray = min(Short.MAX_VALUE.toInt(), rightSum).toShort().toByteArray()
 
-                    resultByteArray[resultByteArrayWritePosition++] = leftByteArray[0]
-                    resultByteArray[resultByteArrayWritePosition++] = leftByteArray[1]
-                    resultByteArray[resultByteArrayWritePosition++] = rightByteArray[0]
-                    resultByteArray[resultByteArrayWritePosition++] = rightByteArray[1]
+                    // 書き込む
+                    outputStream.write(leftByteArray)
+                    outputStream.write(rightByteArray)
 
                     // 2バイト、2チャンネル分読み出したので次に行く
                     pcmReadPosition += AkariCoreAudioProperties.BIT_DEPTH * AkariCoreAudioProperties.CHANNEL_COUNT
                 }
-
-                // 1秒間のデータが出来てからまとめて書き込む
-                outputStream.write(resultByteArray)
             }
         }
     }

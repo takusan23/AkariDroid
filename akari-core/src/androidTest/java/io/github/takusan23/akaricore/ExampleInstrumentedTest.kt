@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.audio.AudioMixingProcessor
+import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
 import io.github.takusan23.akaricore.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.audio.SilenceAudioProcessor
@@ -34,7 +35,6 @@ class ExampleInstrumentedTest {
 
     // 各テストの保存先は /storage/emulated/0/Android/data/io.github.takusan23.akari_core.test/files
 
-    @Suppress("Since15")
     @Test
     fun test_音声を合成できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         // Context of the app under test.
@@ -68,9 +68,11 @@ class ExampleInstrumentedTest {
                 output = outPcm.toAkariCoreInputOutputData(),
                 durationMs = 10_000,
                 onMixingByteArrays = { position, byteArraySize ->
-                    val videoAudio = videoOutputStream.readNBytes(byteArraySize)
-                    val bgmAudio = bgmOutputStream.readNBytes(byteArraySize)
-                    listOf(videoAudio, bgmAudio)
+                    val videoByteArray = ByteArray(byteArraySize)
+                    val bgmByteArray = ByteArray(byteArraySize)
+                    videoOutputStream.read(videoByteArray)
+                    bgmOutputStream.read(bgmByteArray)
+                    listOf(videoByteArray, bgmByteArray)
                 }
             )
 
@@ -168,7 +170,7 @@ class ExampleInstrumentedTest {
             // デコード
             AudioEncodeDecodeProcessor.decode(
                 input = bgmFile.toAkariCoreInputOutputData(),
-                output = pcmFile.toAkariCoreInputOutputData()
+                output = pcmFile.toAkariCoreInputOutputData(),
             )
             // アップサンプリング
             ReSamplingRateProcessor.reSamplingBySonic(
@@ -213,6 +215,37 @@ class ExampleInstrumentedTest {
             AudioEncodeDecodeProcessor.encode(
                 input = applyVolumePcmFile.toAkariCoreInputOutputData(),
                 output = resultFile.toAkariCoreInputOutputData()
+            )
+        }
+    }
+
+    @Test
+    fun test_モノラル音声をステレオ音声にできる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_モノラル音声をステレオ音声にできる_${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        val bgmFile = sampleVideoFolder.resolve("voice.wav")
+
+        provideTempFolder { tempFolder ->
+            val pcmFile = tempFolder.resolve("pcm_file")
+            val stereoPcmFile = tempFolder.resolve("stereo_pcm_file")
+
+            // デコード
+            AudioEncodeDecodeProcessor.decode(
+                input = bgmFile.toAkariCoreInputOutputData(),
+                output = pcmFile.toAkariCoreInputOutputData(),
+            )
+            // チャンネル数を増やす
+            AudioMonoToStereoProcessor.start(
+                input = pcmFile.toAkariCoreInputOutputData(),
+                output = stereoPcmFile.toAkariCoreInputOutputData()
+            )
+            // エンコード
+            AudioEncodeDecodeProcessor.encode(
+                input = stereoPcmFile.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData(),
+                channelCount = 2,
+                samplingRate = 8_000
             )
         }
     }

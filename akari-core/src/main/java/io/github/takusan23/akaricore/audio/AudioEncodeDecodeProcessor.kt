@@ -36,7 +36,7 @@ object AudioEncodeDecodeProcessor {
         val audioDecoder = AudioDecoder().apply {
             prepareDecoder(format)
         }
-        output.outputStream().use { outputStream ->
+        output.outputStream().buffered().use { outputStream ->
             audioDecoder.startAudioDecode(
                 readSampleData = { byteBuffer ->
                     val size = mediaExtractor.readSampleData(byteBuffer, 0)
@@ -84,7 +84,7 @@ object AudioEncodeDecodeProcessor {
                 bitRate = bitRate
             )
         }
-        input.inputStream().use { inputStream ->
+        input.inputStream().buffered().use { inputStream ->
             audioEncoder.startAudioEncode(
                 onRecordInput = { byteArray -> inputStream.read(byteArray) },
                 onOutputBufferAvailable = { byteBuffer, bufferInfo ->

@@ -23,7 +23,7 @@ object AudioVolumeProcessor {
         val leftByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
         val rightByteArray = ByteArray(AkariCoreAudioProperties.BIT_DEPTH)
         input.inputStream().buffered().use { inputStream ->
-            output.outputStream().use { outputStream ->
+            output.outputStream().buffered().use { outputStream ->
                 while (isActive) {
                     if (inputStream.available() == 0) break
 

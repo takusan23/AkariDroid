@@ -4,7 +4,10 @@ import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** 無音の音声ファイルを作成する */
+/**
+ * 無音の音声ファイルを作成する
+ * TODO 使ってないので消したい
+ */
 object SilenceAudioProcessor {
 
     /**
@@ -31,7 +34,7 @@ object SilenceAudioProcessor {
         // TODO メモリにPCMデータを載せておくのはもったいないことしてるかもしれない
         val second = (durationMs / 1_000f).toInt()
         val pcmByteSize = channelCount * bitDepth * samplingRate
-        output.outputStream().use { outputStream ->
+        output.outputStream().buffered().use { outputStream ->
             repeat(second) {
                 outputStream.write(ByteArray(pcmByteSize))
             }
