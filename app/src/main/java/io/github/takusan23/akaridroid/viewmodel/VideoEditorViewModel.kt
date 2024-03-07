@@ -137,6 +137,11 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                     is RenderData.CanvasItem.Image -> R.drawable.ic_outline_add_photo_alternate_24px
                                     is RenderData.CanvasItem.Text -> R.drawable.ic_outline_text_fields_24
                                     is RenderData.CanvasItem.Video -> R.drawable.ic_outline_video_file_24
+                                },
+                                // 動画以外は表示時間変更がタイムラインできるよう（動画と音声は面倒そう）
+                                isChangeDuration = when (renderItem) {
+                                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> true
+                                    is RenderData.CanvasItem.Video -> false
                                 }
                             )
                         }
@@ -150,7 +155,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                 startMs = audioItem.displayTime.startMs,
                                 stopMs = audioItem.displayTime.stopMs,
                                 label = "音声",
-                                iconResId = R.drawable.ic_outline_audiotrack_24
+                                iconResId = R.drawable.ic_outline_audiotrack_24,
+                                isChangeDuration = false
                             )
                         }
                     // 入れる
@@ -468,6 +474,23 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     fun deleteTimeLineItem(id: Long) {
         val deleteItem = getRenderItem(id) ?: return
         deleteRenderItem(deleteItem)
+    }
+
+    /**
+     * タイムラインから来た、長さ調整リクエストをさばく
+     *
+     * @param request 長さ調整したいアイテムの [TimeLineData.DurationChangeRequest]
+     */
+    fun resolveTimeLineDurationChangeRequest(request: TimeLineData.DurationChangeRequest) {
+        // 長さ調整
+        // 現状映像、音声は来ないので return
+        val newDurationRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
+            is RenderData.CanvasItem.Image -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
+            is RenderData.CanvasItem.Text -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
+            is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> return
+        }
+        // 上記の通り来ないので...
+        addOrUpdateCanvasRenderItem(newDurationRenderItem)
     }
 
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */

@@ -7,7 +7,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,12 +28,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -67,6 +71,10 @@ private val Long.msToWidth: Int
 private val Int.widthToMs: Long
     get() = (this * MillisecondsWidthPx).toLong()
 
+/** 幅や位置は何 ミリ秒を表しているか */
+private val Float.widthToMs: Long
+    get() = (this * MillisecondsWidthPx).toLong()
+
 /**
  * タイムラインのアイテムが移動したときに貰えるデータ
  *
@@ -88,12 +96,12 @@ fun TimeLine(
         durationMs = 30_000,
         laneCount = 5,
         itemList = listOf(
-            TimeLineData.Item(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
-            TimeLineData.Item(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
-            TimeLineData.Item(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
-            TimeLineData.Item(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
-            TimeLineData.Item(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
-            TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24),
+            TimeLineData.Item(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
+            TimeLineData.Item(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
+            TimeLineData.Item(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
+            TimeLineData.Item(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
+            TimeLineData.Item(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
+            TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
         )
     ),
     currentPositionMs: Long,
@@ -101,7 +109,8 @@ fun TimeLine(
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit, // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
-    onDelete: (TimeLineData.Item) -> Unit
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // 一番遅い時間
     val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }
@@ -157,6 +166,7 @@ fun TimeLine(
                         onEdit = onEdit,
                         onCut = onCut,
                         onDelete = onDelete,
+                        onDurationChange = onDurationChange,
                         timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
                         onDragAndDropRequest = {
                             val (id, start, stop) = it
@@ -211,6 +221,7 @@ fun TimeLine(
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
+ * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
 private fun TimeLineLane(
@@ -222,7 +233,8 @@ private fun TimeLineLane(
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
-    onDelete: (TimeLineData.Item) -> Unit
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     Box(modifier = modifier) {
 
@@ -244,7 +256,8 @@ private fun TimeLineLane(
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                 onEdit = { onEdit(timeLineItemData) },
                 onCut = { onCut(timeLineItemData) },
-                onDelete = { onDelete(timeLineItemData) }
+                onDelete = { onDelete(timeLineItemData) },
+                onDurationChange = onDurationChange
             )
         }
     }
@@ -261,6 +274,7 @@ private fun TimeLineLane(
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete 削除を押した
+ * @param onDurationChange 長さ調整がリクエストされた。長さ調整つまみを離したら呼ばれる。
  */
 @Composable
 private fun TimeLineItem(
@@ -271,7 +285,8 @@ private fun TimeLineItem(
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: () -> Unit,
     onCut: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // アイテムが移動中かどうか
     val isDragging = remember { mutableStateOf(false) }
@@ -281,6 +296,8 @@ private fun TimeLineItem(
     val draggingOffset = remember(timeLineItemData) { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
     // メニューを表示するか
     val isVisibleMenu = remember { mutableStateOf(false) }
+    // タイムラインのアイテムの表示時間。長さ調整出来るように State で持っている。
+    val durationMs = remember(timeLineItemData) { mutableLongStateOf(timeLineItemData.durationMs) }
 
     Surface(
         modifier = modifier
@@ -293,7 +310,7 @@ private fun TimeLineItem(
                     IntOffset(timeLineItemData.startMs.msToWidth, 0)
                 }
             }
-            .width((timeLineItemData.stopMs - timeLineItemData.startMs).msToWidthDp)
+            .width(durationMs.longValue.msToWidthDp)
             .fillMaxHeight()
             .onGloballyPositioned {
                 // timeLineScrollableAreaCoordinates の理由は TimeLine() コンポーネント参照
@@ -342,11 +359,12 @@ private fun TimeLineItem(
         onClick = { isVisibleMenu.value = true }
     ) {
         Row(
-            modifier = Modifier.padding(5.dp),
+            modifier = Modifier.height(IntrinsicSize.Max),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Icon(
+                modifier = Modifier.padding(5.dp),
                 painter = painterResource(id = timeLineItemData.iconResId),
                 contentDescription = null
             )
@@ -354,6 +372,23 @@ private fun TimeLineItem(
                 text = timeLineItemData.label,
                 maxLines = 1
             )
+
+            // 長さ調整できる場合は、それ用のつまみを出す
+            if (timeLineItemData.isChangeDuration) {
+                Spacer(modifier = Modifier.weight(1f))
+                DurationChangeHandle(
+                    resetKey = timeLineItemData,
+                    onDrag = { dragAmountX -> durationMs.longValue += dragAmountX.widthToMs },
+                    onDragEnd = {
+                        onDurationChange(
+                            TimeLineData.DurationChangeRequest(
+                                id = timeLineItemData.id,
+                                newDurationMs = durationMs.longValue
+                            )
+                        )
+                    }
+                )
+            }
         }
 
         // ドロップダウンメニュー
@@ -374,7 +409,7 @@ private fun TimeLineItem(
  * 値の編集、この位置で分割など。
  *
  * @param isVisibleMenu 表示する場合は true
- * @param isEnableCut この位置で分割を出すかどうか。赤いバーがタイムラインのアイテムに重なってないのに表示されるのはあれ
+ * @param isEnableCut この位置で分割が利用できるか。赤いバーがタイムラインのアイテムに重なってないのに表示されるのはあれ
  * @param onDismissRequest 非表示にして欲しいときに呼ばれる
  * @param onEdit 値の編集を押した
  * @param onCut 分割を押した
@@ -463,4 +498,47 @@ private fun TimeLineCurrentPositionBar(
             .offset { IntOffset(currentPositionMs.msToWidth, 0) }
             .background(Color.Red)
     )
+}
+
+/**
+ * 長さ調整用のつまみ
+ *
+ * @param modifier [Modifier]
+ * @param resetKey [Modifier.pointerInput]のリセット用
+ * @param onDrag つまみ移動中に呼ばれる
+ * @param onDragEnd つまみ移動が終わったら（指を離したら）呼ばれる
+ */
+@Composable
+private fun DurationChangeHandle(
+    modifier: Modifier = Modifier,
+    resetKey: Any,
+    onDrag: (dragAmountX: Float) -> Unit,
+    onDragEnd: () -> Unit
+) {
+    Row(
+        modifier = modifier
+            .padding(horizontal = 10.dp)
+            .fillMaxHeight()
+            .pointerInput(resetKey) {
+                detectDragGestures(
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        onDrag(dragAmount.x)
+                    },
+                    onDragEnd = onDragEnd
+                )
+            },
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(2) {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = 4.dp)
+                    .fillMaxHeight()
+                    .width(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
+    }
 }

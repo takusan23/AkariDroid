@@ -132,7 +132,8 @@ fun VideoEditorScreen(
                     }
                 },
                 onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
-                onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) }
+                onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
+                onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
             )
         }
     }

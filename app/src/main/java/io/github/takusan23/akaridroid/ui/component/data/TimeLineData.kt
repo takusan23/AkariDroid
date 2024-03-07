@@ -21,6 +21,7 @@ data class TimeLineData(
      * @param stopMs 終了位置
      * @param label アイテムが何なのかの文字
      * @param iconResId アイコン。drawable リソースID
+     * @param isChangeDuration 長さ調整（表示時間変更）ができるか。true の場合はつまみが表示されます。
      */
     data class Item(
         val id: Long = System.currentTimeMillis(),
@@ -28,12 +29,17 @@ data class TimeLineData(
         val startMs: Long,
         val stopMs: Long,
         val label: String,
-        val iconResId: Int
+        val iconResId: Int,
+        val isChangeDuration: Boolean
     ) {
 
         /** 表示時間の範囲を[LongRange]にする */
         val timeRange: LongRange
             get() = this.startMs until this.stopMs
+
+        /** 表示時間を返す */
+        val durationMs: Long
+            get() = this.stopMs - this.startMs
     }
 
     /**
@@ -48,6 +54,17 @@ data class TimeLineData(
         val id: Long,
         val dragAndDroppedStartMs: Long,
         val dragAndDroppedLaneIndex: Int
+    )
+
+    /**
+     * 長さ調整をした時の情報
+     *
+     * @param id [Item.id]と同じ
+     * @param newDurationMs 長さ調整後の時間
+     */
+    data class DurationChangeRequest(
+        val id: Long,
+        val newDurationMs: Long
     )
 }
 

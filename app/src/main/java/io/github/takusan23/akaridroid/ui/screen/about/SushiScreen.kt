@@ -34,12 +34,12 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                 durationMs = 60_000,
                 laneCount = 5,
                 itemList = listOf(
-                    TimeLineData.Item(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = SUSHI_EMOJI.repeat(3), iconResId = R.drawable.ic_outline_audiotrack_24),
-                    TimeLineData.Item(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = SUSHI_EMOJI.repeat(3), iconResId = R.drawable.ic_outline_audiotrack_24),
-                    TimeLineData.Item(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24),
-                    TimeLineData.Item(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24),
-                    TimeLineData.Item(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24),
-                    TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24),
+                    TimeLineData.Item(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = SUSHI_EMOJI.repeat(3), iconResId = R.drawable.ic_outline_audiotrack_24, true),
+                    TimeLineData.Item(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = SUSHI_EMOJI.repeat(3), iconResId = R.drawable.ic_outline_audiotrack_24, true),
+                    TimeLineData.Item(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24, true),
+                    TimeLineData.Item(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24, false),
+                    TimeLineData.Item(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24, false),
+                    TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = SUSHI_EMOJI, iconResId = R.drawable.ic_outline_audiotrack_24, false),
                 )
             )
         )
@@ -56,8 +56,8 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                 }
             )
         }
-    ) {
-        Column(modifier = Modifier.padding(it)) {
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)) {
             TimeLine(
                 modifier = Modifier.weight(1f),
                 timeLineData = sushiData.value,
@@ -71,7 +71,7 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                                 sushi.copy(
                                     laneIndex = request.dragAndDroppedLaneIndex,
                                     startMs = request.dragAndDroppedStartMs,
-                                    stopMs = request.dragAndDroppedStartMs + (sushi.stopMs - sushi.startMs)
+                                    stopMs = request.dragAndDroppedStartMs + sushi.durationMs
                                 )
                             } else sushi
                         }
@@ -97,6 +97,19 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                 onDelete = { deleteItem ->
                     sushiData.value = sushiData.value.copy(
                         itemList = sushiData.value.itemList.filter { it.id != deleteItem.id }
+                    )
+                },
+                onDurationChange = { request ->
+                    // 長さ調整
+                    val (id, newDurationMs) = request
+                    sushiData.value = sushiData.value.copy(
+                        itemList = sushiData.value.itemList.map { item ->
+                            if (item.id == id) {
+                                item.copy(stopMs = item.startMs + newDurationMs)
+                            } else {
+                                item
+                            }
+                        }
                     )
                 }
             )
