@@ -153,6 +153,7 @@ fun TimeLine(
                             },
                         laneIndex = laneIndex,
                         laneItemList = itemList,
+                        currentPositionMs = currentPositionMs,
                         onEdit = onEdit,
                         onCut = onCut,
                         onDelete = onDelete,
@@ -203,6 +204,7 @@ fun TimeLine(
  * @param modifier [Modifier]
  * @param laneIndex レーン番号
  * @param laneItemList タイムラインに表示するアイテムの配列[TimeLineData.Item]
+ * @param currentPositionMs 現在の再生位置（赤いバーがある位置）
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest [TimeLineItemComponentDragAndDropData]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
  * @param onClick 押したときに呼ばれる
@@ -215,6 +217,7 @@ private fun TimeLineLane(
     modifier: Modifier = Modifier,
     laneItemList: List<TimeLineData.Item>,
     laneIndex: Int,
+    currentPositionMs: Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: (TimeLineData.Item) -> Unit,
@@ -236,6 +239,7 @@ private fun TimeLineLane(
         laneItemList.forEach { timeLineItemData ->
             TimeLineItem(
                 timeLineItemData = timeLineItemData,
+                currentPositionMs = currentPositionMs,
                 onDragAndDropRequest = onDragAndDropRequest,
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                 onEdit = { onEdit(timeLineItemData) },
@@ -250,8 +254,8 @@ private fun TimeLineLane(
  * タイムラインに表示するアイテム
  *
  * @param modifier [Modifier]
- * @param onClick 押したときに呼ばれる
  * @param timeLineItemData タイムラインのデータ[TimeLineData.Item]
+ * @param currentPositionMs 現在の再生位置（赤いバーがある位置）
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineItemComponentDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
  * @param onEdit メニューで値の編集を押した
@@ -262,6 +266,7 @@ private fun TimeLineLane(
 private fun TimeLineItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineData.Item,
+    currentPositionMs: Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: () -> Unit,
@@ -355,6 +360,7 @@ private fun TimeLineItem(
         // ボトムシートを出すとか
         TimeLineItemContextMenu(
             isVisibleMenu = isVisibleMenu.value,
+            isEnableCut = currentPositionMs in timeLineItemData.timeRange,
             onDismissRequest = { isVisibleMenu.value = false },
             onEdit = onEdit,
             onCut = onCut,
@@ -368,6 +374,7 @@ private fun TimeLineItem(
  * 値の編集、この位置で分割など。
  *
  * @param isVisibleMenu 表示する場合は true
+ * @param isEnableCut この位置で分割を出すかどうか。赤いバーがタイムラインのアイテムに重なってないのに表示されるのはあれ
  * @param onDismissRequest 非表示にして欲しいときに呼ばれる
  * @param onEdit 値の編集を押した
  * @param onCut 分割を押した
@@ -376,6 +383,7 @@ private fun TimeLineItem(
 @Composable
 private fun TimeLineItemContextMenu(
     isVisibleMenu: Boolean,
+    isEnableCut: Boolean,
     onDismissRequest: () -> Unit,
     onEdit: () -> Unit,
     onCut: () -> Unit,
@@ -393,14 +401,16 @@ private fun TimeLineItemContextMenu(
             },
             leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_edit_24px), contentDescription = null) }
         )
-        DropdownMenuItem(
-            text = { Text("この位置で分割する") },
-            onClick = {
-                onCut()
-                onDismissRequest()
-            },
-            leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_cut_24px), contentDescription = null) }
-        )
+        if (isEnableCut) {
+            DropdownMenuItem(
+                text = { Text("この位置で分割する") },
+                onClick = {
+                    onCut()
+                    onDismissRequest()
+                },
+                leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_cut_24px), contentDescription = null) }
+            )
+        }
         DropdownMenuItem(
             text = { Text("削除") },
             onClick = {
