@@ -13,7 +13,7 @@ import io.github.takusan23.akaridroid.RenderData
 @Composable
 fun RenderItemDisplayTimeEditComponent(
     displayTime: RenderData.DisplayTime,
-    onUpdate:(RenderData.DisplayTime)->Unit
+    onUpdate: (RenderData.DisplayTime) -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -27,9 +27,9 @@ fun RenderItemDisplayTimeEditComponent(
         )
         OutlinedLongTextField(
             modifier = Modifier.weight(1f),
-            value = displayTime.stopMs,
-            onValueChange = { stopMs -> onUpdate(displayTime.copy(stopMs = stopMs)) },
-            label = { Text(text = "表示終了時間（ミリ秒）") }
+            value = displayTime.durationMs,
+            onValueChange = { durationMs -> onUpdate(displayTime.setDuration(durationMs)) },
+            label = { Text(text = "表示時間（ミリ秒）") }
         )
     }
 }

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.max
 import kotlin.random.Random
 
 /** [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel */
@@ -310,9 +311,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // ドラッグアンドドロップ対象の RenderItem を取る
         val renderItem = getRenderItem(request.id)!!
         // ドラッグアンドドロップ移動先に合った DisplayTime を作る
-        val dragAndDroppedDisplayTime = RenderData.DisplayTime(
-            startMs = request.dragAndDroppedStartMs,
-            stopMs = request.dragAndDroppedStartMs + renderItem.displayTime.durationMs
+        // マイナスに入らないように
+        val dragAndDroppedDisplayTime = renderItem.displayTime.setTime(
+            setTimeMs = max(request.dragAndDroppedStartMs, 0)
         )
 
         // 移動先のレーンに空きがあること

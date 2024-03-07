@@ -155,6 +155,37 @@ data class RenderData(
         /** 時間を出す */
         val durationMs: Long
             get() = stopMs - start
+
+        /**
+         * 時間を足した（もしくは引いた）[DisplayTime]を作る。
+         *
+         * @param appendTimeMs [startMs]よりどれだけ時間を増加（もしくは減少）させるか
+         * @return [DisplayTime]
+         */
+        fun appendTime(appendTimeMs: Long): DisplayTime = setTime(setTimeMs = startMs + appendTimeMs)
+
+        /**
+         * [startMs]の時間を[setTimeMs]にして、その分ずらす
+         *
+         * @param setTimeMs 開始位置。[startMs]になる
+         * @return [DisplayTime]
+         */
+        fun setTime(setTimeMs: Long): DisplayTime = DisplayTime(
+            startMs = setTimeMs,
+            stopMs = setTimeMs + durationMs
+        )
+
+        /**
+         * [startMs]から[durationMs]までの[DisplayTime]を作る。
+         * [stopMs]を足す手間が減る。
+         *
+         * @param durationMs 表示時間。[DisplayTime.durationMs]です。
+         * @return [DisplayTime]
+         */
+        fun setDuration(durationMs: Long): DisplayTime = DisplayTime(
+            startMs = startMs,
+            stopMs = startMs + durationMs
+        )
     }
 
     /**
