@@ -286,7 +286,7 @@ private fun TouchEditSwitch(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Text(text = "タッチ移動")
+            Text(text = "タッチ編集")
             Switch(checked = isEnable, onCheckedChange = null)
         }
     }
