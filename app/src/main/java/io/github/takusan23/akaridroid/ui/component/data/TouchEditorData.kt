@@ -31,13 +31,22 @@ data class TouchEditorData(
      * ドラッグアンドドロップでキャンバス要素を移動させたときに渡されるデータ
      *
      * @param id [RenderData.CanvasItem.id]とおなじ
-     * @param size サイズ
      * @param position 移動先の位置
      */
     data class PositionUpdateRequest(
         val id: Long,
-        val size: RenderData.Size,
         val position: RenderData.Position
+    )
+
+    /**
+     * ピンチイン、ピンチアウトでキャンバス要素の大きさが変化した時に渡されるデータ
+     *
+     * @param id [RenderData.CanvasItem.id]とおなじ
+     * @param size 縦横サイズ
+     */
+    data class SizeChangeRequest(
+        val id: Long,
+        val size: RenderData.Size
     )
 
 }

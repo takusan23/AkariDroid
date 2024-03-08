@@ -386,7 +386,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         when (val renderItem = getRenderItem(request.id)!!) {
             is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            // テキストは特別で（Android Canvas 都合）、文字の大きさの分がないので足す
+            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position.copy(y = request.position.y + renderItem.textSize)))
             is RenderData.AudioItem.Audio -> {
                 // キャンバス要素だけなのでここに来ることはない
                 // do nothing
@@ -491,6 +492,23 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         }
         // 上記の通り来ないので...
         addOrUpdateCanvasRenderItem(newDurationRenderItem)
+    }
+
+    /**
+     * プレビューのタッチ編集から来たサイズ変更リクエストをさばく
+     *
+     * @param request サイズ変更死体アイテムの [TouchEditorData.SizeChangeRequest]
+     */
+    fun resolveTouchEditorSizeChangeRequest(request: TouchEditorData.SizeChangeRequest) {
+        // サイズ変更したいアイテム
+        val newSizeRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
+            is RenderData.AudioItem.Audio -> return // 音声は来ない
+            is RenderData.CanvasItem.Image -> renderItem.copy(size = request.size)
+            is RenderData.CanvasItem.Text -> renderItem.copy(textSize = request.size.height.toFloat())
+            is RenderData.CanvasItem.Video -> renderItem.copy(size = request.size)
+        }
+        // 上記の通り来ないので...
+        addOrUpdateCanvasRenderItem(newSizeRenderItem)
     }
 
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */

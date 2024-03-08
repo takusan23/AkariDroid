@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -11,13 +12,16 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,9 +33,11 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 
@@ -47,13 +53,15 @@ private fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
  * @param previewBitmap プレビューBitmap。[io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer.previewBitmap]
  * @param touchEditorData 現在表示されているキャンバス要素を[TouchEditorData]で
  * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
+ * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
  */
 @Composable
 fun VideoPlayerPreviewAndTouchEditor(
     modifier: Modifier = Modifier,
     previewBitmap: ImageBitmap?,
     touchEditorData: TouchEditorData,
-    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
+    onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit
 ) {
     // タッチ移動機能の ON/OFF
     val isEnableTouchEditor = remember { mutableStateOf(true) }
@@ -81,7 +89,8 @@ fun VideoPlayerPreviewAndTouchEditor(
                     .align(Alignment.Center),
                 videoSize = touchEditorData.videoSize,
                 touchEditorItemList = touchEditorData.visibleTouchEditorItemList,
-                onDragAndDropEnd = onDragAndDropEnd
+                onDragAndDropEnd = onDragAndDropEnd,
+                onSizeChangeRequest = onSizeChangeRequest
             )
         }
 
@@ -101,13 +110,15 @@ fun VideoPlayerPreviewAndTouchEditor(
  * @param videoSize 動画のサイズ。実際は動画のサイズに収まるように表示はスケールされます。
  * @param touchEditorItemList キャンバス要素。再生位置に合わせて必要なやつだけ。
  * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
+ * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
  */
 @Composable
 private fun TouchEditor(
     modifier: Modifier = Modifier,
     videoSize: RenderData.Size,
     touchEditorItemList: List<TouchEditorData.TouchEditorItem>,
-    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
+    onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit
 ) {
     val parentComponentSize = remember { mutableStateOf<IntSize?>(null) }
 
@@ -138,7 +149,8 @@ private fun TouchEditor(
                 touchEditorItemList.forEach { previewItem ->
                     TouchEditorItem(
                         touchEditorItem = previewItem,
-                        onDragAndDropEnd = onDragAndDropEnd
+                        onDragAndDropEnd = onDragAndDropEnd,
+                        onSizeChangeRequest = onSizeChangeRequest
                     )
                 }
             }
@@ -152,12 +164,14 @@ private fun TouchEditor(
  * @param modifier [Modifier]
  * @param touchEditorItem キャンバス要素[TouchEditorData.TouchEditorItem]
  * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
+ * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
  */
 @Composable
 private fun TouchEditorItem(
     modifier: Modifier = Modifier,
     touchEditorItem: TouchEditorData.TouchEditorItem,
-    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
+    onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit
 ) {
     // 動かしてるときの位置
     val offset = remember(touchEditorItem) {
@@ -169,18 +183,23 @@ private fun TouchEditorItem(
         )
     }
 
+    // 拡大率
+    val itemWidth = remember(touchEditorItem) { mutableIntStateOf(touchEditorItem.size.width) }
+    val itemHeight = remember(touchEditorItem) { mutableIntStateOf(touchEditorItem.size.height) }
+
     Box(
         modifier = modifier
             // ピクセル単位で指定する必要あり
-            .width(touchEditorItem.size.width.pxToDp())
-            .height(touchEditorItem.size.height.pxToDp())
+            .width(itemWidth.intValue.pxToDp())
+            .height(itemHeight.intValue.pxToDp())
             // 移動位置を Offset で指定
             .offset { offset.value }
-            .border(1.dp, Color.Yellow, RectangleShape)
+            .border(width = 1.dp, color = Color.Yellow, shape = RectangleShape)
             // ドラッグアンドドロップで移動させる
             .pointerInput(touchEditorItem) {
                 detectDragGestures(
                     onDrag = { change, dragAmount ->
+                        // 拡大縮小でイベントを使うかもしれないので、消費しない
                         change.consume()
                         offset.value = IntOffset(
                             x = (offset.value.x + dragAmount.x).toInt(),
@@ -192,7 +211,6 @@ private fun TouchEditorItem(
                         onDragAndDropEnd(
                             TouchEditorData.PositionUpdateRequest(
                                 id = touchEditorItem.id,
-                                size = touchEditorItem.size,
                                 position = RenderData.Position(
                                     offset.value.x.toFloat(),
                                     offset.value.y.toFloat()
@@ -202,7 +220,46 @@ private fun TouchEditorItem(
                     }
                 )
             }
-    )
+    ) {
+
+        Icon(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(25.dp)
+                .border(width = 1.dp, color = Color.Yellow, shape = RectangleShape)
+                .background(Color.White)
+                // 端っこをつまんでサイズ変更
+                .pointerInput(touchEditorItem) {
+                    val aspect = touchEditorItem.size.height / touchEditorItem.size.width.toFloat()
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            itemWidth.intValue = (itemWidth.intValue + dragAmount.x).toInt()
+                            itemHeight.intValue = (itemWidth.intValue * aspect).toInt()
+
+                            println("itemWidth = " + itemWidth.intValue)
+                            println("itemHeight = " + itemHeight.intValue)
+                        },
+                        onDragEnd = {
+                            // サイズ変更
+                            onSizeChangeRequest(
+                                TouchEditorData.SizeChangeRequest(
+                                    id = touchEditorItem.id,
+                                    size = RenderData.Size(
+                                        width = itemWidth.intValue,
+                                        height = itemHeight.intValue
+                                    )
+                                )
+                            )
+                        }
+                    )
+                },
+            painter = painterResource(id = R.drawable.ic_outline_pan_zoom_24px),
+            contentDescription = null,
+            tint = Color.Black
+        )
+
+    }
 }
 
 /**

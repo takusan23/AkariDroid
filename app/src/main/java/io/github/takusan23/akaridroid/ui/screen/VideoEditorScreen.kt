@@ -108,7 +108,8 @@ fun VideoEditorScreen(
                     .fillMaxHeight(0.5f),
                 previewBitmap = previewBitmap.value?.asImageBitmap(),
                 touchEditorData = touchEditorData.value,
-                onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) }
+                onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
+                onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) }
             )
 
             // シークバーとか
