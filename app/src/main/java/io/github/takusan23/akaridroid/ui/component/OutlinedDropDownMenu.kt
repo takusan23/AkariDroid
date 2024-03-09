@@ -32,12 +32,11 @@ fun OutlinedDropDownMenu(
     val isExpanded = remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
-        modifier = modifier,
         expanded = isExpanded.value,
         onExpandedChange = { isExpanded.value = it }
     ) {
         OutlinedTextField(
-            modifier = Modifier.menuAnchor(),
+            modifier = modifier.menuAnchor(),
             readOnly = true,
             value = menuList[currentSelectIndex],
             onValueChange = { /* do nothing */ },

@@ -184,7 +184,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                     id = canvasItem.id,
                                     size = measure,
                                     position = if (canvasItem is RenderData.CanvasItem.Text) {
-                                        canvasItem.position.copy(y = canvasItem.position.y - measure.height)
+                                        // Android Canvas 都合で、文字サイス分を考慮する必要
+                                        canvasItem.position.copy(y = canvasItem.position.y - canvasItem.textSize)
                                     } else {
                                         canvasItem.position
                                     }
@@ -528,7 +529,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         val newSizeRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
             is RenderData.AudioItem.Audio -> return // 音声は来ない
             is RenderData.CanvasItem.Image -> renderItem.copy(size = request.size)
-            is RenderData.CanvasItem.Text -> renderItem.copy(textSize = request.size.height.toFloat())
+            is RenderData.CanvasItem.Text -> renderItem.copy(textSize = TextRender.analyzeTextSize(renderItem, request.size.height))
             is RenderData.CanvasItem.Video -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.Shape -> renderItem.copy(size = request.size)
         }
@@ -598,12 +599,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Image -> this.size
             is RenderData.CanvasItem.Video -> this.size
             is RenderData.CanvasItem.Shape -> this.size
-            is RenderData.CanvasItem.Text -> {
-                // テキストには Size が生えていないので計算する
-                val paint = TextRender.createPaint(this)
-                val measure = paint.measureText(this.text)
-                RenderData.Size(width = measure.toInt(), height = paint.textSize.toInt())
-            }
+            is RenderData.CanvasItem.Text -> TextRender.analyzeDrawSize(this) // テキストには Size が生えていないので計算する
         }
     }
 
