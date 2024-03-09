@@ -221,6 +221,67 @@ class CanvasRenderTest {
         testToomoMp4.delete()
     }
 
+    @Test
+    fun test_図形のRenderDataから動画を作る() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        encode(
+            testName = "test_図形のRenderDataから動画を作る",
+            canvasRender = CanvasRender(targetContext).apply {
+                setRenderData(
+                    canvasRenderItem = listOf(
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
+                            color = "#ffffff",
+                            size = RenderData.Size(1280, 720),
+                            type = RenderData.CanvasItem.Shape.Type.Rect
+                        ),
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(100f, 100f),
+                            layerIndex = 0,
+                            color = "#0000ff",
+                            size = RenderData.Size(100, 100),
+                            type = RenderData.CanvasItem.Shape.Type.Circle
+                        ),
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(300f, 100f),
+                            layerIndex = 0,
+                            color = "#ffff00",
+                            size = RenderData.Size(100, 100),
+                            type = RenderData.CanvasItem.Shape.Type.Circle
+                        ),
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(500f, 100f),
+                            layerIndex = 0,
+                            color = "#ff0000",
+                            size = RenderData.Size(100, 100),
+                            type = RenderData.CanvasItem.Shape.Type.Circle
+                        ),
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(100f, 400f),
+                            layerIndex = 0,
+                            color = "#ff0000",
+                            size = RenderData.Size(100, 100),
+                            type = RenderData.CanvasItem.Shape.Type.Rect
+                        ),
+                        RenderData.CanvasItem.Shape(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(100f, 500f),
+                            layerIndex = 0,
+                            color = "#0000ff",
+                            size = RenderData.Size(100, 100),
+                            type = RenderData.CanvasItem.Shape.Type.Rect
+                        ),
+                    )
+                )
+            }
+        )
+    }
+
     /** [CanvasRender]を渡したらエンコードして動画フォルダに保存してくれるやつ */
     private suspend fun encode(
         testName: String,

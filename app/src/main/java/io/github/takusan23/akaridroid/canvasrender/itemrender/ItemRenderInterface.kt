@@ -6,9 +6,6 @@ import io.github.takusan23.akaridroid.RenderData
 /** [io.github.takusan23.akaridroid.v2.canvasrender.RenderData.RenderItem]を描画する */
 interface ItemRenderInterface {
 
-    /** いつ描画すべきか */
-    val displayTime: RenderData.DisplayTime
-
     /** レイヤー。タイムラインのレーン番号です */
     val layerIndex: Int
 

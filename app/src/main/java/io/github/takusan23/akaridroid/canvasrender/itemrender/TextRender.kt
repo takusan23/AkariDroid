@@ -13,9 +13,6 @@ class TextRender(
     /** 文字の大きさとか */
     private val paint = createPaint(text)
 
-    override val displayTime: RenderData.DisplayTime
-        get() = text.displayTime
-
     override val layerIndex: Int
         get() = text.layerIndex
 

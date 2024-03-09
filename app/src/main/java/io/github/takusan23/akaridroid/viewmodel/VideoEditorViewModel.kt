@@ -132,15 +132,17 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                     is RenderData.CanvasItem.Image -> "画像"
                                     is RenderData.CanvasItem.Text -> "テキスト"
                                     is RenderData.CanvasItem.Video -> "動画"
+                                    is RenderData.CanvasItem.Shape -> "図形"
                                 },
                                 iconResId = when (renderItem) {
                                     is RenderData.CanvasItem.Image -> R.drawable.ic_outline_add_photo_alternate_24px
                                     is RenderData.CanvasItem.Text -> R.drawable.ic_outline_text_fields_24
                                     is RenderData.CanvasItem.Video -> R.drawable.ic_outline_video_file_24
+                                    is RenderData.CanvasItem.Shape -> R.drawable.ic_outline_category_24
                                 },
                                 // 動画以外は表示時間変更がタイムラインできるよう（動画と音声は面倒そう）
                                 isChangeDuration = when (renderItem) {
-                                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> true
+                                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> true
                                     is RenderData.CanvasItem.Video -> false
                                 }
                             )
@@ -207,11 +209,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     fun resolveBottomSheetResult(routeResultData: VideoEditorBottomSheetRouteResultData) {
         when (routeResultData) {
             is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> deleteRenderItem(routeResultData.renderItem)
-            is VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate -> addOrUpdateCanvasRenderItem(routeResultData.text)
-            is VideoEditorBottomSheetRouteResultData.VideoUpdate -> addOrUpdateCanvasRenderItem(routeResultData.video)
-            is VideoEditorBottomSheetRouteResultData.AudioUpdate -> addOrUpdateAudioRenderItem(routeResultData.audio)
-            is VideoEditorBottomSheetRouteResultData.ImageUpdate -> addOrUpdateCanvasRenderItem(routeResultData.image)
-            is VideoEditorBottomSheetRouteResultData.VideoInfoUpdate -> _renderData.update { routeResultData.renderData }
+            is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> _renderData.update { routeResultData.renderData }
+            is VideoEditorBottomSheetRouteResultData.UpdateAudio -> addOrUpdateAudioRenderItem(routeResultData.audio)
+            is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> addOrUpdateCanvasRenderItem(routeResultData.renderData)
         }
     }
 
@@ -301,6 +301,20 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 }
                 videoTrack
             }
+
+            VideoEditorBottomBarAddItem.Shape -> {
+                val displayTime = RenderData.DisplayTime(0, 10_000)
+                val text = RenderData.CanvasItem.Shape(
+                    displayTime = displayTime,
+                    position = centerPosition,
+                    layerIndex = calcInsertableLaneIndex(displayTime),
+                    color = "#ffffff",
+                    size = RenderData.Size(300, 300),
+                    type = RenderData.CanvasItem.Shape.Type.Rect
+                )
+                addOrUpdateCanvasRenderItem(text)
+                text
+            }
         }
 
         // 編集画面を開く
@@ -370,6 +384,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     layerIndex = layerIndex
                 )
             )
+
+            is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
+            )
         }
 
         return isAcceptable
@@ -386,6 +407,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         when (val renderItem = getRenderItem(request.id)!!) {
             is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             // テキストは特別で（Android Canvas 都合）、文字の大きさの分がないので足す
             is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position.copy(y = request.position.y + renderItem.textSize)))
             is RenderData.AudioItem.Audio -> {
@@ -417,13 +439,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             stopMs = targetItem.displayTime.stopMs
         )
 
-        // テキストと画像はそのまま2つに分ければいい
-        fun processTextOrImage(): List<RenderData.RenderItem> = listOf(displayTimeA, displayTimeB)
+        // テキストと画像と図形はそのまま2つに分ければいい
+        fun processTextOrImageOrShape(): List<RenderData.RenderItem> = listOf(displayTimeA, displayTimeB)
             .mapNotNull { displayTime ->
                 when (targetItem) {
                     // TODO ユニークなIDを払い出す何か。currentTimeMillis をループの中で使うと同じの来そうで怖い
                     is RenderData.CanvasItem.Image -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
                     is RenderData.CanvasItem.Text -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                    is RenderData.CanvasItem.Shape -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
                     is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> null
                 }
             }
@@ -434,7 +457,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             val targetOffsetFirstMs = when (targetItem) {
                 is RenderData.AudioItem.Audio -> targetItem.displayOffset
                 is RenderData.CanvasItem.Video -> targetItem.displayOffset
-                is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> null
+                is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> null
             }?.offsetFirstMs!!
             // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
             val displayOffsetA = RenderData.DisplayOffset(targetOffsetFirstMs)
@@ -444,7 +467,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 displayTimeB to displayOffsetB
             ).mapNotNull { (displayTime, displayOffset) ->
                 when (targetItem) {
-                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> null
+                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> null
                     is RenderData.AudioItem.Audio -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                     is RenderData.CanvasItem.Video -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                 }
@@ -453,7 +476,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // テキストと画像。音声と映像ではやるべきことが違うので
         val cutItemList = when (targetItem) {
-            is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text -> processTextOrImage()
+            is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> processTextOrImageOrShape()
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> processAudioOrVideo()
         }
         // 分割前のアイテムは消す
@@ -488,6 +511,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         val newDurationRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
             is RenderData.CanvasItem.Image -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
             is RenderData.CanvasItem.Text -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
+            is RenderData.CanvasItem.Shape -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> return
         }
         // 上記の通り来ないので...
@@ -506,6 +530,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Image -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.Text -> renderItem.copy(textSize = request.size.height.toFloat())
             is RenderData.CanvasItem.Video -> renderItem.copy(size = request.size)
+            is RenderData.CanvasItem.Shape -> renderItem.copy(size = request.size)
         }
         // 上記の通り来ないので...
         addOrUpdateCanvasRenderItem(newSizeRenderItem)
@@ -516,7 +541,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         .firstOrNull { it.id == id }
 
     /**
-     * [RenderData.CanvasItem]を追加する
+     * [RenderData.CanvasItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
      * 動画とか、テキストとか
      *
      * @param canvasItem [RenderData.CanvasItem]
@@ -535,7 +560,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /**
-     * [RenderData.AudioItem]を追加する
+     * [RenderData.AudioItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
      * BGM とか、動画の音声とか
      *
      * @param audioItem [RenderData.AudioItem]
@@ -572,6 +597,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         return when (this) {
             is RenderData.CanvasItem.Image -> this.size
             is RenderData.CanvasItem.Video -> this.size
+            is RenderData.CanvasItem.Shape -> this.size
             is RenderData.CanvasItem.Text -> {
                 // テキストには Size が生えていないので計算する
                 val paint = TextRender.createPaint(this)

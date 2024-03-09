@@ -18,27 +18,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
-import io.github.takusan23.akaridroid.ui.component.OutlinedFloatTextField
+import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
+import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
 
 /**
- * [RenderData.CanvasItem.Text]の編集ボトムシート
+ * [RenderData.CanvasItem.Shape]の編集ボトムシート
  *
- * @param renderItem キャンバスのテキストの情報
+ * @param renderItem 図形の情報
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
  */
 @Composable
-fun TextRenderEditBottomSheet(
-    renderItem: RenderData.CanvasItem.Text,
-    onUpdate: (RenderData.CanvasItem.Text) -> Unit,
-    onDelete: (RenderData.CanvasItem.Text) -> Unit,
+fun ShapeRenderEditBottomSheet(
+    renderItem: RenderData.CanvasItem.Shape,
+    onUpdate: (RenderData.CanvasItem.Shape) -> Unit,
+    onDelete: (RenderData.CanvasItem.Shape) -> Unit
 ) {
-    val textItem = remember { mutableStateOf(renderItem) }
+    val shapeItem = remember { mutableStateOf(renderItem) }
 
-    fun update(copy: (RenderData.CanvasItem.Text) -> RenderData.CanvasItem.Text) {
-        textItem.value = copy(textItem.value)
+    fun update(copy: (RenderData.CanvasItem.Shape) -> RenderData.CanvasItem.Shape) {
+        shapeItem.value = copy(shapeItem.value)
     }
 
     Column(
@@ -49,40 +50,38 @@ fun TextRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "テキストの編集",
-            onComplete = { onUpdate(textItem.value) },
-            onDelete = { onDelete(textItem.value) }
+            title = "図形の編集",
+            onComplete = { onUpdate(shapeItem.value) },
+            onDelete = { onDelete(shapeItem.value) }
+        )
+
+        OutlinedDropDownMenu(
+            label = "図形の種類",
+            currentSelectIndex = RenderData.CanvasItem.Shape.Type.entries.indexOf(shapeItem.value.type),
+            menuList = RenderData.CanvasItem.Shape.Type.entries.map { it.name },
+            onSelect = { index -> update { it.copy(type = RenderData.CanvasItem.Shape.Type.entries[index]) } }
         )
 
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            value = textItem.value.text,
-            onValueChange = { text -> update { it.copy(text = text) } },
-            label = { Text(text = "文字") }
-        )
-
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = textItem.value.fontColor,
-            onValueChange = { color -> update { it.copy(fontColor = color) } },
+            value = shapeItem.value.color,
+            onValueChange = { color -> update { it.copy(color = color) } },
             label = { Text(text = "文字の色（カラーコード）") }
         )
 
-        OutlinedFloatTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = textItem.value.textSize,
-            onValueChange = { textSize -> update { it.copy(textSize = textSize) } },
-            label = { Text(text = "文字サイズ") }
-        )
-
         RenderItemPositionEditComponent(
-            position = textItem.value.position,
+            position = shapeItem.value.position,
             onUpdate = { position -> update { it.copy(position = position) } }
         )
 
         RenderItemDisplayTimeEditComponent(
-            displayTime = textItem.value.displayTime,
+            displayTime = shapeItem.value.displayTime,
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
+        )
+
+        RenderItemSizeEditComponent(
+            size = shapeItem.value.size,
+            onUpdate = { size -> update { it.copy(size = size) } }
         )
     }
 }

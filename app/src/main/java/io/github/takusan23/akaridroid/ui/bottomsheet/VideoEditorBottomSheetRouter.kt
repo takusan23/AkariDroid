@@ -32,25 +32,31 @@ fun VideoEditorBottomSheetRouter(
             is VideoEditorBottomSheetRouteRequestData.OpenEditor -> when (videoEditorBottomSheetRouteRequestData.renderItem) {
                 is RenderData.AudioItem.Audio -> AudioEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.AudioUpdate(it)) },
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateAudio(it)) },
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
 
                 is RenderData.CanvasItem.Image -> ImageRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.ImageUpdate(it)) },
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateCanvasItem(it)) },
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
 
                 is RenderData.CanvasItem.Text -> TextRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.TextCreateOrUpdate(it)) },
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateCanvasItem(it)) },
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
 
                 is RenderData.CanvasItem.Video -> VideoRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.VideoUpdate(it)) },
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateCanvasItem(it)) },
+                    onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
+                )
+
+                is RenderData.CanvasItem.Shape -> ShapeRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateCanvasItem(it)) },
                     onDelete = { onResult(VideoEditorBottomSheetRouteResultData.DeleteRenderItem(it)) }
                 )
             }
@@ -58,7 +64,7 @@ fun VideoEditorBottomSheetRouter(
             // 動画情報編集画面
             is VideoEditorBottomSheetRouteRequestData.OpenVideoInfo -> VideoInfoEditorBottomSheet(
                 renderData = videoEditorBottomSheetRouteRequestData.renderData,
-                onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.VideoInfoUpdate(it)) }
+                onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateVideoInfo(it)) }
             )
         }
     }

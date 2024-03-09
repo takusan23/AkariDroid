@@ -87,6 +87,29 @@ data class RenderData(
             val displayOffset: DisplayOffset = DisplayOffset(0),
             val chromaKeyColor: Int? = null
         ) : CanvasItem
+
+        /** 図形 */
+        @Serializable
+        data class Shape(
+            override val id: Long = System.currentTimeMillis(),
+            override val displayTime: DisplayTime,
+            override val layerIndex: Int,
+            override val position: Position,
+            val color: String = "#ffffff",
+            val size: Size,
+            val type: Type
+        ) : CanvasItem {
+
+            /** 図形タイプ */
+            enum class Type {
+                /** 四角形 */
+                Rect,
+
+                /** 丸 */
+                Circle
+            }
+
+        }
     }
 
     /** 音声 */

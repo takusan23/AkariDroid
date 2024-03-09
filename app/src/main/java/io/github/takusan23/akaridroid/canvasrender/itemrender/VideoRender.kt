@@ -27,9 +27,6 @@ class VideoRender(
 
     private val paint = Paint()
 
-    override val displayTime: RenderData.DisplayTime
-        get() = video.displayTime
-
     override val layerIndex: Int
         get() = video.layerIndex
 

@@ -33,6 +33,9 @@ sealed interface VideoEditorBottomBarAddItem {
     /** テキスト */
     data object Text : VideoEditorBottomBarAddItem
 
+    /** 図形 */
+    data object Shape : VideoEditorBottomBarAddItem
+
     /** 画像 */
     data class Image(val uri: Uri) : VideoEditorBottomBarAddItem
 
@@ -77,6 +80,7 @@ fun VideoEditorBottomBar(
             AddImageButton(onCreateRenderItem)
             AddVideoButton(onCreateRenderItem)
             AddAudioButton(onCreateRenderItem)
+            AddShapeButton(onCreateRenderItem)
 
             // 動画情報編集画面
             VideoEditorBottomBarItem(
@@ -191,4 +195,14 @@ private fun VideoEditorBottomBarItem(
             Text(text = label)
         }
     }
+}
+
+/** 図形を追加する */
+@Composable
+private fun AddShapeButton(onCreateRenderItem: (VideoEditorBottomBarAddItem) -> Unit) {
+    VideoEditorBottomBarItem(
+        label = "図形の追加",
+        iconId = R.drawable.ic_outline_category_24,
+        onClick = { onCreateRenderItem(VideoEditorBottomBarAddItem.Shape) }
+    )
 }

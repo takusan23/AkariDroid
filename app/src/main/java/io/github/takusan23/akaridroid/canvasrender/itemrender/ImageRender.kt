@@ -21,9 +21,6 @@ class ImageRender(
     /** Canvas に描画する際に使う Paint */
     private val paint = Paint()
 
-    override val displayTime: RenderData.DisplayTime
-        get() = image.displayTime
-
     override val layerIndex: Int
         get() = image.layerIndex
 
