@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedFloatTextField
+import io.github.takusan23.akaridroid.ui.component.RenderItemColorEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 
@@ -61,11 +62,9 @@ fun TextRenderEditBottomSheet(
             label = { Text(text = "文字") }
         )
 
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = textItem.value.fontColor,
-            onValueChange = { color -> update { it.copy(fontColor = color) } },
-            label = { Text(text = "文字の色（カラーコード）") }
+        RenderItemColorEditComponent(
+            hexColorCode = textItem.value.fontColor,
+            onUpdate = { color -> update { it.copy(fontColor = color) } }
         )
 
         OutlinedFloatTextField(

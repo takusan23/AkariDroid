@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
+import io.github.takusan23.akaridroid.ui.component.RenderItemColorEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
@@ -63,11 +62,9 @@ fun ShapeRenderEditBottomSheet(
             onSelect = { index -> update { it.copy(type = RenderData.CanvasItem.Shape.Type.entries[index]) } }
         )
 
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = shapeItem.value.color,
-            onValueChange = { color -> update { it.copy(color = color) } },
-            label = { Text(text = "文字の色（カラーコード）") }
+        RenderItemColorEditComponent(
+            hexColorCode = shapeItem.value.color,
+            onUpdate = { color -> update { it.copy(color = color) } }
         )
 
         RenderItemPositionEditComponent(

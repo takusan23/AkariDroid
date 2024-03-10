@@ -236,9 +236,6 @@ private fun TouchEditorItem(
                             change.consume()
                             itemWidth.intValue = (itemWidth.intValue + dragAmount.x).toInt()
                             itemHeight.intValue = (itemWidth.intValue * aspect).toInt()
-
-                            println("itemWidth = " + itemWidth.intValue)
-                            println("itemHeight = " + itemHeight.intValue)
                         },
                         onDragEnd = {
                             // サイズ変更

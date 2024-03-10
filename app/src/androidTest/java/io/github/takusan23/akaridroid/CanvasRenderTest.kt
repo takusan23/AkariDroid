@@ -70,7 +70,22 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             text = "3 ～ 5 の間しかでない文字",
                             fontColor = "#ff0000"
-                        )
+                        ),
+                        RenderData.CanvasItem.Text(
+                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            position = RenderData.Position(500f, 300f),
+                            layerIndex = 0,
+                            text = """
+                                複数行
+                                の文字でも
+                                動くように、
+                                Canvas#drawText
+                                を
+                                行の分だけ呼んでいます。
+                            """.trimIndent(),
+                            fontColor = "#ffffff",
+                            textSize = 50f
+                        ),
                     )
                 )
             }
