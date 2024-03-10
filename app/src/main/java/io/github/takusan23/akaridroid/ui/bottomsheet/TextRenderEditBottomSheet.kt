@@ -63,6 +63,7 @@ fun TextRenderEditBottomSheet(
         )
 
         RenderItemColorEditComponent(
+            modifier = Modifier.fillMaxWidth(),
             hexColorCode = textItem.value.fontColor,
             onUpdate = { color -> update { it.copy(fontColor = color) } }
         )

@@ -63,6 +63,7 @@ fun ShapeRenderEditBottomSheet(
         )
 
         RenderItemColorEditComponent(
+            modifier = Modifier.fillMaxWidth(),
             hexColorCode = shapeItem.value.color,
             onUpdate = { color -> update { it.copy(color = color) } }
         )

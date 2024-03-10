@@ -43,7 +43,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     private val _timeLineData = MutableStateFlow(
         TimeLineData(
             durationMs = _renderData.value.durationMs,
-            laneCount = 5,
+            laneCount = 10,
             itemList = emptyList()
         )
     )

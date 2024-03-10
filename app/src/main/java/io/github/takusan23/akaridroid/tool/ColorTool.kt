@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet
+package io.github.takusan23.akaridroid.tool
 
 import androidx.compose.ui.graphics.Color
 

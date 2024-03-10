@@ -44,7 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.bottomsheet.ColorTool
+import io.github.takusan23.akaridroid.tool.ColorTool
 
 /**
  * CSS の named-color を選択肢にする。

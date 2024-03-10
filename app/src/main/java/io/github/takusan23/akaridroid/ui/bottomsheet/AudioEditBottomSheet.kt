@@ -9,16 +9,16 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
-import io.github.takusan23.akaridroid.ui.component.OutlinedFloatTextField
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
+import io.github.takusan23.akaridroid.ui.component.RenderItemFloatEditComponent
 
 /**
  * [RenderData.AudioItem.Audio]の編集ボトムシート
@@ -52,11 +52,12 @@ fun AudioEditBottomSheet(
             onDelete = { onDelete(audioItem.value) }
         )
 
-        OutlinedFloatTextField(
+        RenderItemFloatEditComponent(
             modifier = Modifier.fillMaxWidth(),
+            label = "音量",
+            iconResId = R.drawable.ic_outlined_volume_up_24px,
             value = audioItem.value.volume,
-            onValueChange = { volume -> update { it.copy(volume = volume) } },
-            label = { Text(text = "音量。0から1まで") }
+            onChange = { volume -> update { it.copy(volume = volume) } }
         )
 
         RenderItemDisplayTimeEditComponent(
