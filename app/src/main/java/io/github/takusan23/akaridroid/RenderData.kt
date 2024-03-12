@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -19,6 +20,7 @@ data class RenderData(
 ) {
 
     /** 映像、音声で共通している */
+    @Serializable
     sealed interface RenderItem {
         /** アイテムを識別する一意の値 */
         val id: Long
@@ -35,18 +37,22 @@ data class RenderData(
     }
 
     /** 保存先。ファイルパスか android の Uri */
+    @Serializable
     sealed interface FilePath {
 
         /** Uri 。シリアライズできるように String です。 */
         @Serializable
+        @SerialName("android_uri")
         data class Uri(val uriPath: String) : FilePath
 
         /** ファイルパス */
         @Serializable
+        @SerialName("java_file")
         data class File(val filePath: String) : FilePath
     }
 
     /** Canvas に書く */
+    @Serializable
     sealed interface CanvasItem : RenderItem {
 
         /** 描画する位置 */
@@ -54,6 +60,7 @@ data class RenderData(
 
         /** テキスト */
         @Serializable
+        @SerialName("text") // sealed class を kotlinx/serialization 出来るように。
         data class Text(
             override val id: Long = System.currentTimeMillis(), // TODO UnixTime ぽいのを入れているが、全然時間以外のも入って来ていい
             override val position: Position,
@@ -66,6 +73,7 @@ data class RenderData(
 
         /** 画像 */
         @Serializable
+        @SerialName("image")
         data class Image(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
@@ -77,6 +85,7 @@ data class RenderData(
 
         /** 動画（映像トラック） */
         @Serializable
+        @SerialName("video")
         data class Video(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
@@ -90,6 +99,7 @@ data class RenderData(
 
         /** 図形 */
         @Serializable
+        @SerialName("shape")
         data class Shape(
             override val id: Long = System.currentTimeMillis(),
             override val displayTime: DisplayTime,
@@ -113,10 +123,12 @@ data class RenderData(
     }
 
     /** 音声 */
+    @Serializable
     sealed interface AudioItem : RenderItem {
 
         /** 音声素材と、動画（音声トラック） */
         @Serializable
+        @SerialName("audio")
         data class Audio(
             override val id: Long = System.currentTimeMillis(),
             override val displayTime: DisplayTime,

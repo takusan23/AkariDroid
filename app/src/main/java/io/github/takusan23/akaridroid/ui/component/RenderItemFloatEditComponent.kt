@@ -51,7 +51,7 @@ fun RenderItemFloatEditComponent(
             onValueChange = onChange
         )
 
-        // 小数点以下を消し飛ばす
-        Text(text = ((value * 100).toInt() / 100f).toString())
+        // 小数点2桁まで
+        Text(text = "%.2f".format(((value * 100).toInt() / 100f)))
     }
 }

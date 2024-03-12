@@ -2,12 +2,15 @@ package io.github.takusan23.akaridroid.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.math.max
 import kotlin.random.Random
 
@@ -55,7 +59,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     )
 
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
-    val projectFolder = context.getExternalFilesDir(null)!!.resolve(PROJECT_FOLDER_NAME).apply { mkdir() }
+    val projectFolder = ProjectFolderManager.getProjectFolder(context)
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
@@ -76,6 +80,76 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     val touchEditorData = _touchEditorData.asStateFlow()
 
     init {
+        // RenderData の保存、読み取り
+        viewModelScope.launch {
+            // 読み取る
+            val readRenderData = ProjectFolderManager.readRenderData(context) ?: renderData.value
+            // 前回の利用から、すでに削除されて使えない素材（画像、動画、音声）を弾く
+            val availableUriList = UriTool.getTakePersistableUriList(context)
+
+            /** ファイルが有効かどうか */
+            fun RenderData.FilePath.existsFilePath(): Boolean = when (this) {
+                is RenderData.FilePath.File -> File(this.filePath).exists()
+                is RenderData.FilePath.Uri -> this.uriPath.toUri() in availableUriList
+            }
+
+            val existsRenderItemList = (readRenderData.canvasRenderItem + readRenderData.audioRenderItem)
+                .filter {
+                    when (it) {
+                        is RenderData.AudioItem.Audio -> it.filePath.existsFilePath()
+                        is RenderData.CanvasItem.Image -> it.filePath.existsFilePath()
+                        is RenderData.CanvasItem.Video -> it.filePath.existsFilePath()
+                        is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text -> true
+                    }
+                }
+
+            // Flow に流して更新
+            _renderData.value = renderData.value.copy(
+                canvasRenderItem = existsRenderItemList.filterIsInstance<RenderData.CanvasItem>(),
+                audioRenderItem = existsRenderItemList.filterIsInstance<RenderData.AudioItem>()
+            )
+
+            // RenderData が変化したら保存する
+            // クラッシュ対策
+            renderData.collectLatest { renderData ->
+                ProjectFolderManager.writeRenderData(context, renderData)
+            }
+        }
+
+        // Uri を永続化する（Uri か Fileパス のどっちか。Uri のみ）
+        // フォトピッカーや Storage Access Framework で取得できる Uri は一時的なもので、プロセスが4んだら使えなくなる。
+        // Uri を保存したい場合は Uri 自体を永続化するメソッドを呼び出す必要がある
+        // https://developer.android.com/training/data-storage/shared/photopicker#persist-media-file-access
+        viewModelScope.launch {
+            // Uri 永続化済み
+            // つまり前回の collect の値
+            var prevRenderItemList = emptyList<Uri>()
+
+            // RenderItem 一覧を受け取って、Uri を永続化する
+            renderData
+                .map { it.canvasRenderItem + it.audioRenderItem }
+                .map { renderItemList -> renderItemList.mapNotNull { renderItem -> renderItem.getUriOrNull() } }
+                .distinctUntilChanged()
+                .collect { latestItemList ->
+                    // 前回との差分ををとる
+                    // 2つのリストからの差分なので、引く、引かれるに注意
+                    val diffList = (latestItemList - prevRenderItemList) + (prevRenderItemList - latestItemList)
+
+                    // 前回から無くなった分は Uri の永続化を解除
+                    diffList
+                        .filter { diff -> diff in prevRenderItemList }
+                        .forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+
+                    // 前回から増えた分は Uri の永続化に登録
+                    diffList
+                        .filter { diff -> diff in latestItemList }
+                        .forEach { uri -> UriTool.takePersistableUriPermission(context, uri) }
+
+                    // 次に備える
+                    prevRenderItemList = latestItemList
+                }
+        }
+
         // 動画の情報が更新されたら
         viewModelScope.launch {
             // Pair に詰めて distinct で変わったときだけ
@@ -302,10 +376,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 }
                 videoTrack
             }
-
+            // 図形
             VideoEditorBottomBarAddItem.Shape -> {
                 val displayTime = RenderData.DisplayTime(0, 10_000)
-                val text = RenderData.CanvasItem.Shape(
+                val shape = RenderData.CanvasItem.Shape(
                     displayTime = displayTime,
                     position = centerPosition,
                     layerIndex = calcInsertableLaneIndex(displayTime),
@@ -313,8 +387,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     size = RenderData.Size(300, 300),
                     type = RenderData.CanvasItem.Shape.Type.Rect
                 )
-                addOrUpdateCanvasRenderItem(text)
-                text
+                addOrUpdateCanvasRenderItem(shape)
+                shape
             }
         }
 
@@ -626,8 +700,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
             ?: 0 // どうしようもない
 
-    companion object {
-        /** プロジェクト保存先、複数プロジェクトが出来るようになればこの辺も分ける */
-        private const val PROJECT_FOLDER_NAME = "akaridroid_project_20240216"
+    /** [RenderData.RenderItem]から、[RenderData.FilePath.Uri]が利用されている場合は[Uri]を返す */
+    private fun RenderData.RenderItem.getUriOrNull(): Uri? {
+        val filePath = when (this) {
+            is RenderData.AudioItem.Audio -> this.filePath
+            is RenderData.CanvasItem.Image -> this.filePath
+            is RenderData.CanvasItem.Video -> this.filePath
+            is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text -> null
+        }
+        return (filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
     }
 }
