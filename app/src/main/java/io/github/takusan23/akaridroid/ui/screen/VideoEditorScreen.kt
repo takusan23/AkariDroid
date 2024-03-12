@@ -125,6 +125,7 @@ fun VideoEditorScreen(
                 modifier = Modifier,
                 timeLineData = timeLineData.value,
                 currentPositionMs = previewPlayerStatus.value.currentPositionMs,
+                durationMs = renderData.value.durationMs,
                 onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
                 onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
                 onEdit = { timeLineItem ->

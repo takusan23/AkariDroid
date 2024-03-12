@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -105,6 +106,7 @@ fun TimeLine(
         )
     ),
     currentPositionMs: Long,
+    durationMs: Long,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
@@ -196,10 +198,20 @@ fun TimeLine(
         // タイムラインの縦の棒
         // タイムラインに重ねて使う
         if (timelineScrollableAreaCoordinates.value != null) {
-            TimeLineCurrentPositionBar(
-                modifier = Modifier
-                    .height(with(LocalDensity.current) { timelineScrollableAreaCoordinates.value!!.size.height.toDp() }),
-                currentPositionMs = currentPositionMs
+            val barModifier = Modifier.height(with(LocalDensity.current) { timelineScrollableAreaCoordinates.value!!.size.height.toDp() })
+
+            // 動画の長さ
+            TimeLinePositionBar(
+                modifier = barModifier,
+                color = Color.Blue,
+                positionMs = durationMs
+            )
+
+            // 再生位置
+            TimeLinePositionBar(
+                modifier = barModifier,
+                color = Color.Red,
+                positionMs = currentPositionMs
             )
         }
     }
@@ -465,6 +477,7 @@ private fun TimeLineTopTimeLabel(
     stepMs: Long = 10_000 // 10 秒間隔
 ) {
     val simpleDateFormat = remember { SimpleDateFormat("mm:ss", Locale.getDefault()) }
+
     val labelList = remember(durationMs, stepMs) {
         // 最後まで
         ((0 until durationMs step stepMs) + durationMs).toList()
@@ -472,31 +485,36 @@ private fun TimeLineTopTimeLabel(
 
     Box(modifier = modifier) {
         labelList.forEach { timeMs ->
+            val textMeasure = rememberTextMeasurer()
+            val timeText = simpleDateFormat.format(timeMs)
+
             Text(
                 modifier = Modifier
+                    .offset { IntOffset(-textMeasure.measure(timeText).size.width / 2, 0) }
                     .offset { IntOffset(timeMs.msToWidth, 0) },
-                text = simpleDateFormat.format(timeMs)
+                text = timeText
             )
         }
     }
 }
 
 /**
- * タイムラインで今のプレビュー位置を表示するためのバー。あの赤い棒。
+ * タイムラインで現在位置とか、最後の位置を表示するためのバー
  *
  * @param modifier [Modifier]
- * @param currentPositionMs 再生位置
+ * @param positionMs バーを表示したい位置
  */
 @Composable
-private fun TimeLineCurrentPositionBar(
+private fun TimeLinePositionBar(
     modifier: Modifier = Modifier,
-    currentPositionMs: Long
+    color: Color,
+    positionMs: Long
 ) {
     Box(
         modifier = modifier
             .width(2.dp)
-            .offset { IntOffset(currentPositionMs.msToWidth, 0) }
-            .background(Color.Red)
+            .offset { IntOffset(positionMs.msToWidth, 0) }
+            .background(color)
     )
 }
 
