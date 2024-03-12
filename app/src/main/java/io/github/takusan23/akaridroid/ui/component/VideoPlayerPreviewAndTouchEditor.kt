@@ -45,6 +45,15 @@ import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 @Composable
 private fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
 
+/** 移動中、サイズ変更中に文字を出す。 */
+enum class TouchEditorItemTextDescriptionType {
+    /** サイズ変更をテキストで補足 */
+    Size,
+
+    /** 位置変更をテキストで補足 */
+    Position
+}
+
 /**
  * [io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer]
  * プレビューを表示する機能と、キャンバス要素をタッチで移動できるようにするやつ
@@ -187,6 +196,9 @@ private fun TouchEditorItem(
     val itemWidth = remember(touchEditorItem) { mutableIntStateOf(touchEditorItem.size.width) }
     val itemHeight = remember(touchEditorItem) { mutableIntStateOf(touchEditorItem.size.height) }
 
+    // 編集中に文字で補足する
+    val textDescriptionType = remember(touchEditorItem) { mutableStateOf<TouchEditorItemTextDescriptionType?>(null) }
+
     Box(
         modifier = modifier
             // ピクセル単位で指定する必要あり
@@ -198,6 +210,9 @@ private fun TouchEditorItem(
             // ドラッグアンドドロップで移動させる
             .pointerInput(touchEditorItem) {
                 detectDragGestures(
+                    onDragStart = {
+                        textDescriptionType.value = TouchEditorItemTextDescriptionType.Position
+                    },
                     onDrag = { change, dragAmount ->
                         // 拡大縮小でイベントを使うかもしれないので、消費しない
                         change.consume()
@@ -217,10 +232,22 @@ private fun TouchEditorItem(
                                 )
                             )
                         )
+                        textDescriptionType.value = null
                     }
                 )
             }
     ) {
+
+        // テキストで補足するやつ。
+        if (textDescriptionType.value != null) {
+            TextDescription(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                text = when (textDescriptionType.value!!) {
+                    TouchEditorItemTextDescriptionType.Size -> "${itemWidth.intValue} x ${itemHeight.intValue}"
+                    TouchEditorItemTextDescriptionType.Position -> "${offset.value.x} , ${offset.value.y}"
+                }
+            )
+        }
 
         Icon(
             modifier = Modifier
@@ -232,6 +259,9 @@ private fun TouchEditorItem(
                 .pointerInput(touchEditorItem) {
                     val aspect = touchEditorItem.size.height / touchEditorItem.size.width.toFloat()
                     detectDragGestures(
+                        onDragStart = {
+                            textDescriptionType.value = TouchEditorItemTextDescriptionType.Size
+                        },
                         onDrag = { change, dragAmount ->
                             change.consume()
                             itemWidth.intValue = (itemWidth.intValue + dragAmount.x).toInt()
@@ -248,6 +278,7 @@ private fun TouchEditorItem(
                                     )
                                 )
                             )
+                            textDescriptionType.value = null
                         }
                     )
                 },
@@ -286,5 +317,29 @@ private fun TouchEditSwitch(
             Text(text = "タッチ編集")
             Switch(checked = isEnable, onCheckedChange = null)
         }
+    }
+}
+
+/**
+ * テキストで補足するやつ。移動中や、サイズ変更など。
+ *
+ * @param modifier [Modifier]
+ * @param text 補足するテキスト
+ */
+@Composable
+private fun TextDescription(
+    modifier: Modifier = Modifier,
+    text: String
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.background,
+        shape = RoundedCornerShape(2.dp)
+    ) {
+        Text(
+            modifier = modifier.padding(2.dp),
+            text = text,
+            maxLines = 2
+        )
     }
 }
