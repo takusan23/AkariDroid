@@ -131,17 +131,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .map { renderItemList -> renderItemList.mapNotNull { renderItem -> renderItem.getUriOrNull() } }
                 .distinctUntilChanged()
                 .collect { latestItemList ->
-                    // 前回との差分ををとる
-                    // 2つのリストからの差分なので、引く、引かれるに注意
-                    val diffList = (latestItemList - prevRenderItemList) + (prevRenderItemList - latestItemList)
-
                     // 前回から無くなった分は Uri の永続化を解除
-                    diffList
+                    (prevRenderItemList - latestItemList)
                         .filter { diff -> diff in prevRenderItemList }
                         .forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
 
                     // 前回から増えた分は Uri の永続化に登録
-                    diffList
+                    (latestItemList - prevRenderItemList)
                         .filter { diff -> diff in latestItemList }
                         .forEach { uri -> UriTool.takePersistableUriPermission(context, uri) }
 
