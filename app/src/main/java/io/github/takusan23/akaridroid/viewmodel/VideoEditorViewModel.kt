@@ -415,6 +415,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             .second
             // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
             .filter { laneItem -> laneItem.id != request.id }
+            .apply { println(this) }
             // 判定を行う
             .all { laneItem ->
                 // 空きがあること
@@ -423,6 +424,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 val hasNotInclude = laneItem.startMs !in dragAndDroppedDisplayTime && laneItem.stopMs !in dragAndDroppedDisplayTime
                 hasFreeSpace && hasNotInclude
             }
+
+        // 空きがない場合は return
+        if (!isAcceptable) return false
 
         // RenderData を更新する
         // タイムラインも RenderData の Flow から再構築される
@@ -464,7 +468,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             )
         }
 
-        return isAcceptable
+        return true
     }
 
     /**
