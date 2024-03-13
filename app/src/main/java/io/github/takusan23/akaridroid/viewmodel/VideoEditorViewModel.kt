@@ -615,6 +615,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     fun getRenderItem(id: Long): RenderData.RenderItem? = (_renderData.value.canvasRenderItem + _renderData.value.audioRenderItem)
         .firstOrNull { it.id == id }
 
+    /** タイムラインの素材を全て破棄する。 */
+    fun resetRenderItem() {
+        _renderData.value = renderData.value.copy(
+            canvasRenderItem = emptyList(),
+            audioRenderItem = emptyList()
+        )
+    }
+
     /**
      * [RenderData.CanvasItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
      * 動画とか、テキストとか

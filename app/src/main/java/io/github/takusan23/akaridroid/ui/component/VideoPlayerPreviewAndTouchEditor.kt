@@ -339,7 +339,7 @@ private fun TextDescription(
         Text(
             modifier = modifier.padding(2.dp),
             text = text,
-            maxLines = 2
+            maxLines = 1
         )
     }
 }

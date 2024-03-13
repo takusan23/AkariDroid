@@ -91,6 +91,9 @@ fun VideoEditorScreen(
                 },
                 onSettingClick = {
                     onNavigate(NavigationPaths.Setting)
+                },
+                onTimeLineReset = {
+                    viewModel.resetRenderItem()
                 }
             )
         }

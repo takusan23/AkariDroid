@@ -17,11 +17,16 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -54,6 +59,7 @@ sealed interface VideoEditorBottomBarAddItem {
  * @param onEncodeClick 仮だけどエンコードボタン
  * @param onVideoInfoClick 仮だけど動画情報編集画面を開くボタン
  * @param onSettingClick 設定画面を開く（仮）
+ * @param onTimeLineReset タイムラインのリセット
  */
 @Composable
 fun VideoEditorBottomBar(
@@ -61,7 +67,8 @@ fun VideoEditorBottomBar(
     onCreateRenderItem: (VideoEditorBottomBarAddItem) -> Unit,
     onEncodeClick: () -> Unit,
     onVideoInfoClick: () -> Unit,
-    onSettingClick: () -> Unit
+    onSettingClick: () -> Unit,
+    onTimeLineReset: () -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -88,6 +95,9 @@ fun VideoEditorBottomBar(
                 iconId = R.drawable.ic_outline_movie_edit_24,
                 onClick = onVideoInfoClick
             )
+
+            // タイムラインのリセット。全て破棄する
+            TimeLineResetButton(onReset = onTimeLineReset)
 
             // エンコードボタン、仮
             VideoEditorBottomBarItem(
@@ -204,5 +214,44 @@ private fun AddShapeButton(onCreateRenderItem: (VideoEditorBottomBarAddItem) -> 
         label = "図形の追加",
         iconId = R.drawable.ic_outline_category_24,
         onClick = { onCreateRenderItem(VideoEditorBottomBarAddItem.Shape) }
+    )
+}
+
+/**
+ * タイムラインのアイテムをすべてリセットする。
+ * @param onReset ダイアログが出て、本当に削除する場合に呼ばれる
+ */
+@Composable
+private fun TimeLineResetButton(onReset: () -> Unit) {
+    val isVisibleDialog = remember { mutableStateOf(false) }
+
+    if (isVisibleDialog.value) {
+        AlertDialog(
+            onDismissRequest = { isVisibleDialog.value = false },
+            icon = { Icon(painter = painterResource(id = R.drawable.ic_outline_delete_24px), contentDescription = null) },
+            title = { Text(text = "本当に破棄しますか") },
+            text = { Text(text = "タイムラインの素材を全て破棄して、まっさらな状態にします。本当に破棄しますか？") },
+            dismissButton = {
+                TextButton(onClick = { isVisibleDialog.value = false }) {
+                    Text(text = "戻る")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onReset()
+                        isVisibleDialog.value = false
+                    }
+                ) {
+                    Text(text = "破棄する")
+                }
+            }
+        )
+    }
+
+    VideoEditorBottomBarItem(
+        label = "タイムラインを破棄",
+        iconId = R.drawable.ic_outline_delete_24px,
+        onClick = { isVisibleDialog.value = true }
     )
 }
