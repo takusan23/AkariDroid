@@ -83,7 +83,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // RenderData の保存、読み取り
         viewModelScope.launch {
             // 読み取る
-            val readRenderData = ProjectFolderManager.readRenderData(context) ?: renderData.value
+            // 多分今後のアップデートで互換性が崩壊するので、try-catch する
+            val readRenderData = runCatching {
+                ProjectFolderManager.readRenderData(context)
+            }.getOrNull() ?: renderData.value
             // 前回の利用から、すでに削除されて使えない素材（画像、動画、音声）を弾く
             val availableUriList = UriTool.getTakePersistableUriList(context)
 
@@ -299,6 +302,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
     fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
 
+        // 素材の挿入位置。現在の位置
+        val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+
         // 真ん中らへんになるように
         val centerPosition = RenderData.Position(
             x = (renderData.value.videoSize.width / 2).toFloat(),
@@ -308,7 +314,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         val openEditItem = when (addItem) {
             // テキスト
             VideoEditorBottomBarAddItem.Text -> {
-                val displayTime = RenderData.DisplayTime(0, 10_000)
+                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
                 val text = RenderData.CanvasItem.Text(
                     text = "",
                     displayTime = displayTime,
@@ -321,7 +327,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             // 画像
             is VideoEditorBottomBarAddItem.Image -> {
                 val size = UriTool.analyzeImage(context, addItem.uri)?.size ?: return@launch
-                val displayTime = RenderData.DisplayTime(0, 10_000)
+                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
                 val image = RenderData.CanvasItem.Image(
                     filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                     displayTime = displayTime,
@@ -335,7 +341,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             // 音声
             is VideoEditorBottomBarAddItem.Audio -> {
                 val durationMs = UriTool.analyzeAudio(context, addItem.uri)?.durationMs ?: return@launch
-                val displayTime = RenderData.DisplayTime(0, durationMs)
+                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
                 val audio = RenderData.AudioItem.Audio(
                     filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
                     displayTime = displayTime,
@@ -348,7 +354,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is VideoEditorBottomBarAddItem.Video -> {
                 val analyzeVideo = UriTool.analyzeVideo(context, addItem.uri) ?: return@launch
                 val durationMs = analyzeVideo.durationMs
-                val displayTime = RenderData.DisplayTime(0, durationMs)
+                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
 
                 // 映像トラックを追加
                 val videoTrack = RenderData.CanvasItem.Video(
@@ -365,7 +371,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     val audioTrack = RenderData.AudioItem.Audio(
                         id = System.currentTimeMillis() + 10,
                         filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = RenderData.DisplayTime(0, durationMs),
+                        displayTime = displayTime,
                         layerIndex = calcInsertableLaneIndex(displayTime)
                     )
                     addOrUpdateAudioRenderItem(audioTrack)
@@ -374,7 +380,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             }
             // 図形
             VideoEditorBottomBarAddItem.Shape -> {
-                val displayTime = RenderData.DisplayTime(0, 10_000)
+                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
                 val shape = RenderData.CanvasItem.Shape(
                     displayTime = displayTime,
                     position = centerPosition,
@@ -415,7 +421,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             .second
             // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
             .filter { laneItem -> laneItem.id != request.id }
-            .apply { println(this) }
             // 判定を行う
             .all { laneItem ->
                 // 空きがあること
