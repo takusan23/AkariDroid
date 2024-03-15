@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
+import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
@@ -58,6 +59,15 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         )
     )
 
+    /** 履歴機能。undo / redo */
+    private val historyManager = HistoryManager<RenderData>()
+    private val _historyState = MutableStateFlow<HistoryManager.HistoryState>(
+        HistoryManager.HistoryState(
+            hasUndo = false,
+            hasRedo = false
+        )
+    )
+
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
     val projectFolder = ProjectFolderManager.getProjectFolder(context)
 
@@ -78,6 +88,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     /** タッチ操作でキャンバス要素編集できるやつ */
     val touchEditorData = _touchEditorData.asStateFlow()
+
+    /** 履歴で undo / redo できるか */
+    val historyState = _historyState.asStateFlow()
 
     init {
         // RenderData の保存、読み取り
@@ -147,6 +160,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     // 次に備える
                     prevRenderItemList = latestItemList
                 }
+        }
+
+        // 履歴機能のため、RenderData に更新があったら追加する
+        viewModelScope.launch {
+            renderData.collect {
+                _historyState.value = historyManager.addHistory(it)
+            }
         }
 
         // 動画の情報が更新されたら
@@ -626,6 +646,21 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             canvasRenderItem = emptyList(),
             audioRenderItem = emptyList()
         )
+    }
+
+    /** 履歴を使って、一個前に戻す */
+    fun renderDataUndo() {
+        // 戻す
+        val undo = historyManager.undo()
+        _renderData.value = undo.data
+        _historyState.value = undo.state
+    }
+
+    /** 履歴を使って、戻す操作を取り消す */
+    fun renderDataRedo() {
+        val redo = historyManager.redo()
+        _renderData.value = redo.data
+        _historyState.value = redo.state
     }
 
     /**

@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.ui.screen
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
+import io.github.takusan23.akaridroid.ui.component.UndoRedoButton
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBar
 import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
@@ -54,6 +56,8 @@ fun VideoEditorScreen(
     val timeLineData = viewModel.timeLineData.collectAsStateWithLifecycle()
     // タッチ編集
     val touchEditorData = viewModel.touchEditorData.collectAsStateWithLifecycle()
+    // 履歴機能。undo / redo
+    val historyState = viewModel.historyState.collectAsStateWithLifecycle()
 
     // エンコード中の場合
     if (isEncoding?.value == true) {
@@ -116,12 +120,22 @@ fun VideoEditorScreen(
             )
 
             // シークバーとか
-            PreviewPlayerController(
-                modifier = Modifier.padding(5.dp),
-                playerStatus = previewPlayerStatus.value,
-                onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
-            )
+            Row {
+                PreviewPlayerController(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(5.dp),
+                    playerStatus = previewPlayerStatus.value,
+                    onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+                    onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
+                )
+                UndoRedoButton(
+                    hasUndo = historyState.value.hasUndo,
+                    hasRedo = historyState.value.hasRedo,
+                    onUndo = { viewModel.renderDataUndo() },
+                    onRedo = { viewModel.renderDataRedo() }
+                )
+            }
 
             // タイムライン
             TimeLine(
