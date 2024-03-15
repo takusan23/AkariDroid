@@ -54,6 +54,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.abs
 
 /** 1 ミリ秒をどれだけの幅で表すか */
 private const val MillisecondsWidthPx = 20
@@ -330,7 +331,7 @@ private fun TimeLineItem(
                     .localBoundingBoxOf(it)
                     .roundToIntRect()
             }
-            .pointerInput(timeLineItemData) {
+            .pointerInput(timeLineItemData, currentPositionMs) {
                 // アイテム移動のシステム
                 // データが変化したら pointerInput も再起動するようにキーに入れる
                 var startRect: IntRect? = null
@@ -343,10 +344,14 @@ private fun TimeLineItem(
                     onDrag = { change, dragAmount ->
                         // 移動中
                         change.consume()
-                        draggingOffset.value = IntOffset(
-                            x = (draggingOffset.value.x + dragAmount.x).toInt(),
-                            y = (draggingOffset.value.y + dragAmount.y).toInt()
-                        )
+                        val x = (draggingOffset.value.x + dragAmount.x).toInt()
+                        val y = (draggingOffset.value.y + dragAmount.y).toInt()
+                        // もし現在の位置のすぐ近くに移動させる場合は、吸い付かせる
+                        draggingOffset.value = if (abs(currentPositionMs - x.widthToMs) < 100) {
+                            IntOffset(currentPositionMs.msToWidth, y)
+                        } else {
+                            IntOffset(x, y)
+                        }
                     },
                     onDragEnd = {
                         // 移動終了
