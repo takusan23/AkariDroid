@@ -71,7 +71,8 @@ data class RenderData(
             val text: String,
             val textSize: Float = 50f,
             val fontColor: String = "#ffffff",
-            val strokeColor: String? = null // 枠取り文字にするなら
+            val strokeColor: String? = null, // 枠取り文字にするなら
+            val fontName: String? = null // フォントを使うなら、FontManager で追加したときの名前。フォントファイルが有るかは常に見る必要がある
         ) : CanvasItem
 
         /** 画像 */

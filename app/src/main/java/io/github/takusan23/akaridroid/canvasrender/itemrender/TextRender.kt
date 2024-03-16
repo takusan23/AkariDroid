@@ -1,12 +1,15 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
+import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.FontManager
 
 /** 文字を描画する */
 class TextRender(
+    private val context: Context,
     private val text: RenderData.CanvasItem.Text
 ) : ItemRenderInterface {
 
@@ -24,7 +27,14 @@ class TextRender(
         get() = text.layerIndex
 
     override suspend fun prepare() {
-        // do nothing
+        // フォントをロードする
+        val fontManager = FontManager(context)
+        text.fontName
+            ?.let { fontName -> fontManager.createTypeface(fontName) }
+            ?.also { typeface ->
+                fillPaint.typeface = typeface
+                strokePaint.typeface = typeface
+            }
     }
 
     override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
@@ -43,6 +53,7 @@ class TextRender(
         // 複数行サポート
         text.text.lines().forEachIndexed { index, text ->
             canvas.drawText(text, x, y + (fillPaint.textSize * index), fillPaint)
+
             if (isDrawStroke) {
                 canvas.drawText(text, x, y + (fillPaint.textSize * index), strokePaint)
             }
@@ -79,6 +90,8 @@ class TextRender(
          * 文字を描画した時のサイズを出す。
          * [TextRender]には[RenderData.Size]が生えていないので代わり。
          * [Paint.measureText]だと、複数行の文字に対応できないため。
+         *
+         * フォントの読み込みまではしないので、フォントを変更している場合はサイズが変わってしまう。
          *
          * @param text [RenderData.CanvasItem.Text]
          * @return 計測結果

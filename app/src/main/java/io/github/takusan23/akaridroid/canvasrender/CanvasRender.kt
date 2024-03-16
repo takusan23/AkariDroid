@@ -40,7 +40,7 @@ class CanvasRender(private val context: Context) {
 
                 // 無ければ作る
                 val newItem = when (renderItem) {
-                    is RenderData.CanvasItem.Text -> TextRender(renderItem)
+                    is RenderData.CanvasItem.Text -> TextRender(context, renderItem)
                     is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
                     is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
                     is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)

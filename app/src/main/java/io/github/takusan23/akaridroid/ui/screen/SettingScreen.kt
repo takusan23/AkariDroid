@@ -42,6 +42,15 @@ fun SettingScreen(
             item {
                 SettingItem(
                     modifier = Modifier.fillMaxWidth(),
+                    title = "フォントの管理",
+                    description = "自分の持ってるフォントを動画で利用できます。",
+                    onClick = { onNavigate(NavigationPaths.FontSetting) }
+                )
+            }
+
+            item {
+                SettingItem(
+                    modifier = Modifier.fillMaxWidth(),
                     title = "このアプリについて",
                     description = "GitHub のリンクとか",
                     onClick = { onNavigate(NavigationPaths.About) }

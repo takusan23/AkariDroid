@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.takusan23.akaridroid.ui.screen.about.AboutScreen
 import io.github.takusan23.akaridroid.ui.screen.about.AboutSushiScreen
+import io.github.takusan23.akaridroid.ui.screen.setting.FontSettingScreen
 
 /** 画面の切り替えを担当する */
 @Composable
@@ -31,6 +32,11 @@ fun AkariDroidMainScreen() {
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
             )
         }
+        composable(NavigationPaths.FontSetting.path) {
+            FontSettingScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
         composable(NavigationPaths.SushiScreen.path) {
             AboutSushiScreen(
                 onBack = { navController.popBackStack() }
@@ -47,6 +53,9 @@ enum class NavigationPaths(val path: String) {
 
     /** 設定画面 */
     Setting("setting"),
+
+    /** フォント設定 */
+    FontSetting("setting_font"),
 
     /** このアプリについて画面 */
     About("about"),
