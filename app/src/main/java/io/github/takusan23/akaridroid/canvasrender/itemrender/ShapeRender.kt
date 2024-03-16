@@ -26,12 +26,12 @@ class ShapeRender(
 
         paint.color = Color.parseColor(shape.color)
         // 分ける
-        when (shape.type) {
-            RenderData.CanvasItem.Shape.Type.Rect -> {
+        when (shape.shapeType) {
+            RenderData.CanvasItem.Shape.ShapeType.Rect -> {
                 canvas.drawRect(x, y, (x + width), (y + height), paint)
             }
 
-            RenderData.CanvasItem.Shape.Type.Circle -> {
+            RenderData.CanvasItem.Shape.ShapeType.Circle -> {
                 // 半径
                 val radius = width / 2f
                 canvas.drawCircle(x + radius, y + radius, radius, paint)

@@ -53,8 +53,9 @@ class CanvasRenderTest {
                             displayTime = RenderData.DisplayTime(0, 10_000),
                             position = RenderData.Position(100f, 100f),
                             layerIndex = 0,
-                            text = "こんにちは",
-                            fontColor = "#ffffff",
+                            text = "枠取り文字",
+                            fontColor = "#000000",
+                            strokeColor = "#ffffff",
                             textSize = 100f
                         ),
                         RenderData.CanvasItem.Text(
@@ -249,7 +250,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#ffffff",
                             size = RenderData.Size(1280, 720),
-                            type = RenderData.CanvasItem.Shape.Type.Rect
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                         ),
                         RenderData.CanvasItem.Shape(
                             displayTime = RenderData.DisplayTime(0, 10_000),
@@ -257,7 +258,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#0000ff",
                             size = RenderData.Size(100, 100),
-                            type = RenderData.CanvasItem.Shape.Type.Circle
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
                             displayTime = RenderData.DisplayTime(0, 10_000),
@@ -265,7 +266,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#ffff00",
                             size = RenderData.Size(100, 100),
-                            type = RenderData.CanvasItem.Shape.Type.Circle
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
                             displayTime = RenderData.DisplayTime(0, 10_000),
@@ -273,7 +274,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#ff0000",
                             size = RenderData.Size(100, 100),
-                            type = RenderData.CanvasItem.Shape.Type.Circle
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
                             displayTime = RenderData.DisplayTime(0, 10_000),
@@ -281,7 +282,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#ff0000",
                             size = RenderData.Size(100, 100),
-                            type = RenderData.CanvasItem.Shape.Type.Rect
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                         ),
                         RenderData.CanvasItem.Shape(
                             displayTime = RenderData.DisplayTime(0, 10_000),
@@ -289,7 +290,7 @@ class CanvasRenderTest {
                             layerIndex = 0,
                             color = "#0000ff",
                             size = RenderData.Size(100, 100),
-                            type = RenderData.CanvasItem.Shape.Type.Rect
+                            shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                         ),
                     )
                 )

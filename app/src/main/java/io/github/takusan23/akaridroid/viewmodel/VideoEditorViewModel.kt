@@ -407,7 +407,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     layerIndex = calcInsertableLaneIndex(displayTime),
                     color = "#ffffff",
                     size = RenderData.Size(300, 300),
-                    type = RenderData.CanvasItem.Shape.Type.Rect
+                    shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                 )
                 addOrUpdateCanvasRenderItem(shape)
                 shape

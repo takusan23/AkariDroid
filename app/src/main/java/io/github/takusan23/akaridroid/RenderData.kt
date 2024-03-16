@@ -70,7 +70,8 @@ data class RenderData(
             override val layerIndex: Int,
             val text: String,
             val textSize: Float = 50f,
-            val fontColor: String = "#ffffff"
+            val fontColor: String = "#ffffff",
+            val strokeColor: String? = null // 枠取り文字にするなら
         ) : CanvasItem
 
         /** 画像 */
@@ -109,11 +110,11 @@ data class RenderData(
             override val position: Position,
             val color: String = "#ffffff",
             val size: Size,
-            val type: Type
+            val shapeType: ShapeType
         ) : CanvasItem {
 
             /** 図形タイプ */
-            enum class Type {
+            enum class ShapeType {
                 /** 四角形 */
                 Rect,
 

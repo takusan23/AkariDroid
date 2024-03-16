@@ -57,9 +57,9 @@ fun ShapeRenderEditBottomSheet(
         OutlinedDropDownMenu(
             label = "図形の種類",
             modifier = Modifier.fillMaxWidth(),
-            currentSelectIndex = RenderData.CanvasItem.Shape.Type.entries.indexOf(shapeItem.value.type),
+            currentSelectIndex = RenderData.CanvasItem.Shape.ShapeType.entries.indexOf(shapeItem.value.shapeType),
             menuList = listOf("四角", "丸"),
-            onSelect = { index -> update { it.copy(type = RenderData.CanvasItem.Shape.Type.entries[index]) } }
+            onSelect = { index -> update { it.copy(shapeType = RenderData.CanvasItem.Shape.ShapeType.entries[index]) } }
         )
 
         RenderItemColorEditComponent(

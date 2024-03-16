@@ -10,8 +10,15 @@ class TextRender(
     private val text: RenderData.CanvasItem.Text
 ) : ItemRenderInterface {
 
-    /** 文字の大きさとか */
-    private val paint = createPaint(text)
+    // 枠なし文字
+    private val fillPaint = createPaint(text).apply {
+        style = Paint.Style.FILL
+    }
+
+    // 枠あり文字の際に枠を書く
+    private val strokePaint = createPaint(text).apply {
+        style = Paint.Style.STROKE
+    }
 
     override val layerIndex: Int
         get() = text.layerIndex
@@ -21,13 +28,24 @@ class TextRender(
     }
 
     override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
-        paint.color = Color.parseColor(text.fontColor)
-        paint.textSize = text.textSize
+        fillPaint.color = Color.parseColor(text.fontColor)
+        fillPaint.textSize = text.textSize
+
+        // 枠取りにするなら
+        val isDrawStroke = text.strokeColor != null
+        if (isDrawStroke) {
+            strokePaint.color = Color.parseColor(text.strokeColor)
+            strokePaint.textSize = text.textSize
+        }
+
         val (x, y) = text.position
 
         // 複数行サポート
         text.text.lines().forEachIndexed { index, text ->
-            canvas.drawText(text, x, y + (paint.textSize * index), paint)
+            canvas.drawText(text, x, y + (fillPaint.textSize * index), fillPaint)
+            if (isDrawStroke) {
+                canvas.drawText(text, x, y + (fillPaint.textSize * index), strokePaint)
+            }
         }
     }
 
