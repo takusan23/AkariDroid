@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * 動画の素材
  *
+ * @param version [RenderData]のバージョン。破壊的変更があればこれを見る
  * @param durationMs トータル時間
  * @param videoSize 動画の縦横
  * @param canvasRenderItem 描画するアイテム
@@ -13,6 +14,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class RenderData(
+    val version: Int = VERSION,
     val durationMs: Long,
     val videoSize: Size,
     val canvasRenderItem: List<CanvasItem>,
@@ -238,4 +240,10 @@ data class RenderData(
      */
     @Serializable
     data class DisplayOffset(val offsetFirstMs: Long)
+
+    companion object {
+
+        /** 現在のバージョン。破壊的変更があればこれで判定する */
+        private const val VERSION = 1
+    }
 }
