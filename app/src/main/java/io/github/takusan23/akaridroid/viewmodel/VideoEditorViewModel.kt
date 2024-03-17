@@ -61,7 +61,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     /** 履歴機能。undo / redo */
     private val historyManager = HistoryManager<RenderData>()
-    private val _historyState = MutableStateFlow<HistoryManager.HistoryState>(
+    private val _historyState = MutableStateFlow(
         HistoryManager.HistoryState(
             hasUndo = false,
             hasRedo = false
@@ -120,7 +120,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 }
 
             // Flow に流して更新
-            _renderData.value = renderData.value.copy(
+            _renderData.value = readRenderData.copy(
                 canvasRenderItem = existsRenderItemList.filterIsInstance<RenderData.CanvasItem>(),
                 audioRenderItem = existsRenderItemList.filterIsInstance<RenderData.AudioItem>()
             )

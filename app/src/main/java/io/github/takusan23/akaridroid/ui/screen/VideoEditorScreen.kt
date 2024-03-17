@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
+import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.UndoRedoButton
@@ -43,7 +43,7 @@ fun VideoEditorScreen(
     // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
     // エンコード中かどうか
-    val isEncoding = encoderService.value?.isRunningEncode?.collectAsStateWithLifecycle()
+    val encodeStatus = encoderService.value?.encodeStatusFlow?.collectAsStateWithLifecycle()
     // 動画の素材や情報が入ったデータ
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
     // プレビューのプレイヤー状態
@@ -59,9 +59,15 @@ fun VideoEditorScreen(
     // 履歴機能。undo / redo
     val historyState = viewModel.historyState.collectAsStateWithLifecycle()
 
-    // エンコード中の場合
-    if (isEncoding?.value == true) {
-        Text(text = "エンコード中です")
+    // エンコード中の場合は別の UI を出して return する
+    if (encodeStatus?.value != null) {
+        Scaffold { paddingValues ->
+            EncodingStatus(
+                modifier = Modifier.padding(paddingValues),
+                encodeStatus = encodeStatus.value!!,
+                onCancel = { encoderService.value?.stop() }
+            )
+        }
         return
     }
 

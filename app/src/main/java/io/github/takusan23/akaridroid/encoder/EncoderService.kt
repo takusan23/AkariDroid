@@ -40,10 +40,10 @@ class EncoderService : Service() {
     /** エンコードキャンセル用 [Job] */
     private var encoderJob: Job? = null
 
-    private val _isRunningEncode = MutableStateFlow(false)
+    private val _encodeStatusFlow = MutableStateFlow<AkariCoreEncoder.EncodeStatus?>(null)
 
-    /** エンコード中かどうか */
-    val isRunningEncode = _isRunningEncode.asStateFlow()
+    /** エンコードの進捗。null の場合は起動していないかエンコード終了。 */
+    val encodeStatusFlow = _encodeStatusFlow.asStateFlow()
 
     override fun onCreate() {
         super.onCreate()
@@ -75,18 +75,18 @@ class EncoderService : Service() {
         encoderJob = scope.launch {
             try {
                 // フォアグラウンドサービスに昇格させる
-                _isRunningEncode.value = true
                 createOrUpdateForegroundNotification()
 
                 // エンコード
                 AkariCoreEncoder.encode(
                     context = this@EncoderService,
                     projectFolder = projectFolder,
-                    renderData = renderData
+                    renderData = renderData,
+                    onUpdateStatus = { _encodeStatusFlow.value = it }
                 )
             } finally {
                 // 完了時はフォアグラウンドサービスを通常サービスに
-                _isRunningEncode.value = false
+                _encodeStatusFlow.value = null
                 ServiceCompat.stopForeground(this@EncoderService, ServiceCompat.STOP_FOREGROUND_REMOVE)
             }
         }

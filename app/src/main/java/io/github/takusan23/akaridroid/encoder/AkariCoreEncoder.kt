@@ -5,11 +5,11 @@ import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.common.MediaMuxerTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -23,6 +23,27 @@ object AkariCoreEncoder {
     private const val AUDIO_TRACK_FILE_NAME = "audio_track"
     private const val RESULT_FILE_NAME_PREFIX = "AkariDroid_Result_"
 
+    /** エンコードの進捗 */
+    sealed interface EncodeStatus {
+
+        /**
+         * エンコード中
+         *
+         * @param encodePositionMs 映像トラックのエンコード済み位置
+         * @param durationMs 動画の時間
+         */
+        data class Progress(
+            val encodePositionMs: Long,
+            val durationMs: Long
+        ) : EncodeStatus
+
+        /** 映像トラックと音声トラックを一つのコンテナにミックス中 */
+        data object Mixing : EncodeStatus
+
+        /** 端末の動画フォルダへ移動中 */
+        data object MoveFile : EncodeStatus
+    }
+
     /**
      * エンコードする
      *
@@ -33,7 +54,8 @@ object AkariCoreEncoder {
     suspend fun encode(
         context: Context,
         projectFolder: File,
-        renderData: RenderData
+        renderData: RenderData,
+        onUpdateStatus: (EncodeStatus) -> Unit
     ): Unit = withContext(Dispatchers.IO) {
         // 映像トラック生成器
         val canvasRender = CanvasRender(
@@ -65,6 +87,12 @@ object AkariCoreEncoder {
                     CanvasVideoProcessor.start(
                         output = videoTrackFile.toAkariCoreInputOutputData(),
                         onCanvasDrawRequest = { positionMs ->
+                            onUpdateStatus(
+                                EncodeStatus.Progress(
+                                    encodePositionMs = positionMs,
+                                    durationMs = durationMs
+                                )
+                            )
                             canvasRender.draw(
                                 canvas = this,
                                 durationMs = durationMs,
