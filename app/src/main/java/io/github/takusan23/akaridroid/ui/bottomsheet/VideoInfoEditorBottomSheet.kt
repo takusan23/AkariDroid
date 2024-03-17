@@ -19,10 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
+import io.github.takusan23.akaridroid.ui.component.DurationInput
 import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
-import io.github.takusan23.akaridroid.ui.component.OutlinedLongTextField
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 /**
  * 動画情報編集ボトムシート。
@@ -36,7 +34,6 @@ fun VideoInfoEditorBottomSheet(
     renderData: RenderData,
     onUpdate: (RenderData) -> Unit
 ) {
-    val simpleDateFormat = remember { SimpleDateFormat("mm:ss", Locale.getDefault()) }
     val renderData = remember { mutableStateOf(renderData) }
 
     fun update(copy: (RenderData) -> RenderData) {
@@ -60,15 +57,11 @@ fun VideoInfoEditorBottomSheet(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedLongTextField(
+            Text(text = "動画の時間")
+            DurationInput(
                 modifier = Modifier.weight(1f),
-                value = renderData.value.durationMs,
-                onValueChange = { long -> update { it.copy(durationMs = long) } },
-                label = { Text(text = "動画の時間 (ミリ秒)") }
-            )
-            Text(
-                modifier = Modifier.padding(vertical = 10.dp),
-                text = simpleDateFormat.format(renderData.value.durationMs)
+                durationMs = renderData.value.durationMs,
+                onChange = { long -> update { it.copy(durationMs = long) } }
             )
         }
 
