@@ -271,19 +271,22 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         .map { it.canvasRenderItem }
                         .map { canvasRenderItem -> canvasRenderItem.filter { currentPositionMs in it.displayTime } }
                         .map { canvasRenderItem ->
-                            canvasRenderItem.map { canvasItem ->
-                                val measure = canvasItem.measureSize()
-                                TouchEditorData.TouchEditorItem(
-                                    id = canvasItem.id,
-                                    size = measure,
-                                    position = if (canvasItem is RenderData.CanvasItem.Text) {
-                                        // Android Canvas 都合で、文字サイス分を考慮する必要
-                                        canvasItem.position.copy(y = canvasItem.position.y - canvasItem.textSize)
-                                    } else {
-                                        canvasItem.position
-                                    }
-                                )
-                            }
+                            // 重なる順でソートする
+                            canvasRenderItem
+                                .sortedBy { it.layerIndex }
+                                .map { canvasItem ->
+                                    val measure = canvasItem.measureSize()
+                                    TouchEditorData.TouchEditorItem(
+                                        id = canvasItem.id,
+                                        size = measure,
+                                        position = if (canvasItem is RenderData.CanvasItem.Text) {
+                                            // Android Canvas 都合で、文字サイス分を考慮する必要
+                                            canvasItem.position.copy(y = canvasItem.position.y - canvasItem.textSize)
+                                        } else {
+                                            canvasItem.position
+                                        }
+                                    )
+                                }
                         }
                         .collect { visibleTouchEditorItemList ->
                             _touchEditorData.update {
