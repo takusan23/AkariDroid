@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -375,25 +374,30 @@ private fun TimeLineItem(
         color = MaterialTheme.colorScheme.primaryContainer,
         onClick = { isVisibleMenu.value = true }
     ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Max),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Icon(
-                modifier = Modifier.padding(5.dp),
-                painter = painterResource(id = timeLineItemData.iconResId),
-                contentDescription = null
-            )
-            Text(
-                text = timeLineItemData.label,
-                maxLines = 1
-            )
+        Box(modifier = Modifier.height(IntrinsicSize.Max)) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterStart),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(
+                    modifier = Modifier.padding(5.dp),
+                    painter = painterResource(id = timeLineItemData.iconResId),
+                    contentDescription = null
+                )
+                Text(
+                    text = timeLineItemData.label,
+                    maxLines = 1
+                )
+            }
 
             // 長さ調整できる場合は、それ用のつまみを出す
             if (timeLineItemData.isChangeDuration) {
-                Spacer(modifier = Modifier.weight(1f))
                 DurationChangeHandle(
+                    modifier = Modifier
+                        .padding(horizontal = 10.dp)
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight(),
                     resetKey = timeLineItemData,
                     onDrag = { dragAmountX -> durationMs.longValue += dragAmountX.widthToMs },
                     onDragEnd = {
@@ -539,18 +543,15 @@ private fun DurationChangeHandle(
     onDragEnd: () -> Unit
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = 10.dp)
-            .fillMaxHeight()
-            .pointerInput(resetKey) {
-                detectDragGestures(
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount.x)
-                    },
-                    onDragEnd = onDragEnd
-                )
-            },
+        modifier = modifier.pointerInput(resetKey) {
+            detectDragGestures(
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount.x)
+                },
+                onDragEnd = onDragEnd
+            )
+        },
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         repeat(2) {
