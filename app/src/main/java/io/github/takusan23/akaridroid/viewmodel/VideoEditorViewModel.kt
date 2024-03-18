@@ -221,12 +221,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                 laneIndex = renderItem.layerIndex,
                                 startMs = renderItem.displayTime.startMs,
                                 stopMs = renderItem.displayTime.stopMs,
-                                label = when (renderItem) {
-                                    is RenderData.CanvasItem.Image -> "画像"
-                                    is RenderData.CanvasItem.Text -> "テキスト"
-                                    is RenderData.CanvasItem.Video -> "動画"
-                                    is RenderData.CanvasItem.Shape -> "図形"
-                                },
+                                label = renderItem.resolveTimeLineLabel(),
                                 iconResId = when (renderItem) {
                                     is RenderData.CanvasItem.Image -> R.drawable.ic_outline_add_photo_alternate_24px
                                     is RenderData.CanvasItem.Text -> R.drawable.ic_outline_text_fields_24
@@ -249,7 +244,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                 laneIndex = audioItem.layerIndex,
                                 startMs = audioItem.displayTime.startMs,
                                 stopMs = audioItem.displayTime.stopMs,
-                                label = "音声",
+                                label = audioItem.resolveTimeLineLabel(),
                                 iconResId = R.drawable.ic_outline_audiotrack_24,
                                 isChangeDuration = false
                             )
@@ -750,6 +745,24 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             }?.first
             ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
             ?: 0 // どうしようもない
+
+    /** [RenderData.RenderItem]からタイムラインの表示で使う名前を取り出す */
+    private suspend fun RenderData.RenderItem.resolveTimeLineLabel(): String {
+
+        // FilePath or Uri で名前を取り出す
+        suspend fun RenderData.FilePath.name(): String = when (this) {
+            is RenderData.FilePath.File -> File(this.filePath).name
+            is RenderData.FilePath.Uri -> UriTool.getFileName(context, this.uriPath.toUri())!!
+        }
+
+        return when (this) {
+            is RenderData.AudioItem.Audio -> this.filePath.name()
+            is RenderData.CanvasItem.Image -> this.filePath.name()
+            is RenderData.CanvasItem.Shape -> "図形"
+            is RenderData.CanvasItem.Text -> this.text
+            is RenderData.CanvasItem.Video -> this.filePath.name()
+        }
+    }
 
     /** [RenderData.RenderItem]から、[RenderData.FilePath.Uri]が利用されている場合は[Uri]を返す */
     private fun RenderData.RenderItem.getUriOrNull(): Uri? {
