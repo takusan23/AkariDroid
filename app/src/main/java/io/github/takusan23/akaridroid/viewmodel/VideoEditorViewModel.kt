@@ -450,10 +450,27 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // 空きがない場合は return
         if (!isAcceptable) return false
+        val layerIndex = request.dragAndDroppedLaneIndex
+
+        // RenderData の Flow からタイムラインの情報が再構築されるが、
+        // resolveTimeLineLabel が結構遅いので、ここで Flow 経由で更新してもぎこちない動作になってしまう。
+        // そこで、TimeLine の位置だけ真っ先に更新することにする。
+        _timeLineData.update { before ->
+            before.copy(itemList = before.itemList.map { item ->
+                if (item.id == renderItem.id) {
+                    item.copy(
+                        laneIndex = layerIndex,
+                        startMs = dragAndDroppedDisplayTime.startMs,
+                        stopMs = dragAndDroppedDisplayTime.stopMs
+                    )
+                } else {
+                    item
+                }
+            })
+        }
 
         // RenderData を更新する
         // タイムラインも RenderData の Flow から再構築される
-        val layerIndex = request.dragAndDroppedLaneIndex
         when (renderItem) {
             is RenderData.AudioItem.Audio -> addOrUpdateAudioRenderItem(
                 renderItem.copy(
