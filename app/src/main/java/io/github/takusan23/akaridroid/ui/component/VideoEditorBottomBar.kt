@@ -60,6 +60,7 @@ sealed interface VideoEditorBottomBarAddItem {
  * @param onVideoInfoClick 仮だけど動画情報編集画面を開くボタン
  * @param onSettingClick 設定画面を開く（仮）
  * @param onTimeLineReset タイムラインのリセット
+ * @param onAkaLink 外部連携ボタン
  */
 @Composable
 fun VideoEditorBottomBar(
@@ -68,7 +69,8 @@ fun VideoEditorBottomBar(
     onEncodeClick: () -> Unit,
     onVideoInfoClick: () -> Unit,
     onSettingClick: () -> Unit,
-    onTimeLineReset: () -> Unit
+    onTimeLineReset: () -> Unit,
+    onAkaLink: () -> Unit
 ) {
     Surface(
         modifier = modifier
@@ -98,6 +100,12 @@ fun VideoEditorBottomBar(
 
             // タイムラインのリセット。全て破棄する
             TimeLineResetButton(onReset = onTimeLineReset)
+
+            VideoEditorBottomBarItem(
+                label = "外部連携メニュー / AkaLink",
+                iconId = R.drawable.ic_outline_folder_data_24px,
+                onClick = onAkaLink
+            )
 
             // エンコードボタン、仮
             VideoEditorBottomBarItem(

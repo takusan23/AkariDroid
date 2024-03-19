@@ -304,6 +304,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> _renderData.update { routeResultData.renderData }
             is VideoEditorBottomSheetRouteResultData.UpdateAudio -> addOrUpdateAudioRenderItem(routeResultData.audio)
             is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> addOrUpdateCanvasRenderItem(routeResultData.renderData)
+            is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> {
+                // todo ここで URI を追加する処理
+            }
         }
     }
 

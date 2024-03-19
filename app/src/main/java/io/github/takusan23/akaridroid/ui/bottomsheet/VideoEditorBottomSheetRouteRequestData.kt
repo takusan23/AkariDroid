@@ -18,4 +18,9 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      * @param renderData [RenderData]
      */
     data class OpenVideoInfo(val renderData: RenderData) : VideoEditorBottomSheetRouteRequestData
+
+    /**
+     * あかりんく 画面を開く
+     */
+    data object OpenAkaLink : VideoEditorBottomSheetRouteRequestData
 }

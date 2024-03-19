@@ -66,6 +66,9 @@ fun VideoEditorBottomSheetRouter(
                 renderData = videoEditorBottomSheetRouteRequestData.renderData,
                 onUpdate = { onResult(VideoEditorBottomSheetRouteResultData.UpdateVideoInfo(it)) }
             )
+
+            // あかりんく画面
+            VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet()
         }
     }
 }

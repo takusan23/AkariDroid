@@ -104,6 +104,9 @@ fun VideoEditorScreen(
                 },
                 onTimeLineReset = {
                     viewModel.resetRenderItem()
+                },
+                onAkaLink = {
+                    viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink)
                 }
             )
         }
