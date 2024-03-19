@@ -1,7 +1,7 @@
 package io.github.takusan23.akaridroid.tool.data
 
 /** [io.github.takusan23.akaridroid.v2.tool.UriTool.analyzeImage]とかの返り値 */
-sealed interface AnalyzeResult {
+sealed interface AvAnalyzeResult {
 
     /**
      * [Image]、[Video]の縦横サイズ
@@ -21,7 +21,7 @@ sealed interface AnalyzeResult {
      */
     data class Image(
         val size: Size
-    ) : AnalyzeResult
+    ) : AvAnalyzeResult
 
     /**
      * 音声
@@ -30,7 +30,7 @@ sealed interface AnalyzeResult {
      */
     data class Audio(
         val durationMs: Long
-    ) : AnalyzeResult
+    ) : AvAnalyzeResult
 
     /**
      * 動画
@@ -43,5 +43,5 @@ sealed interface AnalyzeResult {
         val size: Size,
         val durationMs: Long,
         val hasAudioTrack: Boolean
-    ) : AnalyzeResult
+    ) : AvAnalyzeResult
 }

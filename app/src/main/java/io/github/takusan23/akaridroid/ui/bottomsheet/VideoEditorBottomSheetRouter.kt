@@ -68,7 +68,9 @@ fun VideoEditorBottomSheetRouter(
             )
 
             // あかりんく画面
-            VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet()
+            VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet(
+                onAkaLinkResult = { onResult(VideoEditorBottomSheetRouteResultData.ReceiveAkaLink(it)) }
+            )
         }
     }
 }

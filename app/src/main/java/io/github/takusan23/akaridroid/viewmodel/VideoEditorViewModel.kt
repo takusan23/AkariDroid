@@ -11,8 +11,13 @@ import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.AkaLinkTool
+import io.github.takusan23.akaridroid.tool.AvAnalyze
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
+import io.github.takusan23.akaridroid.tool.data.IoType
+import io.github.takusan23.akaridroid.tool.data.toIoType
+import io.github.takusan23.akaridroid.tool.data.toRenderDataFilePath
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
@@ -304,9 +309,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> _renderData.update { routeResultData.renderData }
             is VideoEditorBottomSheetRouteResultData.UpdateAudio -> addOrUpdateAudioRenderItem(routeResultData.audio)
             is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> addOrUpdateCanvasRenderItem(routeResultData.renderData)
-            is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> {
-                // todo ここで URI を追加する処理
-            }
+            is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> resolveAkaLinkResult(routeResultData.akaLinkResult)
         }
     }
 
@@ -322,101 +325,41 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
     fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
-
         // 素材の挿入位置。現在の位置
         val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
 
-        // 真ん中らへんになるように
-        val centerPosition = RenderData.Position(
-            x = (renderData.value.videoSize.width / 2).toFloat(),
-            y = (renderData.value.videoSize.height / 2).toFloat()
-        )
-
         val openEditItem = when (addItem) {
             // テキスト
-            VideoEditorBottomBarAddItem.Text -> {
-                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
-                val text = RenderData.CanvasItem.Text(
-                    text = "",
-                    displayTime = displayTime,
-                    position = centerPosition,
-                    layerIndex = calcInsertableLaneIndex(displayTime)
-                )
-                addOrUpdateCanvasRenderItem(text)
-                text
-            }
+            VideoEditorBottomBarAddItem.Text -> createTextCanvasItem(displayTimeStartMs)
+                .also { text -> addOrUpdateCanvasRenderItem(text) }
+
             // 画像
-            is VideoEditorBottomBarAddItem.Image -> {
-                val size = UriTool.analyzeImage(context, addItem.uri)?.size ?: return@launch
-                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
-                val image = RenderData.CanvasItem.Image(
-                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                    displayTime = displayTime,
-                    position = centerPosition,
-                    size = RenderData.Size(size.width, size.height),
-                    layerIndex = calcInsertableLaneIndex(displayTime)
-                )
-                addOrUpdateCanvasRenderItem(image)
-                image
-            }
+            is VideoEditorBottomBarAddItem.Image -> createImageCanvasItem(displayTimeStartMs, addItem.uri.toIoType())
+                ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+
             // 音声
-            is VideoEditorBottomBarAddItem.Audio -> {
-                val durationMs = UriTool.analyzeAudio(context, addItem.uri)?.durationMs ?: return@launch
-                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
-                val audio = RenderData.AudioItem.Audio(
-                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                    displayTime = displayTime,
-                    layerIndex = calcInsertableLaneIndex(displayTime)
-                )
-                addOrUpdateAudioRenderItem(audio)
-                audio
-            }
+            is VideoEditorBottomBarAddItem.Audio -> createAudioItem(displayTimeStartMs, addItem.uri.toIoType())
+                ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
             // 動画
-            is VideoEditorBottomBarAddItem.Video -> {
-                val analyzeVideo = UriTool.analyzeVideo(context, addItem.uri) ?: return@launch
-                val durationMs = analyzeVideo.durationMs
-                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
-
-                // 映像トラックを追加
-                val videoTrack = RenderData.CanvasItem.Video(
-                    filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                    displayTime = displayTime,
-                    position = centerPosition,
-                    size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                    layerIndex = calcInsertableLaneIndex(displayTime)
-                )
-                addOrUpdateCanvasRenderItem(videoTrack)
-
-                // 音声トラックもあれば追加
-                if (analyzeVideo.hasAudioTrack) {
-                    val audioTrack = RenderData.AudioItem.Audio(
-                        id = System.currentTimeMillis() + 10,
-                        filePath = RenderData.FilePath.Uri(addItem.uri.toString()),
-                        displayTime = displayTime,
-                        layerIndex = calcInsertableLaneIndex(displayTime)
-                    )
-                    addOrUpdateAudioRenderItem(audioTrack)
+            is VideoEditorBottomBarAddItem.Video -> createVideoItem(displayTimeStartMs, addItem.uri.toIoType())
+                .onEach { renderItem ->
+                    when (renderItem) {
+                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                    }
                 }
-                videoTrack
-            }
+                .firstOrNull()
+
             // 図形
-            VideoEditorBottomBarAddItem.Shape -> {
-                val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
-                val shape = RenderData.CanvasItem.Shape(
-                    displayTime = displayTime,
-                    position = centerPosition,
-                    layerIndex = calcInsertableLaneIndex(displayTime),
-                    color = "#ffffff",
-                    size = RenderData.Size(300, 300),
-                    shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
-                )
-                addOrUpdateCanvasRenderItem(shape)
-                shape
-            }
+            VideoEditorBottomBarAddItem.Shape -> createShapeCanvasItem(displayTimeStartMs)
+                .also { shape -> addOrUpdateCanvasRenderItem(shape) }
         }
 
         // 編集画面を開く
-        openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+        if (openEditItem != null) {
+            openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+        }
     }
 
     /**
@@ -681,6 +624,31 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         _historyState.value = redo.state
     }
 
+    /** [AkaLinkTool.AkaLinkResult]を捌いてタイムラインに追加する */
+    private fun resolveAkaLinkResult(akaLinkResult: AkaLinkTool.AkaLinkResult) = viewModelScope.launch {
+        val filePath = akaLinkResult.filePath
+        val file = File(filePath)
+
+        // 素材の挿入位置。現在の位置
+        val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+
+        when (akaLinkResult) {
+            is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
+                ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+
+            is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
+                ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+            is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
+                .forEach { renderItem ->
+                    when (renderItem) {
+                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                    }
+                }
+        }
+    }
+
     /**
      * [RenderData.CanvasItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
      * 動画とか、テキストとか
@@ -765,6 +733,118 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             }?.first
             ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
             ?: 0 // どうしようもない
+
+    /**
+     * [RenderData.CanvasItem.Text]を作成する
+     *
+     * @param displayTimeStartMs 開始位置
+     * @return [RenderData.CanvasItem.Text]
+     */
+    private fun createTextCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Text {
+        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+
+        return RenderData.CanvasItem.Text(
+            text = "",
+            displayTime = displayTime,
+            position = renderData.value.centerPosition(),
+            layerIndex = calcInsertableLaneIndex(displayTime)
+        )
+    }
+
+    /**
+     * [RenderData.CanvasItem.Image]を作成する。エラーになったら null
+     *
+     * @param displayTimeStartMs 開始位置
+     * @param ioType Uri か File
+     * @return [RenderData.CanvasItem.Image]
+     */
+    private suspend fun createImageCanvasItem(displayTimeStartMs: Long, ioType: IoType): RenderData.CanvasItem.Image? {
+        val size = AvAnalyze.analyzeImage(context, ioType)?.size ?: return null
+        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+
+        return RenderData.CanvasItem.Image(
+            filePath = ioType.toRenderDataFilePath(),
+            displayTime = displayTime,
+            position = renderData.value.centerPosition(),
+            size = RenderData.Size(size.width, size.height),
+            layerIndex = calcInsertableLaneIndex(displayTime)
+        )
+    }
+
+    /**
+     * [RenderData.AudioItem.Audio]を作成する。エラーになったら null
+     *
+     * @param displayTimeStartMs 開始位置
+     * @param ioType Uri か File
+     * @return [RenderData.AudioItem.Audio]
+     */
+    private suspend fun createAudioItem(displayTimeStartMs: Long, ioType: IoType): RenderData.AudioItem.Audio? {
+        val durationMs = AvAnalyze.analyzeAudio(context, ioType)?.durationMs ?: return null
+        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
+
+        return RenderData.AudioItem.Audio(
+            filePath = ioType.toRenderDataFilePath(),
+            displayTime = displayTime,
+            layerIndex = calcInsertableLaneIndex(displayTime)
+        )
+    }
+
+    /**
+     * [RenderData.CanvasItem.Video]、[RenderData.AudioItem.Audio]を作成する。エラーになったら空の配列。
+     *
+     * @param displayTimeStartMs 開始位置
+     * @param ioType Uri か File
+     * @return 動画トラックと音声トラックが入った配列
+     */
+    private suspend fun createVideoItem(displayTimeStartMs: Long, ioType: IoType): List<RenderData.RenderItem> {
+        val analyzeVideo = AvAnalyze.analyzeVideo(context, ioType) ?: return emptyList()
+        val durationMs = analyzeVideo.durationMs
+        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
+
+        val resultList = listOfNotNull(
+            // 映像トラックを追加
+            RenderData.CanvasItem.Video(
+                filePath = ioType.toRenderDataFilePath(),
+                displayTime = displayTime,
+                position = renderData.value.centerPosition(),
+                size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
+                layerIndex = calcInsertableLaneIndex(displayTime)
+            ),
+
+            // 音声トラックもあれば追加
+            if (analyzeVideo.hasAudioTrack) {
+                createAudioItem(displayTimeStartMs, ioType)
+            } else {
+                null
+            }
+        )
+        return resultList
+    }
+
+    /**
+     * [RenderData.CanvasItem.Shape]を作成する
+     *
+     * @param displayTimeStartMs 開始位置
+     * @return [RenderData.CanvasItem.Shape]
+     */
+    private fun createShapeCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Shape {
+        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+
+        return RenderData.CanvasItem.Shape(
+            displayTime = displayTime,
+            position = renderData.value.centerPosition(),
+            layerIndex = calcInsertableLaneIndex(displayTime),
+            color = "#ffffff",
+            size = RenderData.Size(300, 300),
+            shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
+        )
+    }
+
+    /** キャンバスの真ん中の座標を出す */
+    private fun RenderData.centerPosition(): RenderData.Position = RenderData.Position(
+        x = (this.videoSize.width / 2).toFloat(),
+        y = (this.videoSize.height / 2).toFloat()
+    )
 
     /** [RenderData.RenderItem]からタイムラインの表示で使う名前を取り出す */
     private suspend fun RenderData.RenderItem.resolveTimeLineLabel(): String {

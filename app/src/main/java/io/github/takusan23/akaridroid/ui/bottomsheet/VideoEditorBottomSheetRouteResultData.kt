@@ -1,7 +1,7 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import android.net.Uri
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.AkaLinkTool
 
 /** [VideoEditorBottomSheetRouter]の返り値 */
 sealed interface VideoEditorBottomSheetRouteResultData {
@@ -19,5 +19,5 @@ sealed interface VideoEditorBottomSheetRouteResultData {
     data class DeleteRenderItem(val renderItem: RenderData.RenderItem) : VideoEditorBottomSheetRouteResultData
 
     /** あかりんく で素材を受け取った */
-    data class ReceiveAkaLink(val uri: Uri) : VideoEditorBottomSheetRouteResultData
+    data class ReceiveAkaLink(val akaLinkResult: AkaLinkTool.AkaLinkResult) : VideoEditorBottomSheetRouteResultData
 }

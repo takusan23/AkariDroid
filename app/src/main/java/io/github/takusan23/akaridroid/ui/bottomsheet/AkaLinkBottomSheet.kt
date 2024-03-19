@@ -1,5 +1,8 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,15 +10,51 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.tool.AkaLinkTool
+import kotlinx.coroutines.launch
 
-/** あかりんく画面 */
+/**
+ * あかりんく画面
+ *
+ * @param onAkaLinkResult あかりんく（外部連携）が終わった時に呼ばれる
+ */
 @Composable
-fun AkaLinkBottomSheet() {
+fun AkaLinkBottomSheet(onAkaLinkResult: (AkaLinkTool.AkaLinkResult) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var startIntentData = remember<AkaLinkTool.AkaLinkIntentData?> { null }
+    val activityResult = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = {
+            if (it.resultCode == Activity.RESULT_OK && startIntentData != null) {
+                scope.launch {
+                    // パースして問題なければ返す
+                    AkaLinkTool.resolveAkaLinkResultIntent(
+                        mimeType = it.data?.type!!, // TODO ファイル名も取りたいかも
+                        akaLinkIntentData = startIntentData!!
+                    )?.also { akaLinkResult ->
+                        onAkaLinkResult(akaLinkResult)
+                    }
+                }
+            } else {
+                // 失敗してたら消す
+                scope.launch {
+                    startIntentData?.file?.delete()
+                    startIntentData = null
+                }
+            }
+        }
+    )
+
     Column(
         modifier = Modifier.bottomSheetPadding(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -32,7 +71,11 @@ fun AkaLinkBottomSheet() {
         """.trimIndent()
         )
 
-        Button(onClick = { }) {
+        Button(onClick = {
+            val akaLinkIntentData = AkaLinkTool.createAkaLinkStartIntent(context)
+            startIntentData = akaLinkIntentData
+            activityResult.launch(akaLinkIntentData.intent)
+        }) {
             Text(text = "アプリを開く")
         }
     }
