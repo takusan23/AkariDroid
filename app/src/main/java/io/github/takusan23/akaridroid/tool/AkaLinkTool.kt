@@ -1,11 +1,16 @@
 package io.github.takusan23.akaridroid.tool
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.nio.file.Files
 
 /**
  * あかりんく（AkaLink）関連の処理があるクラス
@@ -41,23 +46,79 @@ object AkaLinkTool {
         return AkaLinkIntentData(intent, uri, externalShareFile)
     }
 
-    /** 外部連携で、[androidx.activity.compose.rememberLauncherForActivityResult]でアプリに戻ってきた時 */
-    fun resolveAkaLinkResultIntent(mimeType: String, akaLinkIntentData: AkaLinkIntentData): AkaLinkResult? {
-        val filePath = akaLinkIntentData.file.path
-        val uriPath = akaLinkIntentData.uri.toString()
+    /**
+     * 外部連携で、[androidx.activity.compose.rememberLauncherForActivityResult]でアプリに戻ってきた時。
+     * もし失敗していたらデータを消す処理もある。
+     *
+     * @param context [Context]
+     * @param akaLinkIntentData [createAkaLinkStartIntent]で作ったデータ
+     * @param resultIntent 帰ってきた[Intent]
+     * @param resultCode 帰ってきた[Int]
+     */
+    suspend fun resolveAkaLinkResultIntent(
+        context: Context,
+        resultCode: Int,
+        resultIntent: Intent?,
+        akaLinkIntentData: AkaLinkIntentData?
+    ): AkaLinkResult? {
 
-        // 空っぽは return null
-        if (akaLinkIntentData.file.length() == 0L) {
+        // 早期 return で失敗判定
+        akaLinkIntentData ?: return null
+        if (resultIntent == null) {
+            akaLinkIntentData.delete()
             return null
         }
 
+        val fileSize = akaLinkIntentData.file.length()
+        val mimeType = resultIntent.type
+        val fileNameOrNull = resultIntent.getStringExtra(Intent.EXTRA_TITLE)
+
+        // 早期 return で失敗判定
+        // Intent が成功していない、ファイルが空っぽ、MIME-Type が不明は早期 return する
+        if (resultCode != Activity.RESULT_OK) {
+            akaLinkIntentData.delete()
+            return null
+        }
+        if (mimeType == null) {
+            akaLinkIntentData.delete()
+            return null
+        }
+        if (fileSize <= 0) {
+            akaLinkIntentData.delete()
+            return null
+        }
+
+        // おっけー
+        Log.d(TAG, "AkaLink file receive. MIME-Type = $mimeType , fileSize = $fileSize , fileNameOrNull = $fileNameOrNull")
+
+        // リネームする場合は
+        // TODO Android 8 and later... renameTo でも良かった？
+        val filePath = if (fileNameOrNull != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            withContext(Dispatchers.IO) {
+                context.getAkaLinkFolder().resolve(fileNameOrNull)
+                    .also { newFile -> Files.move(akaLinkIntentData.file.toPath(), newFile.toPath()) }
+                    .path
+            }
+        } else {
+            akaLinkIntentData.file.path
+        }
+
         // AkaLinkResult にする
-        Log.d(TAG, "receive. MIME-Type -> $mimeType")
         return when {
             mimeType.startsWith("image/") -> AkaLinkResult.Image(filePath)
             mimeType.startsWith("audio/") -> AkaLinkResult.Audio(filePath)
             mimeType.startsWith("video/") -> AkaLinkResult.Video(filePath)
             else -> null
+        }
+    }
+
+    /** [AKALINK_FOLDER_NAME]のフォルダを取得する */
+    private fun Context.getAkaLinkFolder(): File = this.getExternalFilesDir(null)!!.resolve(AKALINK_FOLDER_NAME)
+
+    /** ファイルを破棄する */
+    private suspend fun AkaLinkIntentData.delete() {
+        withContext(Dispatchers.IO) {
+            file.delete()
         }
     }
 

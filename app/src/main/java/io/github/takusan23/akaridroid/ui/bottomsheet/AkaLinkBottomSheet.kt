@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -35,21 +34,16 @@ fun AkaLinkBottomSheet(onAkaLinkResult: (AkaLinkTool.AkaLinkResult) -> Unit) {
     val activityResult = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
         onResult = {
-            if (it.resultCode == Activity.RESULT_OK && startIntentData != null) {
-                scope.launch {
-                    // パースして問題なければ返す
-                    AkaLinkTool.resolveAkaLinkResultIntent(
-                        mimeType = it.data?.type!!, // TODO ファイル名も取りたいかも
-                        akaLinkIntentData = startIntentData!!
-                    )?.also { akaLinkResult ->
-                        onAkaLinkResult(akaLinkResult)
-                    }
-                }
-            } else {
-                // 失敗してたら消す
-                scope.launch {
-                    startIntentData?.file?.delete()
-                    startIntentData = null
+            scope.launch {
+                // 処理してもらう
+                val akaLinkResult = AkaLinkTool.resolveAkaLinkResultIntent(
+                    context = context,
+                    resultCode = it.resultCode,
+                    resultIntent = it.data,
+                    akaLinkIntentData = startIntentData
+                )
+                if (akaLinkResult != null) {
+                    onAkaLinkResult(akaLinkResult)
                 }
             }
         }

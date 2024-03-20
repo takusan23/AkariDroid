@@ -24,6 +24,7 @@ import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.max
 import kotlin.random.Random
@@ -137,30 +139,62 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             }
         }
 
-        // Uri を永続化する（Uri か Fileパス のどっちか。Uri のみ）
+        // Uri と File の管理。
+        // File の場合は、利用していないファイルを削除する
+        // Uri の場合は、Uri を永続化する。
         // フォトピッカーや Storage Access Framework で取得できる Uri は一時的なもので、プロセスが4んだら使えなくなる。
         // Uri を保存したい場合は Uri 自体を永続化するメソッドを呼び出す必要がある
         // https://developer.android.com/training/data-storage/shared/photopicker#persist-media-file-access
         viewModelScope.launch {
-            // Uri 永続化済み
-            // つまり前回の collect の値
-            var prevRenderItemList = emptyList<Uri>()
+            // 前回のファイル
+            var prevRenderItemList = emptyList<RenderData.FilePath>()
 
-            // RenderItem 一覧を受け取って、Uri を永続化する
+            /**
+             * [RenderData.FilePath]が新しく追加されたときの処理
+             * [Uri]の場合は永続化を行う
+             */
+            suspend fun RenderData.FilePath.add() = withContext(Dispatchers.IO) {
+                if (this@add is RenderData.FilePath.Uri) {
+                    UriTool.takePersistableUriPermission(context, this@add.uriPath.toUri())
+                }
+            }
+
+            /**
+             * [RenderData.FilePath]が前回から削除されたときの処理
+             * [Uri]の場合は永続化を解除する。[File]の場合は削除する
+             */
+            suspend fun RenderData.FilePath.remove() = withContext(Dispatchers.IO) {
+                when (this@remove) {
+                    is RenderData.FilePath.File -> File(this@remove.filePath).delete()
+                    is RenderData.FilePath.Uri -> UriTool.revokePersistableUriPermission(context, uriPath.toUri())
+                }
+            }
+
+            // RenderItem 一覧を受け取って、ファイル管理する
             renderData
                 .map { it.canvasRenderItem + it.audioRenderItem }
-                .map { renderItemList -> renderItemList.mapNotNull { renderItem -> renderItem.getUriOrNull() } }
+                // FilePath 一覧を出す
+                .map { renderItemList ->
+                    renderItemList.mapNotNull { renderItem ->
+                        when (renderItem) {
+                            is RenderData.AudioItem.Audio -> renderItem.filePath
+                            is RenderData.CanvasItem.Image -> renderItem.filePath
+                            is RenderData.CanvasItem.Video -> renderItem.filePath
+                            is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text -> null
+                        }
+                    }
+                }
                 .distinctUntilChanged()
                 .collect { latestItemList ->
-                    // 前回から無くなった分は Uri の永続化を解除
-                    (prevRenderItemList - latestItemList)
+                    // 前回から無くなった分
+                    (prevRenderItemList - latestItemList.toSet())
                         .filter { diff -> diff in prevRenderItemList }
-                        .forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+                        .forEach { filePath -> filePath.remove() }
 
-                    // 前回から増えた分は Uri の永続化に登録
-                    (latestItemList - prevRenderItemList)
+                    // 前回から増えた分
+                    (latestItemList - prevRenderItemList.toSet())
                         .filter { diff -> diff in latestItemList }
-                        .forEach { uri -> UriTool.takePersistableUriPermission(context, uri) }
+                        .forEach { filePath -> filePath.add() }
 
                     // 次に備える
                     prevRenderItemList = latestItemList
