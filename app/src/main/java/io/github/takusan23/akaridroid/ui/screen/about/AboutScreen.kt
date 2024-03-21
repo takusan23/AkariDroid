@@ -72,21 +72,21 @@ fun AboutScreen(
             )
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = 10.dp)
-        ) {
+        Box(modifier = Modifier.padding(paddingValues)) {
             when (uiState.value) {
-                AboutScreenUiState.Init -> InitScreen(onClick = { uiState.value = AboutScreenUiState.RouteSelect })
+                AboutScreenUiState.Init -> InitScreen(
+                    onClick = { uiState.value = AboutScreenUiState.RouteSelect }
+                )
 
-                AboutScreenUiState.RouteSelect -> RouteSelectScreen(onRouteSelect = {
-                    when (it) {
-                        AboutScreenUiState.AdvScenario.Sushi -> onNavigate(NavigationPaths.SushiScreen)
-                        AboutScreenUiState.AdvScenario.Library -> openBrowser(context, AkariCoreUrl)
-                        AboutScreenUiState.AdvScenario.GitHub -> openBrowser(context, GitHubUrl)
+                AboutScreenUiState.RouteSelect -> RouteSelectScreen(
+                    onRouteSelect = {
+                        when (it) {
+                            AboutScreenUiState.AdvScenario.Sushi -> onNavigate(NavigationPaths.SushiScreen)
+                            AboutScreenUiState.AdvScenario.Library -> openBrowser(context, AkariCoreUrl)
+                            AboutScreenUiState.AdvScenario.GitHub -> openBrowser(context, GitHubUrl)
+                        }
                     }
-                })
+                )
             }
         }
     }
@@ -109,6 +109,7 @@ private fun InitScreen(onClick: () -> Unit) {
 
         AdvTextArea(
             modifier = Modifier
+                .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
             text = "わたしは動画編集アプリだよ。よろしくね！"
@@ -129,6 +130,7 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
 
         AdvRouteSelect(
             modifier = Modifier
+                .padding(10.dp)
                 .fillMaxWidth()
                 .weight(1f),
             onRouteSelect = onRouteSelect
@@ -136,6 +138,7 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
 
         AdvTextArea(
             modifier = Modifier
+                .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
             text = "わたしは動画編集アプリだよ。よろしくね！"

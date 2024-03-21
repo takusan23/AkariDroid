@@ -57,6 +57,15 @@ fun SettingScreen(
                 )
             }
 
+            item {
+                SettingItem(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = "ライセンス",
+                    description = "ありがとうございます！！",
+                    onClick = { onNavigate(NavigationPaths.License) }
+                )
+            }
+
         }
     }
 }

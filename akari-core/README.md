@@ -1,3 +1,5 @@
+// TODO 古いので直す
+
 # akari-core
 
 ![Maven Central](https://img.shields.io/maven-central/v/io.github.takusan23/akaricore)
@@ -7,6 +9,7 @@
 前作った conecocore ( https://github.com/takusan23/Coneco/tree/master/conecocore ) から実装をパクってます。
 
 # なんとなく MavenCentral に公開したけど
+
 更新するかは分からんしまだ不十分すぎる
 
 ```kotlin
@@ -16,17 +19,20 @@ implementation("io.github.takusan23:akaricore:1.0.0-alpha01")
 https://takusan.negitoro.dev/posts/android_add_canvas_text_to_video/
 
 # つかいかた
+
 `ExampleInstrumentedTest.kt`を見てください。  
-`processor`パッケージ内のユーティリティ関数が利用可能です（`VideoCanvasProcessor`など）。詳しくは README で。
+`processor`パッケージ内のユーティリティ関数が利用可能です（`VideoCanvasProcessor`など）。詳しくは
+README で。
 
 ![image](https://user-images.githubusercontent.com/32033405/222954361-c1efe7a4-60ad-4e05-b83b-2969cdf0faf1.png)
 
 # special thanks
+
 - moovブロックを先頭に移動する (mp4ファイルをストリーミング可能にする)
-  - https://github.com/ypresto/qtfaststart-java
-- Android Open Source Project の CTS 
-  - エンコード部分は大体ここのを参考にしてます
-  - https://cs.android.com/android/platform/superproject/+/master:cts/tests/tests/media/codec/src/android/media/codec/cts/DecodeEditEncodeTest.java
+    - https://github.com/ypresto/qtfaststart-java
+- Android Open Source Project の CTS
+    - エンコード部分は大体ここのを参考にしてます
+    - https://cs.android.com/android/platform/superproject/+/master:cts/tests/tests/media/codec/src/android/media/codec/cts/DecodeEditEncodeTest.java
 
 # らいせんす
 
@@ -39,6 +45,25 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--- waywardgeek/sonic ---
+
+Sonic library
+Copyright 2010, 2011
+Bill Cox
+This file is part of the Sonic Library.
+
+This file is licensed under the Apache 2.0 license.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -96,11 +121,14 @@ limitations under the License.
 CORE_RELEASE_NORE.md を書く
 
 ## GitHub Actions を利用する
-`GitHub Actions`の`publish-library-maven-central.yml`を利用することで、ライブラリを`MavenCentral`までアップロードしてくれます。  
+
+`GitHub Actions`の`publish-library-maven-central.yml`を利用することで、ライブラリを`MavenCentral`
+までアップロードしてくれます。  
 手動実行ボタンを押してしばらく待ちます。  
 あとは一番最後の手順を踏みます。
 
 ## GitHub Actions を利用しない
+
 ローカルでも公開できます。
 
 ### local.properties に必要な値を書く
@@ -125,6 +153,7 @@ sonatypeStagingProfileId={SonatypeステージングプロファイルID}
 `gradle :akari-core:publishToSonatype`
 
 ## Close と Release を行う
+
 https://s01.oss.sonatype.org/  
 へアクセスしログインした後、`Staging Repositories`を押します。
 

@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.takusan23.akaridroid.ui.screen.about.AboutScreen
 import io.github.takusan23.akaridroid.ui.screen.about.AboutSushiScreen
 import io.github.takusan23.akaridroid.ui.screen.setting.FontSettingScreen
+import io.github.takusan23.akaridroid.ui.screen.setting.LicenseScreen
 
 /** 画面の切り替えを担当する */
 @Composable
@@ -42,6 +43,11 @@ fun AkariDroidMainScreen() {
                 onBack = { navController.popBackStack() }
             )
         }
+        composable(NavigationPaths.License.path) {
+            LicenseScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -61,5 +67,8 @@ enum class NavigationPaths(val path: String) {
     About("about"),
 
     /** おまけ画面 */
-    SushiScreen("sushi")
+    SushiScreen("sushi"),
+
+    /** ライセンス画面 */
+    License("license")
 }
