@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen.about
 
+import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import io.github.takusan23.akaridroid.ui.component.AdvTextArea
 import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
 
 private const val GitHubUrl = "https://github.com/takusan23/AkariDroid"
+private const val AkariCoreUrl = "https://github.com/takusan23/AkariDroid/tree/master/akari-core"
 
 /** このアプリについて画面の UI ステート */
 sealed interface AboutScreenUiState {
@@ -43,7 +45,7 @@ sealed interface AboutScreenUiState {
     enum class AdvScenario(val title: String) {
         Sushi("すし"),
         GitHub("GitHub をみる"),
-        None("もどる")
+        Library("動画編集ライブラリ")
     }
 }
 
@@ -81,11 +83,8 @@ fun AboutScreen(
                 AboutScreenUiState.RouteSelect -> RouteSelectScreen(onRouteSelect = {
                     when (it) {
                         AboutScreenUiState.AdvScenario.Sushi -> onNavigate(NavigationPaths.SushiScreen)
-                        AboutScreenUiState.AdvScenario.None -> onBack()
-                        AboutScreenUiState.AdvScenario.GitHub -> {
-                            val intent = Intent(Intent.ACTION_VIEW, GitHubUrl.toUri())
-                            context.startActivity(intent)
-                        }
+                        AboutScreenUiState.AdvScenario.Library -> openBrowser(context, AkariCoreUrl)
+                        AboutScreenUiState.AdvScenario.GitHub -> openBrowser(context, GitHubUrl)
                     }
                 })
             }
@@ -148,4 +147,9 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
                 .align(Alignment.End)
         )
     }
+}
+
+private fun openBrowser(context: Context, url: String) {
+    val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+    context.startActivity(intent)
 }
