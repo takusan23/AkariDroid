@@ -86,13 +86,20 @@ object AvAnalyze {
                 is IoType.AndroidUri -> mediaMetadataRetriever.setDataSource(context, ioType.uri)
                 is IoType.JavaFile -> mediaMetadataRetriever.setDataSource(ioType.file.path)
             }
+            val rotation = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toInt() ?: return@withContext null
             val width = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt() ?: return@withContext null
             val height = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt() ?: return@withContext null
             val durationMs = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: return@withContext null
             val trackCount = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS)?.toInt() ?: return@withContext null
 
+            // 縦動画の場合、rotation で開店情報が入っていれば width / height を入れ替える
+            val size = when (rotation) {
+                90, 270 -> AvAnalyzeResult.Size(height, width)
+                else -> AvAnalyzeResult.Size(width, height)
+            }
+
             AvAnalyzeResult.Video(
-                size = AvAnalyzeResult.Size(width, height),
+                size = size,
                 durationMs = durationMs,
                 hasAudioTrack = trackCount == 2
             )
