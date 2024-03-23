@@ -344,6 +344,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is VideoEditorBottomSheetRouteResultData.UpdateAudio -> addOrUpdateAudioRenderItem(routeResultData.audio)
             is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> addOrUpdateCanvasRenderItem(routeResultData.renderData)
             is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> resolveAkaLinkResult(routeResultData.akaLinkResult)
+            is VideoEditorBottomSheetRouteResultData.StartEncode -> {
+                // ここには来ない。
+            }
         }
     }
 

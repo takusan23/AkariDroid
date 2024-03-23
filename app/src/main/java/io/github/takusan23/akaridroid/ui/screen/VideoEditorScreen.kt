@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
+import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
@@ -76,7 +77,18 @@ fun VideoEditorScreen(
         VideoEditorBottomSheetRouter(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
             onResult = { routeResultData ->
-                viewModel.resolveBottomSheetResult(routeResultData)
+                // 書く場所があれだけど、とりあえずここにいさせて
+                // TODO 後できれいにする
+                if (routeResultData is VideoEditorBottomSheetRouteResultData.StartEncode) {
+                    encoderService.value?.encodeAkariCore(
+                        renderData = renderData.value,
+                        projectFolder = viewModel.projectFolder,
+                        resultFileName = routeResultData.fileName,
+                        encoderParameters = routeResultData.encoderParameters
+                    )
+                } else {
+                    viewModel.resolveBottomSheetResult(routeResultData)
+                }
                 viewModel.closeBottomSheet()
             },
             onClose = { viewModel.closeBottomSheet() }
@@ -91,10 +103,7 @@ fun VideoEditorScreen(
                     viewModel.resolveVideoEditorBottomBarAddItem(addItem)
                 },
                 onEncodeClick = {
-                    encoderService.value?.encodeAkariCore(
-                        renderData = renderData.value,
-                        projectFolder = viewModel.projectFolder
-                    )
+                    viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode)
                 },
                 onVideoInfoClick = {
                     viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))

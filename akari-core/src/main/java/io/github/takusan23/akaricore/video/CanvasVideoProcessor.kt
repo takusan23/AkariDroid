@@ -34,6 +34,7 @@ object CanvasVideoProcessor {
      * @param containerFormat コンテナフォーマット
      * @param bitRate ビットレート
      * @param frameRate フレームレート
+     * @param keyframeInterval キーフレームの間隔
      * @param outputVideoWidth 動画の高さ
      * @param outputVideoHeight 動画の幅
      * @param onCanvasDrawRequest Canvasの描画が必要になったら呼び出される。1フレームごとに呼ばれます（60fpsの場合は60回呼ばれる）。trueを返している間、動画を作成する
@@ -42,6 +43,7 @@ object CanvasVideoProcessor {
         output: AkariCoreInputOutput.Output,
         bitRate: Int = 1_000_000,
         frameRate: Int = 30,
+        keyframeInterval: Int = 1,
         outputVideoWidth: Int = 1280,
         outputVideoHeight: Int = 720,
         codecName: String = MediaFormat.MIMETYPE_VIDEO_AVC,
@@ -54,7 +56,7 @@ object CanvasVideoProcessor {
             val videoMediaFormat = MediaFormat.createVideoFormat(codecName, outputVideoWidth, outputVideoHeight).apply {
                 setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
                 setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
-                setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+                setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, keyframeInterval)
                 setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             }
             configure(videoMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)

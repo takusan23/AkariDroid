@@ -71,6 +71,11 @@ fun VideoEditorBottomSheetRouter(
             VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet(
                 onAkaLinkResult = { onResult(VideoEditorBottomSheetRouteResultData.ReceiveAkaLink(it)) }
             )
+
+            // 動画保存画面
+            VideoEditorBottomSheetRouteRequestData.OpenEncode -> EncodeBottomSheet(
+                onEncode = { title, params -> onResult(VideoEditorBottomSheetRouteResultData.StartEncode(title, params)) }
+            )
         }
     }
 }

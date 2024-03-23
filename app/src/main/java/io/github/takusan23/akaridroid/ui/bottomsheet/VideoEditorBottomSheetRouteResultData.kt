@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 
 /** [VideoEditorBottomSheetRouter]の返り値 */
@@ -20,4 +21,10 @@ sealed interface VideoEditorBottomSheetRouteResultData {
 
     /** あかりんく で素材を受け取った */
     data class ReceiveAkaLink(val akaLinkResult: AkaLinkTool.AkaLinkResult) : VideoEditorBottomSheetRouteResultData
+
+    /** 動画の保存を開始して欲しい */
+    data class StartEncode(
+        val fileName: String,
+        val encoderParameters: EncoderParameters
+    ) : VideoEditorBottomSheetRouteResultData
 }

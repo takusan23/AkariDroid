@@ -70,8 +70,20 @@ class EncoderService : Service() {
         scope.cancel()
     }
 
-    /** [RenderData]をもとにエンコードを行う */
-    fun encodeAkariCore(renderData: RenderData, projectFolder: File) {
+    /**
+     * [RenderData]をもとにエンコードを行う
+     *
+     * @param renderData 動画編集情報
+     * @param projectFolder 動画編集用に使っても良いフォルダ。PCM のデコードとかで既に使っている
+     * @param encoderParameters エンコーダー設定
+     * @param resultFileName 動画のファイル名
+     */
+    fun encodeAkariCore(
+        renderData: RenderData,
+        projectFolder: File,
+        encoderParameters: EncoderParameters,
+        resultFileName: String
+    ) {
         encoderJob = scope.launch {
             try {
                 // フォアグラウンドサービスに昇格させる
@@ -82,6 +94,8 @@ class EncoderService : Service() {
                     context = this@EncoderService,
                     projectFolder = projectFolder,
                     renderData = renderData,
+                    encoderParameters = encoderParameters,
+                    resultFileName = resultFileName,
                     onUpdateStatus = { _encodeStatusFlow.value = it }
                 )
             } finally {

@@ -23,4 +23,7 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      * あかりんく 画面を開く
      */
     data object OpenAkaLink : VideoEditorBottomSheetRouteRequestData
+
+    /** 動画を保存、エンコード画面を開く */
+    data object OpenEncode : VideoEditorBottomSheetRouteRequestData
 }
