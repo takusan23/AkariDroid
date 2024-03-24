@@ -758,23 +758,29 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      * 素材追加時にどのレーンに入れればいいかを判定する
      *
      * @param displayTime 追加したい時間（開始、終了位置）
+     * @param ignoreLane 無視したいレーン番号。つまり空いていてもこのレーン番号に入れない。
      * @return 入れられるレーン番号。なければ今ある最大のレーン番号 + 1 を返す。レーンがない場合は 0 を返す。
      */
-    private fun calcInsertableLaneIndex(displayTime: RenderData.DisplayTime): Int =
-        _timeLineData.value
-            // すべてのレーンから、空いているレーンを探す
-            .groupByLane()
-            .firstOrNull { (_, itemList) ->
-                itemList.all { laneItem ->
-                    // 空きがあること
-                    val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
-                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                    val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
-                    hasFreeSpace && hasNotInclude
-                }
-            }?.first
-            ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-            ?: 0 // どうしようもない
+    private fun calcInsertableLaneIndex(
+        displayTime: RenderData.DisplayTime,
+        ignoreLane: List<Int> = emptyList()
+    ): Int = _timeLineData.value
+        // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
+        .groupByLane()
+        // 無視したいレーンは消す
+        .filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
+        // すべてのレーンから、空いているレーンを探す
+        .firstOrNull { (_, itemList) ->
+            itemList.all { laneItem ->
+                // 空きがあること
+                val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
+                // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
+                hasFreeSpace && hasNotInclude
+            }
+        }?.first
+        ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+        ?: 0 // どうしようもない
 
     /**
      * [RenderData.CanvasItem.Text]を作成する
@@ -843,6 +849,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         val durationMs = analyzeVideo.durationMs
         val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
 
+        // 映像トラックの追加位置
+        val videoTrackLayerIndex = calcInsertableLaneIndex(displayTime)
+
         val resultList = listOfNotNull(
             // 映像トラックを追加
             RenderData.CanvasItem.Video(
@@ -850,12 +859,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 displayTime = displayTime,
                 position = renderData.value.centerPosition(),
                 size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                layerIndex = calcInsertableLaneIndex(displayTime)
+                layerIndex = videoTrackLayerIndex
             ),
 
             // 音声トラックもあれば追加
+            // 映像トラックとタイムライン上で重ならないように
             if (analyzeVideo.hasAudioTrack) {
                 createAudioItem(displayTimeStartMs, ioType)
+                    ?.copy(layerIndex = calcInsertableLaneIndex(displayTime, listOf(videoTrackLayerIndex)))
             } else {
                 null
             }
