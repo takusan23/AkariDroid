@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderParameters
@@ -46,8 +47,8 @@ import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
 
 /** コンテナフォーマットの説明 */
 private val ContainerFormatMenu = listOf(
-    Triple(EncoderParameters.ContainerFormat.MP4, "MP4", ".mp4 ファイルです。AVC / HEVC / AV1 / AAC コーデックが格納できます。"),
-    Triple(EncoderParameters.ContainerFormat.WEBM, "WebM", ".webm ファイルです。VP9 / Opus コーデックが格納できます。")
+    Triple(EncoderParameters.ContainerFormat.MP4, "MP4", "AVC / HEVC / AV1 / AAC コーデックが格納できます。"),
+    Triple(EncoderParameters.ContainerFormat.WEBM, "WebM", "VP9 / Opus コーデックが格納できます。")
 )
 
 /** 音声コーデックの説明 */
@@ -400,6 +401,9 @@ private fun AudioEncoderSetting(
             }
         }
 
+        // サンプリングレートの変更はできない
+        AudioEncoderSamplingRate()
+
         // ビットレート
         OutlinedIntTextField(
             modifier = Modifier.fillMaxWidth(),
@@ -491,12 +495,37 @@ private fun VideoEncoderVideoWidthHeight(videoSize: RenderData.Size) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "動画の縦横サイズ")
+            Text(
+                text = "動画の縦横サイズ",
+                fontSize = 18.sp
+            )
             Text(text = "縦横の変更は、動画情報の編集から変更できます。")
         }
 
         Text(
             text = "${videoSize.width}x${videoSize.height}",
+            fontSize = 20.sp
+        )
+    }
+}
+
+/** 音声のサンプリングレートは変更できないよ。 */
+@Composable
+private fun AudioEncoderSamplingRate() {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "音声のサンプリングレート",
+                fontSize = 18.sp
+            )
+            Text(text = "サンプリングレートの変更はできません。")
+        }
+
+        Text(
+            text = "${AkariCoreAudioProperties.SAMPLING_RATE} (48kHz)",
             fontSize = 20.sp
         )
     }
