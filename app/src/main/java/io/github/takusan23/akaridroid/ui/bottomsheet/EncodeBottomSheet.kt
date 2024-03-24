@@ -39,38 +39,39 @@ import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.tool.NumberFormat
-import io.github.takusan23.akaridroid.ui.component.ExtendDropDownMenu
+import io.github.takusan23.akaridroid.ui.component.ExtendMenu
+import io.github.takusan23.akaridroid.ui.component.ExtendMenuItem
+import io.github.takusan23.akaridroid.ui.component.NoOpenableExtendMenu
 import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
-import io.github.takusan23.akaridroid.ui.component.data.ExtendDropDownMenuItem
 
 /** コンテナフォーマットの説明 */
 private val ContainerFormatMenu = listOf(
-    ExtendDropDownMenuItem("MP4", ".mp4 ファイルです。AVC / HEVC / AV1 / AAC コーデックが格納できます。"),
-    ExtendDropDownMenuItem("WebM", ".webm ファイルです。VP9 / Opus コーデックが格納できます。")
+    Triple(EncoderParameters.ContainerFormat.MP4, "MP4", ".mp4 ファイルです。AVC / HEVC / AV1 / AAC コーデックが格納できます。"),
+    Triple(EncoderParameters.ContainerFormat.WEBM, "WebM", ".webm ファイルです。VP9 / Opus コーデックが格納できます。")
 )
 
 /** 音声コーデックの説明 */
 private val AudioCodecMenu = listOf(
-    ExtendDropDownMenuItem("AAC", "mp4 コンテナ用"),
-    ExtendDropDownMenuItem("Opus", "WebM コンテナ用。ロイヤリティフリーなコーデックです。")
+    Triple(EncoderParameters.AudioCodec.AAC, "AAC", "mp4 コンテナ用"),
+    Triple(EncoderParameters.AudioCodec.OPUS, "Opus", "WebM コンテナ用。ロイヤリティフリーなコーデックです。")
 )
 
 /** 映像コーデックの説明 */
 private val VideoCodecMenu = listOfNotNull(
-    ExtendDropDownMenuItem("AVC（H.264）", "再生できる端末が一番多いです。高画質にしたい場合はビットレートを結構上げないといけない。とりあえずこれにしておいけばいいはず。"),
-    ExtendDropDownMenuItem("HEVC（H.265）", "AVC より効率が良いですが、特許問題があるため使っていいのか不明。法律に詳しくなく分かりません。"),
-    ExtendDropDownMenuItem("VP9", "WebM コンテナ用。ロイヤルティーフリーなコーデックです。"),
+    Triple(EncoderParameters.VideoCodec.AVC, "AVC（H.264）", "再生できる端末が一番多いです。高画質にしたい場合はビットレートを結構上げないといけない。とりあえずこれにしておいけばいいはず。"),
+    Triple(EncoderParameters.VideoCodec.HEVC, "HEVC（H.265）", "AVC より効率が良いですが、特許問題があるため使っていいのか不明。法律に詳しくなく分かりません。"),
+    Triple(EncoderParameters.VideoCodec.VP9, "VP9", "WebM コンテナ用。ロイヤルティーフリーなコーデックです。"),
     // AV1 エンコードは Android 14 以降のみ
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        ExtendDropDownMenuItem("AV1", "HEVC と同等の性能と言われており、かつロイヤリティフリーです。しかし、ほとんどの端末にハードウェアエンコーダーが搭載されていないため、エンコードに相当な時間がかかります。")
+        Triple(EncoderParameters.VideoCodec.AV1, "AV1", "HEVC と同等の性能と言われており、かつロイヤリティフリーです。しかし、ほとんどの端末にハードウェアエンコーダーが搭載されていないため、エンコードに相当な時間がかかります。")
     } else null
 )
 
 /** エンコード設定のプリセット */
 private val ParametersPresetList = listOf(
-    ExtendDropDownMenuItem("低画質", "ビットレート 3Mbps"),
-    ExtendDropDownMenuItem("中画質", "ビットレート 6Mbps"),
-    ExtendDropDownMenuItem("高画質", "ビットレート 12Mbps")
+    Triple(EncoderParameters.LOW_QUALITY, "低画質", "ビットレート 3Mbps"),
+    Triple(EncoderParameters.MEDIUM_QUALITY, "中画質", "ビットレート 6Mbps"),
+    Triple(EncoderParameters.HIGH_QUALITY, "高画質", "ビットレート 12Mbps")
 )
 
 /** タブで切り替えできるように */
@@ -98,10 +99,6 @@ fun EncodeBottomSheet(
     // とりあえず高画質で
     val encoderParameters = remember { mutableStateOf(EncoderParameters.HIGH_QUALITY) }
     val fileName = remember { mutableStateOf("あかりどろいど_${System.currentTimeMillis()}") }
-
-    fun update(copy: (EncoderParameters.AudioVideo) -> EncoderParameters.AudioVideo) {
-        encoderParameters.value = copy(encoderParameters.value)
-    }
 
     Column(
         modifier = Modifier
@@ -133,7 +130,7 @@ fun EncodeBottomSheet(
                 onValueChange = { fileName.value = it }
             )
 
-            // タブ
+            // おまかせ or 手動で設定
             EncodeBottomSheetPageSegmentedButton(
                 modifier = Modifier.fillMaxWidth(),
                 currentPage = currentPage.value,
@@ -221,20 +218,28 @@ private fun BasicScreen(
     encoderParameters: EncoderParameters.AudioVideo,
     onUpdate: (EncoderParameters.AudioVideo) -> Unit
 ) {
-    val options = remember { listOf(EncoderParameters.LOW_QUALITY, EncoderParameters.MEDIUM_QUALITY, EncoderParameters.HIGH_QUALITY) }
+    val currentMenu = remember(encoderParameters) { ParametersPresetList.firstOrNull { it.first == encoderParameters }?.second }
 
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
 
         // 選択肢
-        ExtendDropDownMenu(
-            isOpen = true,
+        NoOpenableExtendMenu(
             label = "おまかせ設定",
             iconResId = R.drawable.ic_outline_video_file_24,
-            selectIndex = maxOf(0, options.indexOf(encoderParameters)),
-            menuList = ParametersPresetList,
-            onOpenChange = { /*TODO*/ },
-            onSelect = { index -> onUpdate(options[index]) }
-        )
+            currentMenu = currentMenu
+        ) {
+            ParametersPresetList.forEachIndexed { index, (parameter, title, description) ->
+                if (index != 0) {
+                    HorizontalDivider()
+                }
+                ExtendMenuItem(
+                    title = title,
+                    description = description,
+                    isSelect = parameter == encoderParameters,
+                    onClick = { onUpdate(parameter) }
+                )
+            }
+        }
 
         // todo あした サンプリングレートを 48k にしたい
         // おまかせ設定があるよカード
@@ -334,16 +339,26 @@ private fun ContainerFormatSetting(
             )
         }
 
-        ExtendDropDownMenu(
-            modifier = Modifier.fillMaxWidth(),
+        // コンテナフォーマット
+        ExtendMenu(
             isOpen = isOpen.value,
             label = "コンテナフォーマット",
             iconResId = R.drawable.ic_outline_video_file_24,
-            selectIndex = EncoderParameters.ContainerFormat.entries.indexOf(containerFormat),
-            menuList = ContainerFormatMenu,
-            onOpenChange = { isOpen.value = !isOpen.value },
-            onSelect = { index -> onUpdate(EncoderParameters.ContainerFormat.entries[index]) }
-        )
+            currentMenu = containerFormat.extension,
+            onOpenChange = { isOpen.value = !isOpen.value }
+        ) {
+            ContainerFormatMenu.forEachIndexed { index, (format, title, description) ->
+                if (index != 0) {
+                    HorizontalDivider()
+                }
+                ExtendMenuItem(
+                    title = title,
+                    description = description,
+                    isSelect = format == containerFormat,
+                    onClick = { onUpdate(format) }
+                )
+            }
+        }
     }
 }
 
@@ -366,16 +381,25 @@ private fun AudioEncoderSetting(
         )
 
         // コンテナ
-        ExtendDropDownMenu(
-            modifier = Modifier.fillMaxWidth(),
+        ExtendMenu(
             isOpen = isOpen.value,
             label = "音声コーデック",
             iconResId = R.drawable.ic_outline_audiotrack_24,
-            selectIndex = EncoderParameters.AudioCodec.entries.indexOf(audioEncoderParameters.codec),
-            menuList = AudioCodecMenu,
-            onOpenChange = { isOpen.value = !isOpen.value },
-            onSelect = { index -> update { it.copy(codec = EncoderParameters.AudioCodec.entries[index]) } }
-        )
+            currentMenu = audioEncoderParameters.codec.name,
+            onOpenChange = { isOpen.value = !isOpen.value }
+        ) {
+            AudioCodecMenu.forEachIndexed { index, (codec, title, description) ->
+                if (index != 0) {
+                    HorizontalDivider()
+                }
+                ExtendMenuItem(
+                    title = title,
+                    description = description,
+                    isSelect = codec == audioEncoderParameters.codec,
+                    onClick = { update { it.copy(codec = codec) } }
+                )
+            }
+        }
 
         // ビットレート
         OutlinedIntTextField(
@@ -412,16 +436,25 @@ private fun VideoEncoderSetting(
         VideoEncoderVideoWidthHeight(videoSize = videoSize)
 
         // コーデック
-        ExtendDropDownMenu(
-            modifier = Modifier.fillMaxWidth(),
+        ExtendMenu(
             isOpen = isOpen.value,
             label = "映像コーデック",
             iconResId = R.drawable.ic_outline_video_file_24,
-            selectIndex = EncoderParameters.VideoCodec.entries.indexOf(videoEncoderParameters.codec),
-            menuList = VideoCodecMenu,
-            onOpenChange = { isOpen.value = !isOpen.value },
-            onSelect = { index -> update { it.copy(codec = EncoderParameters.VideoCodec.entries[index]) } }
-        )
+            currentMenu = videoEncoderParameters.codec.name,
+            onOpenChange = { isOpen.value = !isOpen.value }
+        ) {
+            VideoCodecMenu.forEachIndexed { index, (codec, title, description) ->
+                if (index != 0) {
+                    HorizontalDivider()
+                }
+                ExtendMenuItem(
+                    title = title,
+                    description = description,
+                    isSelect = codec == videoEncoderParameters.codec,
+                    onClick = { update { it.copy(codec = codec) } }
+                )
+            }
+        }
 
         // ビットレート
         OutlinedIntTextField(
