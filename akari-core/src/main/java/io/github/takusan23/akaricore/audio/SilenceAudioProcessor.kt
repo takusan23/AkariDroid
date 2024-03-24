@@ -15,7 +15,7 @@ object SilenceAudioProcessor {
      *
      * @param output PCM 出力先
      * @param durationMs 音声の時間（ミリ秒）
-     * @param samplingRate サンプリングレート。大体 44100
+     * @param samplingRate サンプリングレート。大体 48000
      * @param channelCount チャンネル数。ステレオなら 2
      * @param bitDepth 量子化ビット数。単位は byte。ほぼ 16bit だろうし 2
      */

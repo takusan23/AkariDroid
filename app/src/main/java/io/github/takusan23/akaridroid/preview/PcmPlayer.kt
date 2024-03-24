@@ -38,7 +38,7 @@ class PcmPlayer(
             setAudioFormat(
                 AudioFormat.Builder()
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(44100)
+                    .setSampleRate(samplingRate)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                     .build()
             )

@@ -30,7 +30,7 @@ internal class AudioEncoder {
      */
     fun prepareEncoder(
         codec: String = MediaFormat.MIMETYPE_AUDIO_AAC,
-        sampleRate: Int = 44_100,
+        sampleRate: Int = AkariCoreAudioProperties.SAMPLING_RATE,
         channelCount: Int = 2,
         bitRate: Int = 192_000,
     ) {

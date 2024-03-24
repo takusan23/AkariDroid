@@ -241,7 +241,6 @@ private fun BasicScreen(
             }
         }
 
-        // todo あした サンプリングレートを 48k にしたい
         // おまかせ設定があるよカード
         BasicDescriptionCard()
     }

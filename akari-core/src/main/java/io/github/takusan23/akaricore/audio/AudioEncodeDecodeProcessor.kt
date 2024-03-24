@@ -67,7 +67,7 @@ object AudioEncodeDecodeProcessor {
         output: AkariCoreInputOutput.Output,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         codecName: String = MediaFormat.MIMETYPE_AUDIO_AAC,
-        samplingRate: Int = 44_100,
+        samplingRate: Int = AkariCoreAudioProperties.SAMPLING_RATE,
         bitRate: Int = 192_000,
         channelCount: Int = 2
     ) = withContext(Dispatchers.Default) {

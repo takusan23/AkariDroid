@@ -19,7 +19,6 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -79,7 +78,8 @@ class ExampleInstrumentedTest {
             // エンコード
             AudioEncodeDecodeProcessor.encode(
                 input = outPcm.toAkariCoreInputOutputData(),
-                output = resultFile.toAkariCoreInputOutputData()
+                output = resultFile.toAkariCoreInputOutputData(),
+                samplingRate = 44_100 // 素材の関係で...
             )
 
             videoOutputStream.close()
@@ -178,11 +178,11 @@ class ExampleInstrumentedTest {
                 output = resamplingPcmFile.toAkariCoreInputOutputData(),
                 channelCount = 1,
                 inSamplingRate = 8_000,
-                outSamplingRate = 44_100
+                outSamplingRate = 48_000
             )
             // エンコード
             AudioEncodeDecodeProcessor.encode(
-                input = resamplingPcmFile.toAkariCoreInputOutputData(),
+                input = pcmFile.toAkariCoreInputOutputData(),
                 output = resultFile.toAkariCoreInputOutputData(),
                 channelCount = 1
             )
