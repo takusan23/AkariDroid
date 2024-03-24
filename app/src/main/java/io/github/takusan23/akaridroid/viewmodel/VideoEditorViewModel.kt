@@ -132,10 +132,21 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 audioRenderItem = existsRenderItemList.filterIsInstance<RenderData.AudioItem>()
             )
 
+            // RenderData が復元できた後に実行することを担保したい場合、このあとに書く。
+
             // RenderData が変化したら保存する
             // クラッシュ対策
-            renderData.collectLatest { renderData ->
-                ProjectFolderManager.writeRenderData(context, renderData)
+            launch {
+                renderData.collectLatest { renderData ->
+                    ProjectFolderManager.writeRenderData(context, renderData)
+                }
+            }
+
+            // 履歴機能のため、RenderData に更新があったら追加する
+            launch {
+                renderData.collect {
+                    _historyState.value = historyManager.addHistory(it)
+                }
             }
         }
 
@@ -199,13 +210,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     // 次に備える
                     prevRenderItemList = latestItemList
                 }
-        }
-
-        // 履歴機能のため、RenderData に更新があったら追加する
-        viewModelScope.launch {
-            renderData.collect {
-                _historyState.value = historyManager.addHistory(it)
-            }
         }
 
         // 動画の情報が更新されたら
