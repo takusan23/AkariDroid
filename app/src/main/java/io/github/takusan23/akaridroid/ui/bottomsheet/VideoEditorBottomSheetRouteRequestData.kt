@@ -25,5 +25,5 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
     data object OpenAkaLink : VideoEditorBottomSheetRouteRequestData
 
     /** 動画を保存、エンコード画面を開く */
-    data object OpenEncode : VideoEditorBottomSheetRouteRequestData
+    data class OpenEncode(val videoSize: RenderData.Size) : VideoEditorBottomSheetRouteRequestData
 }

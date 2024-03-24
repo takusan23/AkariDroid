@@ -1,7 +1,6 @@
 package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -17,8 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -28,9 +26,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -229,7 +224,7 @@ fun ColorPickerDialog(
 ) {
     val currentPage = remember { mutableStateOf(ColorPickerPage.ColorList) }
 
-    AlertDialog(onDismissRequest = onDismissRequest) {
+    BasicAlertDialog(onDismissRequest = onDismissRequest) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -423,34 +418,14 @@ private fun ColorPickerTab(
     currentPage: ColorPickerPage,
     onClick: (ColorPickerPage) -> Unit
 ) {
-    val selectIndex = ColorPickerPage.entries.indexOf(currentPage)
+    val labelList = remember { ColorPickerPage.entries.map { it.label } }
 
-    TabRow(
+    RoundedIndicatorTab(
         modifier = modifier,
-        selectedTabIndex = selectIndex,
-        divider = { /* do nothing */ },
-        indicator = { tabPositions ->
-            Box(
-                modifier = Modifier
-                    .tabIndicatorOffset(tabPositions[selectIndex])
-                    .padding(horizontal = 20.dp)
-                    .height(3.dp)
-                    .background(color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-            )
-        }
-    ) {
-        ColorPickerPage.entries.forEach { page ->
-            Tab(
-                selected = page == currentPage,
-                onClick = { onClick(page) }
-            ) {
-                Text(
-                    modifier = Modifier.padding(vertical = 5.dp),
-                    text = page.label
-                )
-            }
-        }
-    }
+        tabLabelList = labelList,
+        currentIndex = ColorPickerPage.entries.indexOf(currentPage),
+        onTabSelect = { index -> onClick(ColorPickerPage.entries[index]) }
+    )
 }
 
 /**

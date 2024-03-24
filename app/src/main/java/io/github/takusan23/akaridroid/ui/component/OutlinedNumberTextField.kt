@@ -38,7 +38,8 @@ fun OutlinedIntTextField(
     modifier: Modifier = Modifier,
     value: Int,
     onValueChange: (Int) -> Unit,
-    label: @Composable (() -> Unit)? = null
+    label: @Composable (() -> Unit)? = null,
+    suffix: @Composable (() -> Unit)? = null
 ) {
     val numberText = remember { mutableStateOf(value.toString()) }
     OutlinedTextField(
@@ -50,6 +51,7 @@ fun OutlinedIntTextField(
                 onValueChange(int)
             }
         },
+        suffix = suffix,
         label = label,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true

@@ -103,7 +103,7 @@ fun VideoEditorScreen(
                     viewModel.resolveVideoEditorBottomBarAddItem(addItem)
                 },
                 onEncodeClick = {
-                    viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode)
+                    viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize))
                 },
                 onVideoInfoClick = {
                     viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))

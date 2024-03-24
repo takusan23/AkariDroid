@@ -73,7 +73,8 @@ fun VideoEditorBottomSheetRouter(
             )
 
             // 動画保存画面
-            VideoEditorBottomSheetRouteRequestData.OpenEncode -> EncodeBottomSheet(
+            is VideoEditorBottomSheetRouteRequestData.OpenEncode -> EncodeBottomSheet(
+                videoSize = videoEditorBottomSheetRouteRequestData.videoSize,
                 onEncode = { title, params -> onResult(VideoEditorBottomSheetRouteResultData.StartEncode(title, params)) }
             )
         }
