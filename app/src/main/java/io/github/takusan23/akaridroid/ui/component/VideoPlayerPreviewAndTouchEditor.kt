@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.component
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,7 +16,10 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -32,6 +36,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
@@ -46,7 +51,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 private fun Int.pxToDp() = with(LocalDensity.current) { this@pxToDp.toDp() }
 
 /** 移動中、サイズ変更中に文字を出す。 */
-enum class TouchEditorItemTextDescriptionType {
+private enum class TouchEditorItemTextDescriptionType {
     /** サイズ変更をテキストで補足 */
     Size,
 
@@ -75,7 +80,7 @@ fun VideoPlayerPreviewAndTouchEditor(
     // タッチ移動機能の ON/OFF
     val isEnableTouchEditor = remember { mutableStateOf(true) }
 
-    Box(modifier = modifier.border(1.dp, MaterialTheme.colorScheme.primary)) {
+    Box(modifier = modifier) {
         // プレビューを出す
         if (previewBitmap != null) {
             Image(
@@ -109,6 +114,9 @@ fun VideoPlayerPreviewAndTouchEditor(
             isEnable = isEnableTouchEditor.value,
             onChange = { isEnableTouchEditor.value = it }
         )
+
+        // おしらせ（プレビューがとても遅いけど、出力には関係ないよ）
+        PreviewNotice(modifier = Modifier.align(Alignment.TopStart))
     }
 }
 
@@ -303,10 +311,19 @@ private fun TouchEditSwitch(
     isEnable: Boolean,
     onChange: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
+
     Surface(
         modifier = modifier,
         checked = isEnable,
-        onCheckedChange = { onChange(!isEnable) },
+        onCheckedChange = {
+            val after = !isEnable
+            onChange(after)
+
+            // 意味分からんと思うので Toast も出す
+            val toastMessage = if (after) "タッチ編集が有効になりました" else "タッチ編集が無効になりました"
+            Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
+        },
         shape = RoundedCornerShape(5.dp)
     ) {
         Row(
@@ -314,9 +331,53 @@ private fun TouchEditSwitch(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            Text(text = "タッチ編集")
-            Switch(checked = isEnable, onCheckedChange = null)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_outlined_touch_app_24px),
+                contentDescription = null
+            )
+            Switch(
+                checked = isEnable,
+                onCheckedChange = null
+            )
         }
+    }
+}
+
+/** プレビューがとても遅いけど、出力には問題ないよ */
+@Composable
+private fun PreviewNotice(modifier: Modifier = Modifier) {
+    val isShow = remember { mutableStateOf(false) }
+
+    // プレビューがとても遅いけど仕様だからごめん。
+    if (isShow.value) {
+        AlertDialog(
+            onDismissRequest = { isShow.value = false },
+            title = { Text(text = "プレビュー機能について") },
+            text = {
+                Text(
+                    text = """
+                    プレビューがとても遅いですが、出力には問題ありません。
+                    使いにくいと思います。すいません。
+                    いい方法が思いつけば直します。
+                """.trimIndent()
+                )
+            },
+            confirmButton = {
+                Button(onClick = { isShow.value = false }) {
+                    Text(text = "とじる")
+                }
+            }
+        )
+    }
+
+    IconButton(
+        modifier = modifier,
+        onClick = { isShow.value = !isShow.value }
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_outlined_info_24px),
+            contentDescription = null
+        )
     }
 }
 
