@@ -160,8 +160,6 @@ private fun AddVideoButton(onCreateRenderItem: (VideoEditorBottomBarAddItem) -> 
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             uri ?: return@rememberLauncherForActivityResult
-            // 動画の場合、映像トラックと音声トラックの2つがあるので2つ配列に入れて返す
-            // TODO 音声トラックない場合
             onCreateRenderItem(VideoEditorBottomBarAddItem.Video(uri))
         }
     )

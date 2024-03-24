@@ -336,19 +336,20 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         videoEditorPreviewPlayer.destroy()
     }
 
-    /** ボトムシートの作業結果[VideoEditorBottomSheetRouteResultData]を捌く */
-    fun resolveBottomSheetResult(routeResultData: VideoEditorBottomSheetRouteResultData) {
-        when (routeResultData) {
-            is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> deleteRenderItem(routeResultData.renderItem)
-            is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> _renderData.update { routeResultData.renderData }
-            is VideoEditorBottomSheetRouteResultData.UpdateAudio -> addOrUpdateAudioRenderItem(routeResultData.audio)
-            is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> addOrUpdateCanvasRenderItem(routeResultData.renderData)
-            is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> resolveAkaLinkResult(routeResultData.akaLinkResult)
-            is VideoEditorBottomSheetRouteResultData.StartEncode -> {
-                // ここには来ない。
-            }
-        }
-    }
+    /** [VideoEditorBottomSheetRouteResultData.DeleteRenderItem]をさばく */
+    fun resolveDeleteRenderItem(routeResultData: VideoEditorBottomSheetRouteResultData.DeleteRenderItem) = deleteRenderItem(routeResultData.renderItem)
+
+    /** [VideoEditorBottomSheetRouteResultData.UpdateVideoInfo]をさばく */
+    fun resolveUpdateVideoInfo(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateVideoInfo) = _renderData.update { routeResultData.renderData }
+
+    /** [VideoEditorBottomSheetRouteResultData.UpdateAudio]をさばく */
+    fun resolveUpdateAudio(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateAudio) = addOrUpdateAudioRenderItem(routeResultData.audio)
+
+    /** [VideoEditorBottomSheetRouteResultData.UpdateCanvasItem]をさばく */
+    fun resolveUpdateCanvasItem(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateCanvasItem) = addOrUpdateCanvasRenderItem(routeResultData.renderData)
+
+    /** [VideoEditorBottomSheetRouteResultData.ReceiveAkaLink]をさばく */
+    fun resolveReceiveAkaLink(routeResultData: VideoEditorBottomSheetRouteResultData.ReceiveAkaLink) = resolveAkaLinkResult(routeResultData.akaLinkResult)
 
     /** ボトムシートを表示させる */
     fun openBottomSheet(bottomSheetRouteRequestData: VideoEditorBottomSheetRouteRequestData) {

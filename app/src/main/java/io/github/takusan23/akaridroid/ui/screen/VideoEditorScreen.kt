@@ -77,17 +77,18 @@ fun VideoEditorScreen(
         VideoEditorBottomSheetRouter(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
             onResult = { routeResultData ->
-                // 書く場所があれだけど、とりあえずここにいさせて
-                // TODO 後できれいにする
-                if (routeResultData is VideoEditorBottomSheetRouteResultData.StartEncode) {
-                    encoderService.value?.encodeAkariCore(
+                when (routeResultData) {
+                    is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> viewModel.resolveDeleteRenderItem(routeResultData)
+                    is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> viewModel.resolveUpdateVideoInfo(routeResultData)
+                    is VideoEditorBottomSheetRouteResultData.UpdateAudio -> viewModel.resolveUpdateAudio(routeResultData)
+                    is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> viewModel.resolveUpdateCanvasItem(routeResultData)
+                    is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> viewModel.resolveReceiveAkaLink(routeResultData)
+                    is VideoEditorBottomSheetRouteResultData.StartEncode -> encoderService.value?.encodeAkariCore(
                         renderData = renderData.value,
                         projectFolder = viewModel.projectFolder,
                         resultFileName = routeResultData.fileName,
                         encoderParameters = routeResultData.encoderParameters
                     )
-                } else {
-                    viewModel.resolveBottomSheetResult(routeResultData)
                 }
                 viewModel.closeBottomSheet()
             },
