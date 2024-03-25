@@ -178,9 +178,12 @@ fun VideoEditorScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
-                FloatingMenuButton(onClick = { /* todo */ })
+                FloatingMenuButton(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) })
 
-                FloatingAddBar(modifier = Modifier.weight(1f))
+                FloatingAddBar(
+                    modifier = Modifier.weight(1f),
+                    onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddTimeLine) }
+                )
             }
         }
     }

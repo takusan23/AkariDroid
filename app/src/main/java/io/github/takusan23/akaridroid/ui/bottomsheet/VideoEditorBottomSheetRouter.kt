@@ -77,6 +77,22 @@ fun VideoEditorBottomSheetRouter(
                 videoSize = videoEditorBottomSheetRouteRequestData.videoSize,
                 onEncode = { title, params -> onResult(VideoEditorBottomSheetRouteResultData.StartEncode(title, params)) }
             )
+
+            // メニュー画面
+            VideoEditorBottomSheetRouteRequestData.OpenMenu -> MenuBottomSheet(
+                onVideoInfoClick = {},
+                onEncodeClick = {},
+                onTimeLineReset = {},
+                onSettingClick = {}
+            )
+
+            VideoEditorBottomSheetRouteRequestData.OpenAddTimeLine -> AddTimeLineBottomSheet(
+                onAddText = {},
+                onAddImage = {},
+                onAddVideo = {},
+                onAddAudio = {},
+                onStartAkaLink = {}
+            )
         }
     }
 }
