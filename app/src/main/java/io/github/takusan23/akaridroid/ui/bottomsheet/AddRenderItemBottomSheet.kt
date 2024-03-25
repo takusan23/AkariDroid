@@ -16,13 +16,13 @@ import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 
 /**
  * タイムラインに素材を追加するボトムシート
+ *
+ * @param onAddRenderItem 何を追加したか[AddRenderItem]
+ * @param onStartAkaLink あかりんく開始を押した時
  */
 @Composable
-fun AddTimeLineBottomSheet(
-    onAddText: () -> Unit,
-    onAddImage: (Uri) -> Unit,
-    onAddVideo: (Uri) -> Unit,
-    onAddAudio: (Uri) -> Unit,
+fun AddRenderItemBottomSheet(
+    onAddRenderItem: (AddRenderItem) -> Unit,
     onStartAkaLink: () -> Unit
 ) {
     Column(
@@ -39,28 +39,28 @@ fun AddTimeLineBottomSheet(
             title = "テキスト",
             description = "テキストを追加します",
             iconResId = R.drawable.ic_outline_text_fields_24,
-            onClick = onAddText
+            onClick = { onAddRenderItem(AddRenderItem.Text) }
         )
         PhotoPickerBottomSheetMenuItem(
             title = "画像",
             description = "画像を追加します。",
             iconResId = R.drawable.ic_outline_add_photo_alternate_24px,
             isImageOnly = true,
-            onResultUri = onAddImage
+            onResultUri = { uri -> onAddRenderItem(AddRenderItem.Image(uri)) }
         )
         PhotoPickerBottomSheetMenuItem(
             title = "動画",
             description = "動画を追加します。性能が許す限りタイムラインに追加できるはず？",
             iconResId = R.drawable.ic_outlined_movie_24px,
             isImageOnly = false,
-            onResultUri = onAddVideo
+            onResultUri = { uri -> onAddRenderItem(AddRenderItem.Video(uri)) }
         )
         FilePickerBottomSheetMenuItem(
             title = "音声",
             description = "音声を追加します。",
             iconResId = R.drawable.ic_outline_audiotrack_24,
             mimeType = "audio/*",
-            onResultUri = onAddAudio
+            onResultUri = { uri -> onAddRenderItem(AddRenderItem.Audio(uri)) }
         )
         BottomSheetMenuItem(
             title = "あかりんく（外部連携機能）を始める",

@@ -25,7 +25,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
-import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.FloatingAddBar
@@ -84,22 +83,24 @@ fun VideoEditorScreen(
     if (bottomSheetRouteData.value != null) {
         VideoEditorBottomSheetRouter(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
-            onResult = { routeResultData ->
-                when (routeResultData) {
-                    is VideoEditorBottomSheetRouteResultData.DeleteRenderItem -> viewModel.resolveDeleteRenderItem(routeResultData)
-                    is VideoEditorBottomSheetRouteResultData.UpdateVideoInfo -> viewModel.resolveUpdateVideoInfo(routeResultData)
-                    is VideoEditorBottomSheetRouteResultData.UpdateAudio -> viewModel.resolveUpdateAudio(routeResultData)
-                    is VideoEditorBottomSheetRouteResultData.UpdateCanvasItem -> viewModel.resolveUpdateCanvasItem(routeResultData)
-                    is VideoEditorBottomSheetRouteResultData.ReceiveAkaLink -> viewModel.resolveReceiveAkaLink(routeResultData)
-                    is VideoEditorBottomSheetRouteResultData.StartEncode -> encoderService.value?.encodeAkariCore(
-                        renderData = renderData.value,
-                        projectFolder = viewModel.projectFolder,
-                        resultFileName = routeResultData.fileName,
-                        encoderParameters = routeResultData.encoderParameters
-                    )
-                }
-                viewModel.closeBottomSheet()
+            onAudioUpdate = { viewModel.addOrUpdateAudioRenderItem(it) },
+            onCanvasUpdate = { viewModel.addOrUpdateCanvasRenderItem(it) },
+            onDeleteItem = { viewModel.deleteTimeLineItem(it.id) },
+            onAddTimeLineItem = { viewModel.resolveAddRenderItem(it) },
+            onRenderDataUpdate = { viewModel.updateRenderData(it) },
+            onEncode = { fileName, parameters ->
+                encoderService.value?.encodeAkariCore(
+                    renderData = renderData.value,
+                    projectFolder = viewModel.projectFolder,
+                    resultFileName = fileName,
+                    encoderParameters = parameters
+                )
             },
+            onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
+            onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize)) },
+            onTimeLineReset = { viewModel.resetRenderItemList() },
+            onSettingClick = { onNavigate(NavigationPaths.Setting) },
+            onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },
             onClose = { viewModel.closeBottomSheet() }
         )
     }
@@ -182,7 +183,7 @@ fun VideoEditorScreen(
 
                 FloatingAddBar(
                     modifier = Modifier.weight(1f),
-                    onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddTimeLine) }
+                    onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
                 )
             }
         }

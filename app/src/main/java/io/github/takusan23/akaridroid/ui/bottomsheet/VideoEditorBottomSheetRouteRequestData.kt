@@ -35,5 +35,5 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
     data object OpenMenu : VideoEditorBottomSheetRouteRequestData
 
     /** 追加メニューを開く */
-    data object OpenAddTimeLine : VideoEditorBottomSheetRouteRequestData
+    data object OpenAddRenderItem : VideoEditorBottomSheetRouteRequestData
 }

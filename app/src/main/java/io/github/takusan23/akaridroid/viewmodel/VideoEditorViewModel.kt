@@ -18,9 +18,8 @@ import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.tool.data.IoType
 import io.github.takusan23.akaridroid.tool.data.toIoType
 import io.github.takusan23.akaridroid.tool.data.toRenderDataFilePath
+import io.github.takusan23.akaridroid.ui.bottomsheet.AddRenderItem
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
-import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteResultData
-import io.github.takusan23.akaridroid.ui.component.VideoEditorBottomBarAddItem
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
@@ -340,20 +339,64 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         videoEditorPreviewPlayer.destroy()
     }
 
-    /** [VideoEditorBottomSheetRouteResultData.DeleteRenderItem]をさばく */
-    fun resolveDeleteRenderItem(routeResultData: VideoEditorBottomSheetRouteResultData.DeleteRenderItem) = deleteRenderItem(routeResultData.renderItem)
+    /** ボトムシートの RenderItem 追加リクエスト [AddRenderItem] をさばく */
+    fun resolveAddRenderItem(addRenderItem: AddRenderItem) {
+        viewModelScope.launch {
+            // 素材の挿入位置。現在の位置
+            val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
 
-    /** [VideoEditorBottomSheetRouteResultData.UpdateVideoInfo]をさばく */
-    fun resolveUpdateVideoInfo(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateVideoInfo) = _renderData.update { routeResultData.renderData }
+            // 編集画面を開きたい RenderItem を返す
+            val openEditItem = when (addRenderItem) {
+                AddRenderItem.Text -> createTextCanvasItem(displayTimeStartMs)
+                    .also { text -> addOrUpdateCanvasRenderItem(text) }
 
-    /** [VideoEditorBottomSheetRouteResultData.UpdateAudio]をさばく */
-    fun resolveUpdateAudio(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateAudio) = addOrUpdateAudioRenderItem(routeResultData.audio)
+                is AddRenderItem.Image -> createImageCanvasItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
 
-    /** [VideoEditorBottomSheetRouteResultData.UpdateCanvasItem]をさばく */
-    fun resolveUpdateCanvasItem(routeResultData: VideoEditorBottomSheetRouteResultData.UpdateCanvasItem) = addOrUpdateCanvasRenderItem(routeResultData.renderData)
+                is AddRenderItem.Video -> createVideoItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                    .onEach { renderItem ->
+                        when (renderItem) {
+                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                        }
+                    }
+                    .firstOrNull()
 
-    /** [VideoEditorBottomSheetRouteResultData.ReceiveAkaLink]をさばく */
-    fun resolveReceiveAkaLink(routeResultData: VideoEditorBottomSheetRouteResultData.ReceiveAkaLink) = resolveAkaLinkResult(routeResultData.akaLinkResult)
+                is AddRenderItem.Audio -> createAudioItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+                AddRenderItem.Shape -> createShapeCanvasItem(displayTimeStartMs)
+                    .also { shape -> addOrUpdateCanvasRenderItem(shape) }
+
+                // あかりんく結果
+                is AddRenderItem.AkaLink -> {
+                    val file = File(addRenderItem.akaLinkResult.filePath)
+
+                    when (addRenderItem.akaLinkResult) {
+                        is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
+                            ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+
+                        is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
+                            ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+                        is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
+                            .onEach { renderItem ->
+                                when (renderItem) {
+                                    is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                                    is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                                }
+                            }
+                            .firstOrNull()
+                    }
+                }
+            }
+
+            // 編集画面を開く
+            if (openEditItem != null) {
+                openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+            }
+        }
+    }
 
     /** ボトムシートを表示させる */
     fun openBottomSheet(bottomSheetRouteRequestData: VideoEditorBottomSheetRouteRequestData) {
@@ -363,45 +406,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     /** ボトムシートを閉じる */
     fun closeBottomSheet() {
         _bottomSheetRouteData.value = null
-    }
-
-    /** ボトムバーの[VideoEditorBottomBarAddItem]の結果を捌く */
-    fun resolveVideoEditorBottomBarAddItem(addItem: VideoEditorBottomBarAddItem) = viewModelScope.launch {
-        // 素材の挿入位置。現在の位置
-        val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-
-        val openEditItem = when (addItem) {
-            // テキスト
-            VideoEditorBottomBarAddItem.Text -> createTextCanvasItem(displayTimeStartMs)
-                .also { text -> addOrUpdateCanvasRenderItem(text) }
-
-            // 画像
-            is VideoEditorBottomBarAddItem.Image -> createImageCanvasItem(displayTimeStartMs, addItem.uri.toIoType())
-                ?.also { image -> addOrUpdateCanvasRenderItem(image) }
-
-            // 音声
-            is VideoEditorBottomBarAddItem.Audio -> createAudioItem(displayTimeStartMs, addItem.uri.toIoType())
-                ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
-
-            // 動画
-            is VideoEditorBottomBarAddItem.Video -> createVideoItem(displayTimeStartMs, addItem.uri.toIoType())
-                .onEach { renderItem ->
-                    when (renderItem) {
-                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                    }
-                }
-                .firstOrNull()
-
-            // 図形
-            VideoEditorBottomBarAddItem.Shape -> createShapeCanvasItem(displayTimeStartMs)
-                .also { shape -> addOrUpdateCanvasRenderItem(shape) }
-        }
-
-        // 編集画面を開く
-        if (openEditItem != null) {
-            openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
-        }
     }
 
     /**
@@ -644,7 +648,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         .firstOrNull { it.id == id }
 
     /** タイムラインの素材を全て破棄する。 */
-    fun resetRenderItem() {
+    fun resetRenderItemList() {
         _renderData.value = renderData.value.copy(
             canvasRenderItem = emptyList(),
             audioRenderItem = emptyList()
@@ -666,29 +670,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         _historyState.value = redo.state
     }
 
-    /** [AkaLinkTool.AkaLinkResult]を捌いてタイムラインに追加する */
-    private fun resolveAkaLinkResult(akaLinkResult: AkaLinkTool.AkaLinkResult) = viewModelScope.launch {
-        val filePath = akaLinkResult.filePath
-        val file = File(filePath)
-
-        // 素材の挿入位置。現在の位置
-        val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-
-        when (akaLinkResult) {
-            is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
-                ?.also { image -> addOrUpdateCanvasRenderItem(image) }
-
-            is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
-                ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
-
-            is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
-                .forEach { renderItem ->
-                    when (renderItem) {
-                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                    }
-                }
-        }
+    /** 動画時間の変更とか、動画縦横サイズの変更とかを適用する用 */
+    fun updateRenderData(renderData: RenderData) {
+        _renderData.value = renderData
     }
 
     /**
@@ -697,7 +681,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param canvasItem [RenderData.CanvasItem]
      */
-    private fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+    fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.canvasRenderItem.any { it.id == canvasItem.id }) {
@@ -716,7 +700,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      *
      * @param audioItem [RenderData.AudioItem]
      */
-    private fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
+    fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
         _renderData.update { before ->
             // 更新なら
             if (before.audioRenderItem.any { it.id == audioItem.id }) {

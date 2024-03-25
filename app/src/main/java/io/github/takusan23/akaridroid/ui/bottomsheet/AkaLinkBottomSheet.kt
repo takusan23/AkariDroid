@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import kotlinx.coroutines.launch
@@ -56,7 +57,10 @@ fun AkaLinkBottomSheet(onAkaLinkResult: (AkaLinkTool.AkaLinkResult) -> Unit) {
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_folder_data_24px), contentDescription = null)
-            Text(text = "あかりんく AkaLink 画面")
+            Text(
+                text = "あかりんく（AkaLink）画面",
+                fontSize = 24.sp
+            )
         }
 
         Text(

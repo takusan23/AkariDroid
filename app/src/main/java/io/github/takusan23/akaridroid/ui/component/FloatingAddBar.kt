@@ -23,6 +23,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 
+/** 追加できる項目 */
+enum class AddTimeLineType {
+    /** テキスト */
+    Text,
+
+    /** 画像 */
+    Image,
+
+    /** 動画 */
+    Video,
+
+    /** 音声 */
+    Audio,
+
+    /** あかりんく */
+    AkaLink
+}
+
 /**
  * メニューの隣のフローティングしている追加バー
  *
