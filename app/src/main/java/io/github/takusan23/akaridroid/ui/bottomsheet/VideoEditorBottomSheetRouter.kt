@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import android.net.Uri
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -8,27 +7,7 @@ import androidx.compose.runtime.Composable
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
-
-/** [AddRenderItemBottomSheet]で追加した項目 */
-sealed interface AddRenderItem {
-    /** テキストの追加 */
-    data object Text : AddRenderItem
-
-    /** 図形の追加 */
-    data object Shape : AddRenderItem
-
-    /** フォトピッカーで選んだ画像の追加 */
-    data class Image(val uri: Uri) : AddRenderItem
-
-    /** フォトピッカーで選んだ動画の追加 */
-    data class Video(val uri: Uri) : AddRenderItem
-
-    /** ファイルピッカーで選んだ音声の追加 */
-    data class Audio(val uri: Uri) : AddRenderItem
-
-    /** あかりんくの結果 */
-    data class AkaLink(val akaLinkResult: AkaLinkTool.AkaLinkResult) : AddRenderItem
-}
+import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 
 /**
  * 動画編集画面で使うボトムシートを出す画面
@@ -43,7 +22,8 @@ fun VideoEditorBottomSheetRouter(
     onAudioUpdate: (RenderData.AudioItem) -> Unit,
     onCanvasUpdate: (RenderData.CanvasItem) -> Unit,
     onDeleteItem: (RenderData.RenderItem) -> Unit,
-    onAddTimeLineItem: (AddRenderItem) -> Unit,
+    onAddRenderItemResult: (AddRenderItemMenuResult) -> Unit,
+    onReceiveAkaLink: (AkaLinkTool.AkaLinkResult) -> Unit,
     onRenderDataUpdate: (RenderData) -> Unit,
     onEncode: (String, EncoderParameters) -> Unit,
     onVideoInfoClick: () -> Unit,
@@ -136,7 +116,7 @@ fun VideoEditorBottomSheetRouter(
             // あかりんく画面
             VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet(
                 onAkaLinkResult = { akaLinkResult ->
-                    onAddTimeLineItem(AddRenderItem.AkaLink(akaLinkResult))
+                    onReceiveAkaLink(akaLinkResult)
                     onClose()
                 }
             )
@@ -158,9 +138,9 @@ fun VideoEditorBottomSheetRouter(
                 onSettingClick = onSettingClick
             )
 
+            // 素材追加画面
             VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem -> AddRenderItemBottomSheet(
-                onAddRenderItem = onAddTimeLineItem,
-                onStartAkaLink = onStartAkaLink
+                onAddRenderItemResult = onAddRenderItemResult
             )
         }
     }

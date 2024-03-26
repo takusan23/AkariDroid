@@ -49,7 +49,15 @@ fun PreviewPlayerController(
             enabled = playerStatus.isPrepareCompleteAudio && playerStatus.isPrepareCompleteCanvas
         ) {
             Icon(
-                painter = painterResource(id = if (playerStatus.isPlaying) R.drawable.ic_outline_pause_24 else R.drawable.ic_outline_play_arrow_24),
+                painter = painterResource(
+                    id = when {
+                        // プレビュー用意中はアイコンを砂時計にする。
+                        // Windows XP のときは砂時計でしたね、なつかしい。応答なしに陥った時にウィンドウを動かすと残像が出たけど今は出ないんだって。
+                        !playerStatus.isPrepareCompleteAudio || !playerStatus.isPrepareCompleteCanvas -> R.drawable.ic_outline_hourglass_top_24
+                        playerStatus.isPlaying -> R.drawable.ic_outline_pause_24
+                        else -> R.drawable.ic_outline_play_arrow_24
+                    }
+                ),
                 contentDescription = null
             )
         }

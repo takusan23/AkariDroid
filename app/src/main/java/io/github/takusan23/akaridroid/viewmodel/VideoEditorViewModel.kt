@@ -13,17 +13,20 @@ import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.tool.AvAnalyze
+import io.github.takusan23.akaridroid.tool.MultiArmedBanditManager
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.tool.data.IoType
 import io.github.takusan23.akaridroid.tool.data.toIoType
 import io.github.takusan23.akaridroid.tool.data.toRenderDataFilePath
-import io.github.takusan23.akaridroid.ui.bottomsheet.AddRenderItem
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
+import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
+import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -54,7 +57,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     private val _timeLineData = MutableStateFlow(
         TimeLineData(
             durationMs = _renderData.value.durationMs,
-            laneCount = 10,
+            laneCount = 20, // TODO FloatingMenuBar のせいで見えないから...なんとかしたい
             itemList = emptyList()
         )
     )
@@ -81,6 +84,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
         context = context,
         projectFolder = projectFolder
+    )
+
+    /** フローティングバーに出すボタンを決定するやつ */
+    val floatingMenuBarMultiArmedBanditManager = MultiArmedBanditManager(
+        epsilon = 0.9f,
+        banditMachineList = AddRenderItemMenu.entries,
+        pullSize = 3,
+        initList = listOf(AddRenderItemMenu.Text, AddRenderItemMenu.Image, AddRenderItemMenu.Video)
     )
 
     /** 素材の情報 */
@@ -339,21 +350,21 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         videoEditorPreviewPlayer.destroy()
     }
 
-    /** ボトムシートの RenderItem 追加リクエスト [AddRenderItem] をさばく */
-    fun resolveAddRenderItem(addRenderItem: AddRenderItem) {
+    /** 素材追加リクエストの中でも [AddRenderItemMenuResult.Addable] をさばく。 */
+    fun resolveAddRenderItem(addRenderItemMenuResult: AddRenderItemMenuResult.Addable) {
         viewModelScope.launch {
             // 素材の挿入位置。現在の位置
             val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
 
             // 編集画面を開きたい RenderItem を返す
-            val openEditItem = when (addRenderItem) {
-                AddRenderItem.Text -> createTextCanvasItem(displayTimeStartMs)
+            val openEditItem = when (addRenderItemMenuResult) {
+                AddRenderItemMenuResult.Text -> createTextCanvasItem(displayTimeStartMs)
                     .also { text -> addOrUpdateCanvasRenderItem(text) }
 
-                is AddRenderItem.Image -> createImageCanvasItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                is AddRenderItemMenuResult.Image -> createImageCanvasItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
                     ?.also { image -> addOrUpdateCanvasRenderItem(image) }
 
-                is AddRenderItem.Video -> createVideoItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                is AddRenderItemMenuResult.Video -> createVideoItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
                     .onEach { renderItem ->
                         when (renderItem) {
                             is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
@@ -362,33 +373,43 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     }
                     .firstOrNull()
 
-                is AddRenderItem.Audio -> createAudioItem(displayTimeStartMs, addRenderItem.uri.toIoType())
+                is AddRenderItemMenuResult.Audio -> createAudioItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
                     ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
 
-                AddRenderItem.Shape -> createShapeCanvasItem(displayTimeStartMs)
+                AddRenderItemMenuResult.Shape -> createShapeCanvasItem(displayTimeStartMs)
                     .also { shape -> addOrUpdateCanvasRenderItem(shape) }
+            }
 
-                // あかりんく結果
-                is AddRenderItem.AkaLink -> {
-                    val file = File(addRenderItem.akaLinkResult.filePath)
+            // 編集画面を開く
+            if (openEditItem != null) {
+                openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+            }
+        }
+    }
 
-                    when (addRenderItem.akaLinkResult) {
-                        is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
-                            ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+    /** あかりんくの結果をさばく */
+    fun resolveAkaLinkResult(result: AkaLinkTool.AkaLinkResult) {
+        viewModelScope.launch {
+            // 素材の挿入位置。現在の位置
+            val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+            val file = File(result.filePath)
 
-                        is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
-                            ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+            // あかりんくの結果から RenderItem を作る
+            val openEditItem = when (result) {
+                is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
+                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
 
-                        is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
-                            .onEach { renderItem ->
-                                when (renderItem) {
-                                    is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                                    is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                                }
-                            }
-                            .firstOrNull()
+                is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
+                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+                is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
+                    .onEach { renderItem ->
+                        when (renderItem) {
+                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                        }
                     }
-                }
+                    .firstOrNull()
             }
 
             // 編集画面を開く
@@ -400,7 +421,16 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     /** ボトムシートを表示させる */
     fun openBottomSheet(bottomSheetRouteRequestData: VideoEditorBottomSheetRouteRequestData) {
-        _bottomSheetRouteData.value = bottomSheetRouteRequestData
+        // 今表示中の場合はアニメーションのため若干遅らせる
+        if (_bottomSheetRouteData.value != null) {
+            viewModelScope.launch {
+                _bottomSheetRouteData.value = null
+                delay(100)
+                _bottomSheetRouteData.value = bottomSheetRouteRequestData
+            }
+        } else {
+            _bottomSheetRouteData.value = bottomSheetRouteRequestData
+        }
     }
 
     /** ボトムシートを閉じる */

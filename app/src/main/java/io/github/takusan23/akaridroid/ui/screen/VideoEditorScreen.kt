@@ -26,13 +26,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
+import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
-import io.github.takusan23.akaridroid.ui.component.FloatingAddBar
+import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.UndoRedoButton
 import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
+import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
 /**
@@ -66,6 +68,8 @@ fun VideoEditorScreen(
     val touchEditorData = viewModel.touchEditorData.collectAsStateWithLifecycle()
     // 履歴機能。undo / redo
     val historyState = viewModel.historyState.collectAsStateWithLifecycle()
+    // フローティングバーに出すメニュー
+    val recommendFloatingBarMenuList = viewModel.floatingMenuBarMultiArmedBanditManager.pullItemList.collectAsStateWithLifecycle()
 
     // エンコード中の場合は別の UI を出して return する
     if (encodeStatus?.value != null) {
@@ -79,6 +83,17 @@ fun VideoEditorScreen(
         return
     }
 
+    // 2箇所から呼ばれてるのでこれを呼ぶ
+    fun VideoEditorViewModel.resolveRenderItemCreate(result: AddRenderItemMenuResult) {
+        // Addable のみ。ボトムシートを出す必要があれば別途やる
+        when (result) {
+            is AddRenderItemMenuResult.Addable -> resolveAddRenderItem(result)
+            is AddRenderItemMenuResult.BottomSheetOpenable -> openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink)
+        }
+        // 報酬を与える
+        floatingMenuBarMultiArmedBanditManager.reward(result.toMenu())
+    }
+
     // ボトムシート
     if (bottomSheetRouteData.value != null) {
         VideoEditorBottomSheetRouter(
@@ -86,7 +101,8 @@ fun VideoEditorScreen(
             onAudioUpdate = { viewModel.addOrUpdateAudioRenderItem(it) },
             onCanvasUpdate = { viewModel.addOrUpdateCanvasRenderItem(it) },
             onDeleteItem = { viewModel.deleteTimeLineItem(it.id) },
-            onAddTimeLineItem = { viewModel.resolveAddRenderItem(it) },
+            onAddRenderItemResult = { viewModel.resolveRenderItemCreate(it) },
+            onReceiveAkaLink = { viewModel.resolveAkaLinkResult(it) },
             onRenderDataUpdate = { viewModel.updateRenderData(it) },
             onEncode = { fileName, parameters ->
                 encoderService.value?.encodeAkariCore(
@@ -181,9 +197,11 @@ fun VideoEditorScreen(
 
                 FloatingMenuButton(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) })
 
-                FloatingAddBar(
+                FloatingAddRenderItemBar(
                     modifier = Modifier.weight(1f),
-                    onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
+                    onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) },
+                    recommendedMenuList = recommendFloatingBarMenuList.value,
+                    onRecommendMenuClick = { viewModel.resolveRenderItemCreate(it) }
                 )
             }
         }

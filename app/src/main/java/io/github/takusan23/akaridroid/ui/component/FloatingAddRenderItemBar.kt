@@ -23,35 +23,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 
-/** 追加できる項目 */
-enum class AddTimeLineType {
-    /** テキスト */
-    Text,
-
-    /** 画像 */
-    Image,
-
-    /** 動画 */
-    Video,
-
-    /** 音声 */
-    Audio,
-
-    /** あかりんく */
-    AkaLink
-}
-
 /**
- * メニューの隣のフローティングしている追加バー
+ * メニューの隣のフローティングしている追加バー。
+ * 3つまでメニューがおけます。[AddRenderItemMenu]。
  *
  * @param modifier [Modifier]
  * @param onOpenMenu 追加ボトムシートを開く
+ * @param recommendedMenuList 出したいメニュー[AddRenderItemMenu]
+ * @param onRecommendMenuClick メニューを押した時
  */
 @Composable
-fun FloatingAddBar(
+fun FloatingAddRenderItemBar(
     modifier: Modifier = Modifier,
-    onOpenMenu: () -> Unit
+    onOpenMenu: () -> Unit,
+    recommendedMenuList: List<AddRenderItemMenu>,
+    onRecommendMenuClick: (AddRenderItemMenuResult) -> Unit
 ) {
+    val creator = rememberRenderItemCreator(onResult = onRecommendMenuClick)
+
     Surface(
         modifier = modifier.height(70.dp),
         color = MaterialTheme.colorScheme.tertiary,
@@ -59,6 +48,7 @@ fun FloatingAddBar(
         shadowElevation = 3.dp
     ) {
         Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+
             FloatingAddBarItem(
                 title = "追加",
                 iconResId = R.drawable.ic_outlined_add_24px,
@@ -73,17 +63,25 @@ fun FloatingAddBar(
                 color = LocalContentColor.current
             )
 
-            repeat(3) {
+            recommendedMenuList.forEach { menu ->
                 FloatingAddBarItem(
-                    title = "テキスト",
-                    iconResId = R.drawable.ic_outline_text_fields_24,
-                    onClick = { }
+                    title = menu.label,
+                    iconResId = menu.iconResId,
+                    onClick = { creator.create(menu) }
                 )
             }
         }
     }
 }
 
+/**
+ * フローティングバーのボタン
+ *
+ * @param modifier [Modifier]
+ * @param title なまえ
+ * @param iconResId　アイコン
+ * @param onClick 押した時
+ */
 @Composable
 fun FloatingAddBarItem(
     modifier: Modifier = Modifier,
@@ -108,7 +106,10 @@ fun FloatingAddBarItem(
                 painter = painterResource(id = iconResId),
                 contentDescription = null
             )
-            Text(text = title)
+            Text(
+                text = title,
+                maxLines = 1
+            )
         }
     }
 }
