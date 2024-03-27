@@ -299,9 +299,9 @@ class ExampleInstrumentedTest {
             }
 
             // 巻き戻すやつもテストしたいから 1 -> 15 -> 9 で
-            val videoFrame_1000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 1_000)
-            val videoFrame_15_000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 15_000)
-            val videoFrame_9000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 9000)
+            val videoFrame_1000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 1_000)!!
+            val videoFrame_15_000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 15_000)!!
+            val videoFrame_9000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 9000)!!
             // 保存
             videoFrame_1000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[0].outputStream())
             videoFrame_15_000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[1].outputStream())
