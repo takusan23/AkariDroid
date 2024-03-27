@@ -2,9 +2,16 @@ package io.github.takusan23.akaridroid.ui.bottomsheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -50,12 +57,7 @@ fun MenuBottomSheet(
             iconResId = R.drawable.ic_outline_save_24,
             onClick = onEncodeClick
         )
-        BottomSheetMenuItem(
-            title = "タイムラインをリセットする",
-            description = "タイムラインにある素材をすべて消します。",
-            iconResId = R.drawable.ic_outline_reset_wrench_24px,
-            onClick = onTimeLineReset
-        )
+        TimeLineResetMenuItem(onTimeLineReset = onTimeLineReset)
         BottomSheetMenuItem(
             title = "設定",
             description = "好きなフォントを取り込むとか、オープンソースライセンスとか。",
@@ -63,4 +65,41 @@ fun MenuBottomSheet(
             onClick = onSettingClick
         )
     }
+}
+
+/** タイムラインリセットメニュー。押したらダイアログが出て本当にやるか聞かれます。 */
+@Composable
+private fun TimeLineResetMenuItem(onTimeLineReset: () -> Unit) {
+    val isVisibleDialog = remember { mutableStateOf(false) }
+
+    if (isVisibleDialog.value) {
+        AlertDialog(
+            onDismissRequest = { isVisibleDialog.value = false },
+            icon = { Icon(painter = painterResource(id = R.drawable.ic_outline_delete_24px), contentDescription = null) },
+            title = { Text(text = "本当に破棄しますか") },
+            text = { Text(text = "タイムラインの素材を全て破棄して、まっさらな状態にします。本当に破棄しますか？") },
+            dismissButton = {
+                TextButton(onClick = { isVisibleDialog.value = false }) {
+                    Text(text = "戻る")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onTimeLineReset()
+                        isVisibleDialog.value = false
+                    }
+                ) {
+                    Text(text = "破棄する")
+                }
+            }
+        )
+    }
+
+    BottomSheetMenuItem(
+        title = "タイムラインをリセットする",
+        description = "タイムラインにある素材をすべて消します。",
+        iconResId = R.drawable.ic_outline_reset_wrench_24px,
+        onClick = { isVisibleDialog.value = true }
+    )
 }
