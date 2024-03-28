@@ -5,11 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.android).apply(false)
     // akaricore ライブラリ公開で使う
     alias(libs.plugins.gradle.nexus.publish.plugin)
-    alias(libs.plugins.jetpbrains.dokka)
-}
-
-subprojects {
-    apply(plugin = "org.jetbrains.dokka")
 }
 
 tasks.register("clean") {

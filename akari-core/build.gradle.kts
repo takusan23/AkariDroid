@@ -1,12 +1,19 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    // ドキュメント生成
-    id("org.jetbrains.dokka")
     // Maven Central に公開する際に利用
     `maven-publish`
     signing
 }
+
+// ライブラリ公開は Android でも言及するようになったので目を通すといいかも
+// https://developer.android.com/build/publish-library/upload-library
+// そのほか役に立ちそうなドキュメント
+// https://docs.gradle.org/current/dsl/org.gradle.api.publish.maven.MavenPublication.html
+// https://github.com/gradle-nexus/publish-plugin
+
+// OSSRH にアップロードせずに成果物を確認する方法があります。ローカルに吐き出せばいい
+// gradle :akari-core:publishToMavenLocal
 
 android {
     namespace = "io.github.takusan23.akaricore"
@@ -33,6 +40,14 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    // どうやら Android Gradle Plugin 側で sources.jar と javadoc.jar を作る機能が実装されたそう
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 // ライブラリ
@@ -47,6 +62,50 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
 
+// ライブラリのメタデータ
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "io.github.takusan23"
+            artifactId = "akaricore"
+            version = "2.0.0-alpha01"
+
+            // afterEvaluate しないとエラーなる
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            pom {
+                // ライブラリ情報
+                name.set("akaricore")
+                description.set("AkariDroid is Video editor app in Android. AkariDroid core library")
+                url.set("https://github.com/takusan23/AkariDroid/")
+                // ライセンス
+                licenses {
+                    license {
+                        name.set("Apache License 2.0")
+                        url.set("https://github.com/takusan23/AkariDroid/blob/master/LICENSE")
+                    }
+                }
+                // 開発者
+                developers {
+                    developer {
+                        id.set("takusan_23")
+                        name.set("takusan_23")
+                        url.set("https://takusan.negitoro.dev/")
+                    }
+                }
+                // git
+                scm {
+                    connection.set("scm:git:github.com/takusan23/AkariDroid")
+                    developerConnection.set("scm:git:ssh://github.com/takusan23/AkariDroid")
+                    url.set("https://github.com/takusan23/AkariDroid")
+                }
+            }
+        }
+    }
+}
+
 // 署名
 signing {
     // ルート build.gradle.kts の extra を見に行く
@@ -55,73 +114,5 @@ signing {
         rootProject.extra["signing.key"] as String,
         rootProject.extra["signing.password"] as String,
     )
-    sign(publishing.publications)
-}
-
-// ソースコードを提供する
-val androidSourcesJar = tasks.register<Jar>("androidSourcesJar") {
-    archiveClassifier.set("sources")
-    from(android.sourceSets["main"].java.srcDirs)
-}
-
-// JavaDoc を生成する
-tasks.dokkaJavadoc {
-    outputDirectory.set(File(buildDir, "dokkaJavadoc"))
-}
-val javadocJar = tasks.register<Jar>("dokkaJavadocJar") {
-    dependsOn(tasks.dokkaJavadoc)
-    from(tasks.dokkaJavadoc.flatMap { it.outputDirectory })
-    archiveClassifier.set("javadoc")
-}
-
-artifacts {
-    archives(androidSourcesJar)
-    archives(javadocJar)
-}
-
-// ライブラリのメタデータ
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
-                groupId = "io.github.takusan23"
-                artifactId = "akaricore"
-                version = "2.0.0-alpha01"
-                if (project.plugins.hasPlugin("com.android.library")) {
-                    from(components["release"])
-                } else {
-                    from(components["java"])
-                }
-                artifact(androidSourcesJar)
-                artifact(javadocJar)
-                pom {
-                    // ライブラリ情報
-                    name.set("akaricore")
-                    description.set("AkariDroid is Video editor app in Android. AkariDroid core library")
-                    url.set("https://github.com/takusan23/AkariDroid/")
-                    // ライセンス
-                    licenses {
-                        license {
-                            name.set("Apache License 2.0")
-                            url.set("https://github.com/takusan23/AkariDroid/blob/master/LICENSE")
-                        }
-                    }
-                    // 開発者
-                    developers {
-                        developer {
-                            id.set("takusan_23")
-                            name.set("takusan_23")
-                            url.set("https://takusan.negitoro.dev/")
-                        }
-                    }
-                    // git
-                    scm {
-                        connection.set("scm:git:github.com/takusan23/AkariDroid")
-                        developerConnection.set("scm:git:ssh://github.com/takusan23/AkariDroid")
-                        url.set("https://github.com/takusan23/AkariDroid")
-                    }
-                }
-            }
-        }
-    }
+    sign(publishing.publications["release"])
 }
