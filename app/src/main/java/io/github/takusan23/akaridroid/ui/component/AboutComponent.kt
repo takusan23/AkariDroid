@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.screen.about.AboutScreenUiState
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 // このアプリについて画面で使っている UI コンポーネント
 
@@ -96,7 +99,7 @@ fun AdvTextArea(
                 text = "${stringResource(id = R.string.app_name)} ( $appVersion ) ",
                 fontSize = 20.sp
             )
-            Divider()
+            HorizontalDivider()
             Text(
                 text = text,
                 fontSize = 20.sp
@@ -128,6 +131,34 @@ fun AdvMenuBar(
                 .padding(end = 10.dp),
             text = "SKIP"
         )
+    }
+}
+
+/**
+ * 日付の部分
+ *
+ * @param modifier [Modifier]
+ */
+@Composable
+fun AdvDateView(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val simpleDateFormat = remember { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()) }
+    val dateText = remember { simpleDateFormat.format(context.getString(R.string.build_date).toLong()) }
+
+    Surface(
+        modifier = modifier,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        shape = CircleShape,
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(
+                text = dateText,
+                fontSize = 20.sp
+            )
+        }
     }
 }
 

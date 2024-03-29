@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.ui.component.AdvDateView
 import io.github.takusan23.akaridroid.ui.component.AdvHiroin
 import io.github.takusan23.akaridroid.ui.component.AdvMenuBar
 import io.github.takusan23.akaridroid.ui.component.AdvRouteSelect
@@ -99,6 +100,12 @@ private fun InitScreen(onClick: () -> Unit) {
             .fillMaxSize()
             .clickable(onClick = onClick)
     ) {
+
+        AdvDateView(
+            modifier = Modifier
+                .padding(10.dp)
+                .align(Alignment.End)
+        )
 
         AdvHiroin(
             modifier = Modifier
