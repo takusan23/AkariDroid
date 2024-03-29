@@ -1,30 +1,56 @@
-// TODO 古いので直す
-
 # akari-core
 
-![Maven Central](https://img.shields.io/maven-central/v/io.github.takusan23/akaricore)
+![Maven Central](https://img.shields.io/maven-central/v/io.github.takusan23/akaricore) ← shields.io で作ったバッジ。最新バージョンはこの通りです。
 
-↑ shields.io で作ったバッジ。最新バージョンは↑です。
+`あかりどろいど`で利用している、動画編集のコアな部分をライブラリとして切り出してみました。`MavenCentral`から取ってくることが出来ます。  
+コアな部分と言ってもほんとに`MediaCodec`を代わりに叩くくらいのコアな部分なのですが。。。  
+やる気が無くなったらやめる。  
 
-前作った conecocore ( https://github.com/takusan23/Coneco/tree/master/conecocore ) から実装をパクってます。
+`2.0.0`で全面的に作り直したので互換性はなくなった。
 
 # なんとなく MavenCentral に公開したけど
 
-更新するかは分からんしまだ不十分すぎる
+更新するかは分からんしまだ不十分すぎる。。
 
 ```kotlin
-implementation("io.github.takusan23:akaricore:1.0.0-alpha01")
+implementation("io.github.takusan23:akaricore:2.0.0-alpha01")
 ```
 
-https://takusan.negitoro.dev/posts/android_add_canvas_text_to_video/
-
 # つかいかた
+本当に`MediaCodec`を代わりに叩くくらいの関数しか無い。  
+今度真面目に書く
 
-`ExampleInstrumentedTest.kt`を見てください。  
-`processor`パッケージ内のユーティリティ関数が利用可能です（`VideoCanvasProcessor`など）。詳しくは
-README で。
+## 共通
 
-![image](https://user-images.githubusercontent.com/32033405/222954361-c1efe7a4-60ad-4e05-b83b-2969cdf0faf1.png)
+- AkariCoreInputOutput
+  - これ以降の関数のファイル入出力を担当するクラス。
+    - Java の File
+    - Android の Uri
+    - Java の ByteArray
+  - 一部は対応していない。Java の File が確実
+
+## 動画用
+
+- CanvasVideoProcessor
+  - `Canvas`で毎フレーム書いて、それを動画にする
+- VideoFrameBitmapExtractor
+  - 動画から連続したフレームを高速に取り出す
+
+## 音声用
+
+- AudioEncodeDecodeProcessor
+  - 音声のデコード、エンコードをする
+  - AAC を PCM にする
+  - PCM を AAC にする
+- AudioMixingProcessor
+  - 音声を重ねる
+  - PCM データを重ねます
+- AudioMonoToStereoProcessor
+  - ステレオにする
+- AudioVolumeProcessor
+  - 音量調整
+- ReSaplingRateProcessor
+  - Sonic.java を利用したサンプリングレート変換
 
 # special thanks
 
@@ -33,6 +59,8 @@ README で。
 - Android Open Source Project の CTS
     - エンコード部分は大体ここのを参考にしてます
     - https://cs.android.com/android/platform/superproject/+/master:cts/tests/tests/media/codec/src/android/media/codec/cts/DecodeEditEncodeTest.java
+- サンプリングレート変換
+    - https://github.com/waywardgeek/sonic
 
 # らいせんす
 
