@@ -35,7 +35,7 @@ enum class AddRenderItemMenu(
 ) {
     /** テキスト */
     Text(
-        "テキスト",
+        "文字",
         "文字を追加します。フォントを変えたい場合は設定で取り込めます。",
         R.drawable.ic_outline_text_fields_24
     ),
