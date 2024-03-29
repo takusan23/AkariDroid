@@ -134,7 +134,7 @@ fun rememberRenderItemCreator(onResult: (AddRenderItemMenuResult) -> Unit): Rend
     LaunchedEffect(key1 = Unit) {
         creator.setRequestCallback(
             onStartPhotoPicker = { isImageOnly ->
-                photoPicker.launch(PickVisualMediaRequest(if (isImageOnly) ActivityResultContracts.PickVisualMedia.ImageOnly else ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                photoPicker.launch(PickVisualMediaRequest(if (isImageOnly) ActivityResultContracts.PickVisualMedia.ImageOnly else ActivityResultContracts.PickVisualMedia.VideoOnly))
             },
             onStartFilePicker = { mimeType ->
                 filePicker.launch(arrayOf(mimeType))
