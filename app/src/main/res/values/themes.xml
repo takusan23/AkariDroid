@@ -5,4 +5,15 @@
         <item name="android:statusBarColor">@color/purple_700</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
     </style>
+
+    <style name="Theme.AkariDroid.Starting" parent="Theme.SplashScreen">
+        <!-- 背景色 -->
+        <item name="windowSplashScreenBackground">#F59AA1</item>
+        <!-- スプラッシュスクリーンで表示するアイコン。Android 12（drawable-v31）に動くアイコンを入れています。 -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_akari_droid_icon</item>
+        <!-- アニメーション時間 -->
+        <item name="windowSplashScreenAnimationDuration">500</item>
+        <!-- スプラッシュスクリーン終わったときのテーマ -->
+        <item name="postSplashScreenTheme">@style/Theme.AkariDroid</item>
+    </style>
 </resources>

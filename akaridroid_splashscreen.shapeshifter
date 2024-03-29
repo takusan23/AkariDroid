@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "layers": {
+    "vectorLayer": {
+      "id": "205",
+      "name": "vector",
+      "type": "vector",
+      "canvasColor": "#000000",
+      "width": 873,
+      "height": 873,
+      "children": [
+        {
+          "id": "190",
+          "name": "group",
+          "type": "group",
+          "children": [
+            {
+              "id": "35",
+              "name": "path",
+              "type": "path",
+              "pathData": "M 525 326 C 531 339 535 353 535 369 C 535 424 490 469 435 469 C 379 469 335 424 335 369 C 335 341 346 316 364 298 C 368 294 372 290 377 287",
+              "strokeColor": "#ffffff",
+              "strokeWidth": 20,
+              "strokeLinecap": "round"
+            },
+            {
+              "id": "45",
+              "name": "path_1",
+              "type": "path",
+              "pathData": "M 476 351 L 476 362",
+              "strokeColor": "#ffffff",
+              "strokeAlpha": 0,
+              "strokeWidth": 26,
+              "strokeLinecap": "round",
+              "strokeLinejoin": "round"
+            },
+            {
+              "id": "67",
+              "name": "path_2",
+              "type": "path",
+              "pathData": "M 390 345 L 409 357 M 390 368 L 409 357",
+              "strokeColor": "#ffffff",
+              "strokeAlpha": 0,
+              "strokeWidth": 13,
+              "strokeLinecap": "round",
+              "strokeLinejoin": "round"
+            },
+            {
+              "id": "79",
+              "name": "path_3",
+              "type": "path",
+              "pathData": "M 456 418 C 451 423 444 427 435 427 C 427 427 420 423 414 418",
+              "strokeColor": "#ffffff",
+              "strokeAlpha": 0,
+              "strokeWidth": 13,
+              "strokeLinecap": "round"
+            },
+            {
+              "id": "93",
+              "name": "path_4",
+              "type": "path",
+              "pathData": "M 387 295 L 398 252 L 528 286 L 516 329",
+              "strokeColor": "#ffffff",
+              "strokeWidth": 20
+            },
+            {
+              "id": "103",
+              "name": "path_5",
+              "type": "path",
+              "pathData": "M 351 279 L 554 333",
+              "strokeColor": "#ffffff",
+              "strokeWidth": 20,
+              "strokeLinecap": "round",
+              "strokeLinejoin": "round"
+            }
+          ]
+        },
+        {
+          "id": "206",
+          "name": "timeline",
+          "type": "group",
+          "children": [
+            {
+              "id": "179",
+              "name": "item_1",
+              "type": "path",
+              "pathData": "M 294 525 L 615 525 C 621 525 626 530 626 535 L 626 555 C 626 561 621 565 615 565 L 294 565 C 289 565 284 561 284 555 L 284 535 C 284 530 289 525 294 525 Z",
+              "fillColor": "#ffffff",
+              "fillAlpha": 0,
+              "strokeWidth": 1
+            },
+            {
+              "id": "208",
+              "name": "item_2",
+              "type": "path",
+              "pathData": "M 294 580 L 488 580 C 493 580 498 585 498 591 L 498 610 C 498 616 493 620 488 620 L 294 620 C 289 620 284 616 284 610 L 284 591 C 284 585 289 580 294 580 Z",
+              "fillColor": "#ffffff",
+              "fillAlpha": 0
+            },
+            {
+              "id": "209",
+              "name": "item_3",
+              "type": "path",
+              "pathData": "M 526 580 L 615 580 C 621 580 626 585 626 591 L 626 610 C 626 616 621 620 615 620 L 526 620 C 520 620 516 616 516 610 L 516 591 C 516 585 520 580 526 580 Z",
+              "fillColor": "#ffffff",
+              "fillAlpha": 0
+            }
+          ]
+        },
+        {
+          "id": "207",
+          "name": "timebar",
+          "type": "group",
+          "children": [
+            {
+              "id": "189",
+              "name": "path_7",
+              "type": "path",
+              "pathData": "M 256 508 L 256 620",
+              "strokeColor": "#ffffff",
+              "strokeWidth": 20,
+              "strokeLinecap": "round",
+              "strokeLinejoin": "round"
+            }
+          ]
+        }
+      ]
+    },
+    "hiddenLayerIds": []
+  },
+  "timeline": {
+    "animation": {
+      "id": "2",
+      "name": "anim",
+      "duration": 500,
+      "blocks": [
+        {
+          "id": "246",
+          "layerId": "179",
+          "propertyName": "fillAlpha",
+          "startTime": 200,
+          "endTime": 274,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        },
+        {
+          "id": "247",
+          "layerId": "208",
+          "propertyName": "fillAlpha",
+          "startTime": 274,
+          "endTime": 348,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        },
+        {
+          "id": "248",
+          "layerId": "209",
+          "propertyName": "fillAlpha",
+          "startTime": 348,
+          "endTime": 422,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        },
+        {
+          "id": "249",
+          "layerId": "207",
+          "propertyName": "translateX",
+          "startTime": 400,
+          "endTime": 500,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 350
+        },
+        {
+          "id": "251",
+          "layerId": "67",
+          "propertyName": "strokeAlpha",
+          "startTime": 400,
+          "endTime": 500,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        },
+        {
+          "id": "254",
+          "layerId": "45",
+          "propertyName": "strokeAlpha",
+          "startTime": 400,
+          "endTime": 500,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        },
+        {
+          "id": "255",
+          "layerId": "79",
+          "propertyName": "strokeAlpha",
+          "startTime": 400,
+          "endTime": 500,
+          "interpolator": "FAST_OUT_SLOW_IN",
+          "type": "number",
+          "fromValue": 0,
+          "toValue": 1
+        }
+      ]
+    }
+  }
+}
