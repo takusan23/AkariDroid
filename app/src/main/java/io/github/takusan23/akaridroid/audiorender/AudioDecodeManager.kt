@@ -148,35 +148,42 @@ class AudioDecodeManager(
             val samplingRate = decoderMediaFormat!!.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             val channelCount = decoderMediaFormat!!.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
 
-            // サンプリングレート変換が必要な場合
-            val fixSamplingRateDecodeFile = if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
-                ReSamplingRateProcessor.reSamplingBySonic(
-                    input = decodeFile.toAkariCoreInputOutputData(),
-                    output = reSamplingFile.toAkariCoreInputOutputData(),
-                    channelCount = channelCount,
-                    inSamplingRate = samplingRate,
-                    outSamplingRate = AkariCoreAudioProperties.SAMPLING_RATE
-                )
-                reSamplingFile
-            } else {
-                // 不要
-                decodeFile
-            }
-
-            // ステレオ音声じゃない場合（チャンネル数が 2 じゃない場合）
-            val fixMonoToStereoFile = if (channelCount != AkariCoreAudioProperties.CHANNEL_COUNT) {
-                AudioMonoToStereoProcessor.start(
-                    input = fixSamplingRateDecodeFile.toAkariCoreInputOutputData(),
-                    output = monoToStereoFile.toAkariCoreInputOutputData()
-                )
-                monoToStereoFile
-            } else {
-                // 不要
-                decodeFile
-            }
+            // 追加で修正が必要な場合
+            val fixFile = decodeFile
+                // サンプリングレート変換が必要な場合
+                .let { inputFile ->
+                    if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
+                        reSamplingFile.also { reSamplingFile ->
+                            ReSamplingRateProcessor.reSamplingBySonic(
+                                input = inputFile.toAkariCoreInputOutputData(),
+                                output = reSamplingFile.toAkariCoreInputOutputData(),
+                                channelCount = channelCount,
+                                inSamplingRate = samplingRate,
+                                outSamplingRate = AkariCoreAudioProperties.SAMPLING_RATE
+                            )
+                        }
+                    } else {
+                        // 不要
+                        inputFile
+                    }
+                }
+                // ステレオ音声じゃない場合（チャンネル数が 2 じゃない場合）
+                .let { inputFile ->
+                    if (channelCount != AkariCoreAudioProperties.CHANNEL_COUNT) {
+                        monoToStereoFile.also { monoToStereoFile ->
+                            AudioMonoToStereoProcessor.start(
+                                input = inputFile.toAkariCoreInputOutputData(),
+                                output = monoToStereoFile.toAkariCoreInputOutputData()
+                            )
+                        }
+                    } else {
+                        // 不要
+                        inputFile
+                    }
+                }
 
             // ファイル名直して終了
-            fixMonoToStereoFile.renameTo(outputDecodePcmFile)
+            fixFile.renameTo(outputDecodePcmFile)
         } catch (e: CancellationException) {
             // キャンセル時
             // delete で削除してしまう
