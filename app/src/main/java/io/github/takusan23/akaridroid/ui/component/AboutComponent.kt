@@ -77,15 +77,14 @@ fun AdvHiroin(modifier: Modifier) {
  *
  * @param modifier [Modifier]
  * @param text テキスト
+ * @param versionText バージョン
  */
 @Composable
 fun AdvTextArea(
     modifier: Modifier = Modifier,
-    text: String
+    text: String,
+    versionText: String
 ) {
-    val context = LocalContext.current
-    val appVersion = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
-
     Surface(
         modifier = modifier,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
@@ -96,7 +95,7 @@ fun AdvTextArea(
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Text(
-                text = "${stringResource(id = R.string.app_name)} ( $appVersion ) ",
+                text = "${stringResource(id = R.string.app_name)} ( $versionText ) ",
                 fontSize = 20.sp
             )
             HorizontalDivider()

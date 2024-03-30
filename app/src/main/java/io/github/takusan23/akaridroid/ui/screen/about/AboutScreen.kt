@@ -23,12 +23,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.tool.CodeNames
 import io.github.takusan23.akaridroid.ui.component.AdvDateView
 import io.github.takusan23.akaridroid.ui.component.AdvHiroin
 import io.github.takusan23.akaridroid.ui.component.AdvMenuBar
 import io.github.takusan23.akaridroid.ui.component.AdvRouteSelect
 import io.github.takusan23.akaridroid.ui.component.AdvTextArea
 import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
+
+/** アップデート時に毎回直す */
+private val CurrentVersionCodeName = CodeNames.VERSION_1X
 
 private const val GitHubUrl = "https://github.com/takusan23/AkariDroid"
 private const val AkariCoreUrl = "https://github.com/takusan23/AkariDroid/tree/master/akari-core"
@@ -95,6 +99,9 @@ fun AboutScreen(
 
 @Composable
 private fun InitScreen(onClick: () -> Unit) {
+    val context = LocalContext.current
+    val appVersion = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -119,7 +126,8 @@ private fun InitScreen(onClick: () -> Unit) {
                 .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
-            text = "わたしは動画編集アプリだよ。よろしくね！"
+            text = "わたしは動画編集アプリだよ。よろしくね！",
+            versionText = appVersion
         )
 
         AdvMenuBar(
@@ -148,7 +156,8 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
                 .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
-            text = "わたしは動画編集アプリだよ。よろしくね！"
+            text = "わたしは動画編集アプリだよ。よろしくね！",
+            versionText = CurrentVersionCodeName.codeName
         )
 
         AdvMenuBar(

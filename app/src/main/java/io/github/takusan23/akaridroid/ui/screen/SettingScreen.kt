@@ -28,7 +28,7 @@ fun SettingScreen(
     Scaffold(
         topBar = {
             LargeTopAppBar(
-                title = { Text(text = "setting") },
+                title = { Text(text = "設定") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(painter = painterResource(id = R.drawable.ic_outline_arrow_back_24px), contentDescription = null)
