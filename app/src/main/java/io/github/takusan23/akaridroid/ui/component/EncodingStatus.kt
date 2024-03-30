@@ -47,7 +47,7 @@ fun EncodingStatus(
         ) {
 
             Text(
-                text = "エンコード中です",
+                text = "動画の保存中（エンコード中）です",
                 fontSize = 24.sp
             )
 
@@ -64,7 +64,7 @@ fun EncodingStatus(
                 is AkariCoreEncoder.EncodeStatus.Progress -> {
                     Text(
                         text = """
-                        エンコード中です。
+                        進捗
                         エンコード済み時間：${simpleDateFormat.format(encodeStatus.encodePositionMs)}
                         動画の時間：${simpleDateFormat.format(encodeStatus.durationMs)}
                     """.trimIndent()

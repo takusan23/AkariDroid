@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.ui.bottomsheet
 
 import android.content.Intent
 import android.os.Build
+import android.os.Environment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
@@ -123,12 +126,10 @@ fun EncodeBottomSheet(
             }
 
             // ファイル名
-            OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(text = "ファイル名") },
-                suffix = { Text(text = ".${encoderParameters.value.containerFormat.extension}") },
-                value = fileName.value,
-                onValueChange = { fileName.value = it }
+            FileNameInput(
+                fileName = fileName.value,
+                onFileNameChange = { fileName.value = it },
+                extension = encoderParameters.value.containerFormat.extension
             )
 
             // おまかせ or 手動で設定
@@ -168,6 +169,52 @@ fun EncodeBottomSheet(
             ) {
                 Text(text = "保存を開始")
             }
+        }
+    }
+}
+
+/** ファイル名入力コンポーネント */
+@Composable
+private fun FileNameInput(
+    fileName: String,
+    onFileNameChange: (String) -> Unit,
+    extension: String
+) {
+    // 保存先
+    // RELATIVE_PATH が Android 10 以降
+    val savePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        "${Environment.DIRECTORY_MOVIES}/AkariDroid/${fileName}.$extension"
+    } else {
+        "${Environment.DIRECTORY_MOVIES}/${fileName}.$extension"
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = "ファイル名") },
+            suffix = { Text(text = ".$extension") },
+            value = fileName,
+            onValueChange = onFileNameChange
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_outline_video_file_24),
+                contentDescription = null
+            )
+            Text(
+                text = """
+                保存先は以下になります。ギャラリーアプリで見れると思います。
+                $savePath
+            """.trimIndent()
+            )
         }
     }
 }
