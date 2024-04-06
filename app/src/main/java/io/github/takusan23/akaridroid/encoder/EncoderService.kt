@@ -120,13 +120,13 @@ class EncoderService : Service() {
      * @param text 通知本文
      */
     private fun createOrUpdateForegroundNotification(
-        title: String = "サービス起動中",
-        text: String = "あかりどろいど より"
+        title: String = getString(R.string.service_encode_notification_title),
+        text: String = getString(R.string.service_encode_notification_description)
     ) {
         val channelId = "service_encoder_running"
         if (notificationManager.getNotificationChannel(channelId) == null) {
             val notificationChannel = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_LOW).apply {
-                setName("エンコーダーサービス実行中通知")
+                setName(getString(R.string.service_encode_notification_channel_title))
             }.build()
             notificationManager.createNotificationChannel(notificationChannel)
         }
@@ -135,7 +135,7 @@ class EncoderService : Service() {
             setContentText(text)
             setSmallIcon(R.drawable.akari_droid_icon)
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
-            addAction(R.drawable.ic_outline_close_24, "エンコード終了", PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
+            addAction(R.drawable.ic_outline_close_24, getString(R.string.service_encode_notification_cancel), PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
         }.build()
         val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE

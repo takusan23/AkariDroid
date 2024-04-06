@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -39,66 +40,74 @@ fun MenuBottomSheet(
     ) {
 
         Text(
-            text = "メニュー",
+            text = stringResource(id = R.string.video_edit_bottomsheet_menu_title),
             fontSize = 24.sp
         )
 
-        MessageCard(message = "タイムラインへの素材追加はメニューの隣のボタンからできます")
+        MessageCard(
+            message = stringResource(id = R.string.video_edit_bottomsheet_menu_hint)
+        )
 
         BottomSheetMenuItem(
-            title = "動画情報の編集",
-            description = "動画の解像度（縦横サイズ）はここで変更できます。",
+            title = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_title),
+            description = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_description),
             iconResId = R.drawable.ic_outline_video_file_24,
             onClick = onVideoInfoClick
         )
         BottomSheetMenuItem(
-            title = "動画を保存する",
-            description = "保存（書き出し、エンコード）をします。",
+            title = stringResource(id = R.string.video_edit_bottomsheet_menu_encode_video_title),
+            description = stringResource(id = R.string.video_edit_bottomsheet_menu_encode_video_description),
             iconResId = R.drawable.ic_outline_save_24,
             onClick = onEncodeClick
         )
-        TimeLineResetMenuItem(onTimeLineReset = onTimeLineReset)
+        TimeLineResetMenuItem(
+            onResetTimeLine = onTimeLineReset
+        )
         BottomSheetMenuItem(
-            title = "設定",
-            description = "好きなフォントを取り込むとか、オープンソースライセンスとか。",
+            title = stringResource(id = R.string.video_edit_bottomsheet_menu_open_setting_title),
+            description = stringResource(id = R.string.video_edit_bottomsheet_menu_open_setting_description),
             iconResId = R.drawable.ic_outline_settings_24px,
             onClick = onSettingClick
         )
     }
 }
 
-/** タイムラインリセットメニュー。押したらダイアログが出て本当にやるか聞かれます。 */
+/**
+ * タイムラインリセットメニュー。押したらダイアログが出て本当にやるか聞かれます。
+ *
+ * @param onResetTimeLine ダイアログで破棄を選んだとき
+ */
 @Composable
-private fun TimeLineResetMenuItem(onTimeLineReset: () -> Unit) {
+private fun TimeLineResetMenuItem(onResetTimeLine: () -> Unit) {
     val isVisibleDialog = remember { mutableStateOf(false) }
 
     if (isVisibleDialog.value) {
         AlertDialog(
             onDismissRequest = { isVisibleDialog.value = false },
             icon = { Icon(painter = painterResource(id = R.drawable.ic_outline_delete_24px), contentDescription = null) },
-            title = { Text(text = "本当に破棄しますか") },
-            text = { Text(text = "タイムラインの素材を全て破棄して、まっさらな状態にします。本当に破棄しますか？") },
+            title = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_dialog_title)) },
+            text = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_dialog_message)) },
             dismissButton = {
                 TextButton(onClick = { isVisibleDialog.value = false }) {
-                    Text(text = "戻る")
+                    Text(text = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_dialog_cancel))
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        onTimeLineReset()
+                        onResetTimeLine()
                         isVisibleDialog.value = false
                     }
                 ) {
-                    Text(text = "破棄する")
+                    Text(text = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_dialog_ok))
                 }
             }
         )
     }
 
     BottomSheetMenuItem(
-        title = "タイムラインをリセットする",
-        description = "タイムラインにある素材をすべて消します。",
+        title = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_title),
+        description = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_description),
         iconResId = R.drawable.ic_outline_reset_wrench_24px,
         onClick = { isVisibleDialog.value = true }
     )

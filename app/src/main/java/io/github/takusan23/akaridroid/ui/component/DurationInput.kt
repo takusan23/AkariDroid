@@ -10,11 +10,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.takusan23.akaridroid.R
 
 /**
  * 時、分、秒、ミリ秒 をパースして持っておくデータクラス。
@@ -102,7 +104,7 @@ fun DurationInput(
             modifier = Modifier.weight(1f),
             value = durationParameters.hour.toString().padStart(2, '0'),
             onValueChange = { hour -> hour.toIntOrNull()?.also { hourInt -> update(hour = hourInt) } },
-            label = "時",
+            label = stringResource(id = R.string.input_duration_hour),
             maxLength = 2
         )
 
@@ -115,7 +117,7 @@ fun DurationInput(
             modifier = Modifier.weight(1f),
             value = durationParameters.minute.toString().padStart(2, '0'),
             onValueChange = { minute -> minute.toIntOrNull()?.also { minuteInt -> update(minute = minuteInt) } },
-            label = "分",
+            label = stringResource(id = R.string.input_duration_minute),
             maxLength = 2
         )
 
@@ -128,7 +130,7 @@ fun DurationInput(
             modifier = Modifier.weight(1f),
             value = durationParameters.seconds.toString().padStart(2, '0'),
             onValueChange = { seconds -> seconds.toIntOrNull()?.also { secondsInt -> update(seconds = secondsInt) } },
-            label = "秒",
+            label = stringResource(id = R.string.input_duration_seconds),
             maxLength = 2
         )
 
@@ -141,7 +143,7 @@ fun DurationInput(
             modifier = Modifier.weight(1f),
             value = durationParameters.milliSeconds.toString().padStart(3, '0'),
             onValueChange = { ms -> ms.toIntOrNull()?.also { msInt -> update(milliSeconds = msInt) } },
-            label = "ミリ秒",
+            label = stringResource(id = R.string.input_duration_milliseconds),
             maxLength = 3
         )
     }

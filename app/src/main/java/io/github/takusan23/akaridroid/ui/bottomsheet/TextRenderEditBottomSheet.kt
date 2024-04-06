@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -53,7 +54,7 @@ fun TextRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "テキストの編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_text_title),
             onComplete = { onUpdate(textItem.value) },
             onDelete = { onDelete(textItem.value) }
         )
@@ -62,7 +63,7 @@ fun TextRenderEditBottomSheet(
             modifier = Modifier.fillMaxWidth(),
             value = textItem.value.text,
             onValueChange = { text -> update { it.copy(text = text) } },
-            label = { Text(text = "文字") }
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_text_input)) }
         )
 
         RenderItemColorEditComponent(
@@ -85,7 +86,7 @@ fun TextRenderEditBottomSheet(
             modifier = Modifier.fillMaxWidth(),
             value = textItem.value.textSize,
             onValueChange = { textSize -> update { it.copy(textSize = textSize) } },
-            label = { Text(text = "文字サイズ") }
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_text_font_size)) }
         )
 
         RenderItemPositionEditComponent(
@@ -135,7 +136,7 @@ private fun FontEditComponent(
                 )
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = "フォントを変更する"
+                    text = stringResource(id = R.string.video_edit_bottomsheet_text_change_font)
                 )
                 Switch(
                     checked = isShowFontMenu.value,
@@ -152,7 +153,7 @@ private fun FontEditComponent(
             if (fontName != null) {
                 Box(modifier = Modifier.align(Alignment.End)) {
                     OutlinedDropDownMenu(
-                        label = "フォント",
+                        label = stringResource(id = R.string.video_edit_bottomsheet_text_font_menu),
                         currentSelectIndex = fontNameList.value.indexOf(fontName).takeIf { it >= 0 } ?: 0,
                         menuList = fontNameList.value,
                         onSelect = { index -> onUpdate(fontNameList.value[index]) }
@@ -187,7 +188,7 @@ private fun StrokeTextEditComponent(
             )
             Text(
                 modifier = Modifier.weight(1f),
-                text = "枠取り文字にする"
+                text = stringResource(id = R.string.video_edit_bottomsheet_text_make_border_text)
             )
             Switch(
                 checked = isShowStrokeColor.value,

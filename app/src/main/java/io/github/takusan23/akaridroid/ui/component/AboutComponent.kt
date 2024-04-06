@@ -128,7 +128,7 @@ fun AdvMenuBar(
             modifier = Modifier
                 .padding(10.dp)
                 .padding(end = 10.dp),
-            text = "SKIP"
+            text = stringResource(id = R.string.setting_about_skip)
         )
     }
 }
@@ -184,7 +184,7 @@ private fun AdvRouteSelectItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp),
-            text = scenario.title
+            text = stringResource(id = scenario.titleResId)
         )
     }
 }

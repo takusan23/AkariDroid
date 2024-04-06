@@ -9,8 +9,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
@@ -52,12 +54,12 @@ fun VideoRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "映像の編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_video_title),
             onComplete = { onUpdate(videoItem.value) },
             onDelete = { onDelete(videoItem.value) }
         )
 
-        Text(text = "ファイル名 : ${videoFileName.value}")
+        Text(text = "${stringResource(id = R.string.video_edit_bottomsheet_video_file_name)} : ${videoFileName.value}")
 
         RenderItemPositionEditComponent(
             position = videoItem.value.position,

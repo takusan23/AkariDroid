@@ -141,6 +141,7 @@ object AkariCoreEncoder {
             ).joinAll() // 両方終わるのを待つ
 
             // 映像トラックと音声トラックを一緒にする
+            onUpdateStatus(EncodeStatus.Mixing)
             MediaMuxerTool.mixed(
                 output = resultVideoFile.toAkariCoreInputOutputData(),
                 containerFormatTrackInputList = listOf(
@@ -150,6 +151,7 @@ object AkariCoreEncoder {
             )
 
             // 動画フォルダへコピーする
+            onUpdateStatus(EncodeStatus.MoveFile)
             MediaStoreTool.copyToVideoFolder(
                 context = context,
                 file = resultVideoFile

@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -58,23 +59,21 @@ fun AkaLinkBottomSheet(onAkaLinkResult: (AkaLinkTool.AkaLinkResult) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_folder_data_24px), contentDescription = null)
             Text(
-                text = "あかりんく（AkaLink）画面",
+                text = stringResource(id = R.string.video_edit_bottomsheet_akalink_title),
                 fontSize = 24.sp
             )
         }
 
-        Text(
-            text = """
-            対応したアプリと連携して、素材を他のアプリから作成し、タイムラインに追加できます。
-        """.trimIndent()
-        )
+        Text(text = stringResource(id = R.string.video_edit_bottomsheet_akalink_description))
 
-        Button(onClick = {
-            val akaLinkIntentData = AkaLinkTool.createAkaLinkStartIntent(context)
-            startIntentData = akaLinkIntentData
-            activityResult.launch(akaLinkIntentData.intent)
-        }) {
-            Text(text = "アプリを開く")
+        Button(
+            onClick = {
+                val akaLinkIntentData = AkaLinkTool.createAkaLinkStartIntent(context)
+                startIntentData = akaLinkIntentData
+                activityResult.launch(akaLinkIntentData.intent)
+            }
+        ) {
+            Text(text = stringResource(id = R.string.video_edit_bottomsheet_akalink_start_button))
         }
     }
 }

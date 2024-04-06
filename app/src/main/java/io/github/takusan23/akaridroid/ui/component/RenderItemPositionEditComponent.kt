@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 
 /** [RenderData.CanvasItem.position]を編集する共通コンポーネント */
@@ -23,13 +25,13 @@ fun RenderItemPositionEditComponent(
             modifier = Modifier.weight(1f),
             value = position.x,
             onValueChange = { x -> onUpdate(position.copy(x = x)) },
-            label = { Text(text = "X 座標") }
+            label = { Text(text = stringResource(id = R.string.edit_renderitem_position_x)) }
         )
         OutlinedFloatTextField(
             modifier = Modifier.weight(1f),
             value = position.y,
             onValueChange = { y -> onUpdate(position.copy(y = y)) },
-            label = { Text(text = "Y 座標") }
+            label = { Text(text = stringResource(id = R.string.edit_renderitem_position_y)) }
         )
     }
 }

@@ -7,8 +7,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.takusan23.akaridroid.R
 
 /**
  * ボトムシートの共通しているヘッダー
@@ -35,10 +37,10 @@ fun BottomSheetHeader(
             fontSize = 24.sp
         )
         OutlinedButton(onClick = onDelete) {
-            Text(text = "削除")
+            Text(text = stringResource(id = R.string.bottomsheet_header_delete))
         }
         Button(onClick = onComplete) {
-            Text(text = "完了")
+            Text(text = stringResource(id = R.string.bottomsheet_header_done))
         }
     }
 }
@@ -67,7 +69,7 @@ fun BottomSheetHeader(
             fontSize = 24.sp
         )
         Button(onClick = onComplete) {
-            Text(text = "完了")
+            Text(text = stringResource(id = R.string.bottomsheet_header_done))
         }
     }
 }

@@ -59,7 +59,7 @@ object AvAnalyze {
         ioType: IoType
     ): AvAnalyzeResult.Audio? = withContext(Dispatchers.IO) {
         // MediaStore じゃ取れなかった
-        MediaMetadataRetriever().use { mediaMetadataRetriever ->
+        MediaMetadataRetriever().compatUse { mediaMetadataRetriever ->
             when (ioType) {
                 is IoType.AndroidUri -> mediaMetadataRetriever.setDataSource(context, ioType.uri)
                 is IoType.JavaFile -> mediaMetadataRetriever.setDataSource(ioType.file.path)
@@ -81,7 +81,7 @@ object AvAnalyze {
         ioType: IoType
     ): AvAnalyzeResult.Video? = withContext(Dispatchers.IO) {
         // MediaStore じゃ取れなかった
-        MediaMetadataRetriever().use { mediaMetadataRetriever ->
+        MediaMetadataRetriever().compatUse { mediaMetadataRetriever ->
             when (ioType) {
                 is IoType.AndroidUri -> mediaMetadataRetriever.setDataSource(context, ioType.uri)
                 is IoType.JavaFile -> mediaMetadataRetriever.setDataSource(ioType.file.path)
@@ -103,6 +103,18 @@ object AvAnalyze {
                 durationMs = durationMs,
                 hasAudioTrack = trackCount == 2
             )
+        }
+    }
+
+    /** [MediaMetadataRetriever]に[AutoCloseable]が実装されたのは Android 10 以降から。下位互換性つき use { } */
+    private inline fun <R> MediaMetadataRetriever.compatUse(block: (MediaMetadataRetriever) -> R): R {
+        // AutoCloseable を実装したのは Android 10 以降
+        return if (this is AutoCloseable) {
+            this.use(block)
+        } else {
+            val result = block(this)
+            this.close()
+            return result
         }
     }
 

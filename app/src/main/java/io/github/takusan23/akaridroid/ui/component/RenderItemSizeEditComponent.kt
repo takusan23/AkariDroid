@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -33,13 +34,13 @@ fun RenderItemSizeEditComponent(
             modifier = Modifier.weight(1f),
             value = size.width,
             onValueChange = { width -> onUpdate(size.copy(width = width)) },
-            label = { Text(text = "幅") }
+            label = { Text(text = stringResource(id = R.string.edit_renderitem_size_width)) }
         )
         OutlinedIntTextField(
             modifier = Modifier.weight(1f),
             value = size.height,
             onValueChange = { height -> onUpdate(size.copy(height = height)) },
-            label = { Text(text = "高さ") }
+            label = { Text(text = stringResource(id = R.string.edit_renderitem_size_height)) }
         )
         // リセット
         IconButton(onClick = { onUpdate(initialValue.value) }) {

@@ -195,7 +195,9 @@ fun VideoEditorScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
-                FloatingMenuButton(onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) })
+                FloatingMenuButton(
+                    onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) }
+                )
 
                 FloatingAddRenderItemBar(
                     modifier = Modifier.weight(1f),

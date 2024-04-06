@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -47,7 +48,7 @@ fun EncodingStatus(
         ) {
 
             Text(
-                text = "動画の保存中（エンコード中）です",
+                text = stringResource(id = R.string.component_encode_status_title),
                 fontSize = 24.sp
             )
 
@@ -61,31 +62,22 @@ fun EncodingStatus(
             )
 
             when (encodeStatus) {
-                is AkariCoreEncoder.EncodeStatus.Progress -> {
-                    Text(
-                        text = """
-                        進捗
-                        エンコード済み時間：${simpleDateFormat.format(encodeStatus.encodePositionMs)}
-                        動画の時間：${simpleDateFormat.format(encodeStatus.durationMs)}
-                    """.trimIndent()
-                    )
-                    // TODO compose material3 のバージョンが上がったら ProgressBar を追加する。現バージョンは何か落ちる
+                is AkariCoreEncoder.EncodeStatus.Progress -> Column {
+                    Text(text = stringResource(id = R.string.component_encode_status_description))
+                    Text(text = "${stringResource(id = R.string.component_encode_status_encoded_time)} : ${simpleDateFormat.format(encodeStatus.encodePositionMs)}")
+                    Text(text = "${stringResource(id = R.string.component_encode_status_total_time)} : ${simpleDateFormat.format(encodeStatus.durationMs)}")
                 }
 
-                AkariCoreEncoder.EncodeStatus.Mixing -> {
-                    Text(text = "映像トラックと音声トラックを一つのコンテナに入れています。")
-                }
+                AkariCoreEncoder.EncodeStatus.Mixing -> Text(text = stringResource(id = R.string.component_encode_status_mixing))
 
-                AkariCoreEncoder.EncodeStatus.MoveFile -> {
-                    Text(text = "ファイルを端末の動画フォルダへ移動しています。")
-                }
+                AkariCoreEncoder.EncodeStatus.MoveFile -> Text(text = stringResource(id = R.string.component_encode_status_move_file))
             }
 
             OutlinedButton(
                 modifier = Modifier.align(Alignment.End),
                 onClick = onCancel
             ) {
-                Text(text = "キャンセルする")
+                Text(text = stringResource(id = R.string.component_encode_status_cancel))
             }
         }
     }

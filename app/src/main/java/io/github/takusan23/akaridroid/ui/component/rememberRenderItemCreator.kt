@@ -24,54 +24,54 @@ fun AddRenderItemMenuResult.toMenu() = when (this) {
 /**
  * メニュー一覧
  *
- * @param label なまえ
- * @param description せつめい
+ * @param label なまえの文字列リソース
+ * @param description せつめいの文字列リソース
  * @param iconResId あいこん
  */
 enum class AddRenderItemMenu(
-    val label: String,
-    val description: String,
+    val labelResId: Int,
+    val descriptionResId: Int,
     val iconResId: Int
 ) {
     /** テキスト */
     Text(
-        "文字",
-        "文字を追加します。フォントを変えたい場合は設定で取り込めます。",
+        R.string.video_edit_renderitem_text_title,
+        R.string.video_edit_renderitem_text_description,
         R.drawable.ic_outline_text_fields_24
     ),
 
     /** 画像 */
     Image(
-        "画像",
-        "画像を追加します。",
+        R.string.video_edit_renderitem_image_title,
+        R.string.video_edit_renderitem_image_description,
         R.drawable.ic_outline_add_photo_alternate_24px
     ),
 
     /** 動画 */
     Video(
-        "動画",
-        "動画を追加します。性能が許す限りタイムラインに追加できるはず？",
+        R.string.video_edit_renderitem_video_title,
+        R.string.video_edit_renderitem_video_description,
         R.drawable.ic_outlined_movie_24px
     ),
 
     /** 音声 */
     Audio(
-        "音声",
-        "音声を追加します。",
+        R.string.video_edit_renderitem_audio_title,
+        R.string.video_edit_renderitem_audio_description,
         R.drawable.ic_outline_audiotrack_24
     ),
 
     /** 図形 */
     Shape(
-        "図形",
-        "図形を追加します。背景とかにどうぞ。",
+        R.string.video_edit_renderitem_shape_title,
+        R.string.video_edit_renderitem_shape_description,
         R.drawable.ic_outline_category_24
     ),
 
     /** あかりんく */
     AkaLink(
-        "あかりんく",
-        "外部アプリで素材を作成し、タイムラインに追加できる機能です。対応しているアプリが必要です。",
+        R.string.video_edit_renderitem_akalink_title,
+        R.string.video_edit_renderitem_akalink_description,
         R.drawable.akari_droid_icon
     )
 }

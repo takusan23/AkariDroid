@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -63,7 +64,7 @@ fun FontSettingScreen(onBack: () -> Unit) {
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text(text = "フォント設定") },
+                title = { Text(text = stringResource(id = R.string.setting_font_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(painter = painterResource(id = R.drawable.ic_outline_arrow_back_24px), contentDescription = null)
@@ -97,12 +98,20 @@ fun FontSettingScreen(onBack: () -> Unit) {
                         }
                     }
                 )
-                Divider()
+                HorizontalDivider()
             }
         }
     }
 }
 
+/**
+ * フォント一覧リストの各アイテム
+ *
+ * @param modifier [Modifier]
+ * @param name 名前
+ * @param path ファイルパス
+ * @param onDelete 削除押した時
+ */
 @Composable
 private fun FontListItem(
     modifier: Modifier = Modifier,
@@ -126,11 +135,17 @@ private fun FontListItem(
             )
         }
         OutlinedButton(onClick = onDelete) {
-            Text(text = "削除する")
+            Text(text = stringResource(id = R.string.setting_font_delete))
         }
     }
 }
 
+/**
+ * フォント追加ボタン
+ *
+ * @param modifier [Modifier]
+ * @param onAddFont 追加押してファイルを選んだ時
+ */
 @Composable
 private fun AddFontButton(
     modifier: Modifier = Modifier,
@@ -147,6 +162,6 @@ private fun AddFontButton(
     ) {
         Icon(painter = painterResource(id = R.drawable.ic_outline_text_fields_24), contentDescription = null)
         Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-        Text(text = "追加する")
+        Text(text = stringResource(id = R.string.setting_font_add))
     }
 }

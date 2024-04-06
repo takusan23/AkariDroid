@@ -14,11 +14,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 
-/** 設定画面、仮 */
+/**
+ * 設定画面
+ *
+ * @param onBack 戻るを押した時
+ * @param onNavigate 画面遷移の際に呼ばれます
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(
@@ -28,7 +34,7 @@ fun SettingScreen(
     Scaffold(
         topBar = {
             LargeTopAppBar(
-                title = { Text(text = "設定") },
+                title = { Text(text = stringResource(id = R.string.setting)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(painter = painterResource(id = R.drawable.ic_outline_arrow_back_24px), contentDescription = null)
@@ -42,8 +48,8 @@ fun SettingScreen(
             item {
                 SettingItem(
                     modifier = Modifier.fillMaxWidth(),
-                    title = "フォントの管理",
-                    description = "自分の持ってるフォントを動画で利用できます。",
+                    title = stringResource(id = R.string.setting_font_title),
+                    description = stringResource(id = R.string.setting_font_description),
                     onClick = { onNavigate(NavigationPaths.FontSetting) }
                 )
             }
@@ -51,8 +57,8 @@ fun SettingScreen(
             item {
                 SettingItem(
                     modifier = Modifier.fillMaxWidth(),
-                    title = "このアプリについて",
-                    description = "GitHub のリンクとか",
+                    title = stringResource(id = R.string.setting_about_title),
+                    description = stringResource(id = R.string.setting_about_description),
                     onClick = { onNavigate(NavigationPaths.About) }
                 )
             }
@@ -60,8 +66,8 @@ fun SettingScreen(
             item {
                 SettingItem(
                     modifier = Modifier.fillMaxWidth(),
-                    title = "ライセンス",
-                    description = "ありがとうございます！！",
+                    title = stringResource(id = R.string.setting_license_title),
+                    description = stringResource(id = R.string.setting_license_description),
                     onClick = { onNavigate(NavigationPaths.License) }
                 )
             }

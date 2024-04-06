@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -39,14 +40,14 @@ fun AudioEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "音声の編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_audio_title),
             onComplete = { onUpdate(audioItem.value) },
             onDelete = { onDelete(audioItem.value) }
         )
 
         RenderItemFloatEditComponent(
             modifier = Modifier.fillMaxWidth(),
-            label = "音量",
+            label = stringResource(id = R.string.video_edit_bottomsheet_audio_volume),
             iconResId = R.drawable.ic_outlined_volume_up_24px,
             value = audioItem.value.volume,
             onChange = { volume -> update { it.copy(volume = volume) } }

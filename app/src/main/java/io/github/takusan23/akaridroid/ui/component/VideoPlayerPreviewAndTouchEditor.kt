@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -91,7 +92,7 @@ fun VideoPlayerPreviewAndTouchEditor(
                 contentDescription = null
             )
         } else {
-            Text(text = "生成中です...")
+            Text(text = stringResource(id = R.string.video_preview_generating))
         }
 
         // キャンバス要素をドラッグアンドドロップで移動できるように
@@ -321,7 +322,7 @@ private fun TouchEditSwitch(
             onChange(after)
 
             // 意味分からんと思うので Toast も出す
-            val toastMessage = if (after) "タッチ編集が有効になりました" else "タッチ編集が無効になりました"
+            val toastMessage = if (after) context.getString(R.string.video_preview_enable_touch_edit) else context.getString(R.string.video_preview_disable_touch_edit)
             Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
         },
         shape = RoundedCornerShape(5.dp)
@@ -352,19 +353,11 @@ private fun PreviewNotice(modifier: Modifier = Modifier) {
     if (isShow.value) {
         AlertDialog(
             onDismissRequest = { isShow.value = false },
-            title = { Text(text = "プレビュー機能について") },
-            text = {
-                Text(
-                    text = """
-                    プレビューがとても遅いですが、出力には問題ありません。
-                    使いにくいと思います。すいません。
-                    いい方法が思いつけば直します。
-                """.trimIndent()
-                )
-            },
+            title = { Text(text = stringResource(id = R.string.video_preview_dialog_title)) },
+            text = { Text(text = stringResource(id = R.string.video_preview_dialog_description)) },
             confirmButton = {
                 Button(onClick = { isShow.value = false }) {
-                    Text(text = "とじる")
+                    Text(text = stringResource(id = R.string.video_preview_dialog_close))
                 }
             }
         )

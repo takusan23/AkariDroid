@@ -35,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
@@ -200,12 +202,12 @@ private enum class CssNamedColors(val r: Int, val g: Int, val b: Int) {
 }
 
 /** 色を変更するダイアログのページ */
-private enum class ColorPickerPage(val label: String) {
+private enum class ColorPickerPage(val labelResId: Int) {
     /** 色一覧リスト */
-    ColorList("色を選ぶ"),
+    ColorList(R.string.dialog_colorpicker_page_list),
 
     /** 色作成画面 */
-    CreateColor("色を作る")
+    CreateColor(R.string.dialog_colorpicker_page_create)
 }
 
 /**
@@ -238,7 +240,7 @@ fun ColorPickerDialog(
             ) {
 
                 Text(
-                    text = "色の設定",
+                    text = stringResource(id = R.string.dialog_colorpicker_title),
                     fontSize = 24.sp
                 )
 
@@ -248,21 +250,17 @@ fun ColorPickerDialog(
                 )
 
                 when (currentPage.value) {
-                    ColorPickerPage.ColorList -> {
-                        CssNamedColorList(
-                            modifier = Modifier.weight(1f),
-                            currentColor = currentColor,
-                            onSelectColor = { cssNamedColors -> onChange(cssNamedColors.toColor()) }
-                        )
-                    }
+                    ColorPickerPage.ColorList -> CssNamedColorList(
+                        modifier = Modifier.weight(1f),
+                        currentColor = currentColor,
+                        onSelectColor = { cssNamedColors -> onChange(cssNamedColors.toColor()) }
+                    )
 
-                    ColorPickerPage.CreateColor -> {
-                        CreateColor(
-                            modifier = Modifier.weight(1f),
-                            currentColor = currentColor,
-                            onChange = { color -> onChange(color) }
-                        )
-                    }
+                    ColorPickerPage.CreateColor -> CreateColor(
+                        modifier = Modifier.weight(1f),
+                        currentColor = currentColor,
+                        onChange = { color -> onChange(color) }
+                    )
                 }
 
                 SelectColorStatus(currentColor = currentColor)
@@ -298,13 +296,13 @@ private fun DialogButton(
         TextButton(onClick = onChannelClick) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_close_24), contentDescription = null)
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            Text(text = "戻る")
+            Text(text = stringResource(id = R.string.dialog_colorpicker_cancel))
         }
 
         OutlinedButton(onClick = onDoneClick) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_done_24), contentDescription = null)
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            Text(text = "確定")
+            Text(text = stringResource(id = R.string.dialog_colorpicker_confirm))
         }
     }
 }
@@ -340,7 +338,7 @@ private fun CreateColor(
     ) {
 
         ColorSlider(
-            label = "赤",
+            label = stringResource(id = R.string.dialog_colorpicker_create_red),
             value = red.floatValue,
             onChange = {
                 red.floatValue = it
@@ -349,7 +347,7 @@ private fun CreateColor(
         )
 
         ColorSlider(
-            label = "緑",
+            label = stringResource(id = R.string.dialog_colorpicker_create_green),
             value = green.floatValue,
             onChange = {
                 green.floatValue = it
@@ -358,7 +356,7 @@ private fun CreateColor(
         )
 
         ColorSlider(
-            label = "青",
+            label = stringResource(id = R.string.dialog_colorpicker_create_blue),
             value = blue.floatValue,
             onChange = {
                 blue.floatValue = it
@@ -369,7 +367,7 @@ private fun CreateColor(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = hexColorCode.value,
-            label = { Text(text = "カラーコード") },
+            label = { Text(text = stringResource(id = R.string.dialog_colorpicker_create_color_code)) },
             onValueChange = { text ->
                 hexColorCode.value = text
                 ColorTool.parseColor(text)
@@ -418,7 +416,8 @@ private fun ColorPickerTab(
     currentPage: ColorPickerPage,
     onClick: (ColorPickerPage) -> Unit
 ) {
-    val labelList = remember { ColorPickerPage.entries.map { it.label } }
+    val context = LocalContext.current
+    val labelList = remember { ColorPickerPage.entries.map { context.getString(it.labelResId) } }
 
     RoundedIndicatorTab(
         modifier = modifier,
@@ -452,7 +451,11 @@ private fun SelectColorStatus(
         Column {
 
             Row {
-                listOf("R: ${rgbValueList[0]}", "G: ${rgbValueList[1]}", "B: ${rgbValueList[2]}").forEach { text ->
+                listOf(
+                    "R: ${rgbValueList[0]}",
+                    "G: ${rgbValueList[1]}",
+                    "B: ${rgbValueList[2]}"
+                ).forEach { text ->
                     Text(
                         modifier = Modifier.weight(1f),
                         text = text
@@ -509,7 +512,7 @@ private fun CssNamedColorList(
         item(span = { GridItemSpan(this.maxLineSpan) }) {
             Text(
                 modifier = Modifier.padding(vertical = 5.dp),
-                text = "この色たちは、CSS named-color と同じです。"
+                text = stringResource(id = R.string.dialog_colorpicker_list_description)
             )
         }
     }

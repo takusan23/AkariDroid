@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
@@ -27,7 +29,7 @@ fun AddRenderItemBottomSheet(onAddRenderItemResult: (AddRenderItemMenuResult) ->
     ) {
 
         Text(
-            text = "タイムラインへ追加",
+            text = stringResource(id = R.string.video_edit_bottomsheet_timeline_add_title),
             fontSize = 24.sp
         )
 
@@ -56,8 +58,8 @@ private fun BottomSheetMenuItem(
 ) {
     BottomSheetMenuItem(
         modifier = modifier,
-        title = menu.label,
-        description = menu.description,
+        title = stringResource(id = menu.labelResId),
+        description = stringResource(id = menu.descriptionResId),
         iconResId = menu.iconResId,
         onClick = onClick
     )

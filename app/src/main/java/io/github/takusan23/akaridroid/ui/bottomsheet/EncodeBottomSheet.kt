@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
@@ -45,53 +46,59 @@ import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.tool.NumberFormat
 import io.github.takusan23.akaridroid.ui.component.ExtendMenu
 import io.github.takusan23.akaridroid.ui.component.ExtendMenuItem
+import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.NoOpenableExtendMenu
 import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
 
 /** コンテナフォーマットの説明 */
 private val ContainerFormatMenu = listOf(
-    Triple(EncoderParameters.ContainerFormat.MP4, "MP4", "AVC / HEVC / AV1 / AAC コーデックが格納できます。"),
-    Triple(EncoderParameters.ContainerFormat.WEBM, "WebM", "VP9 / Opus コーデックが格納できます。")
+    Triple(EncoderParameters.ContainerFormat.MP4, R.string.video_edit_bottomsheet_encode_container_format_mp4_title, R.string.video_edit_bottomsheet_encode_container_format_mp4_description),
+    Triple(EncoderParameters.ContainerFormat.WEBM, R.string.video_edit_bottomsheet_encode_container_format_webm_title, R.string.video_edit_bottomsheet_encode_container_format_webm_description)
 )
 
 /** 音声コーデックの説明 */
 private val AudioCodecMenu = listOf(
-    Triple(EncoderParameters.AudioCodec.AAC, "AAC", "mp4 コンテナ用"),
-    Triple(EncoderParameters.AudioCodec.OPUS, "Opus", "WebM コンテナ用。ロイヤリティフリーなコーデックです。")
+    Triple(EncoderParameters.AudioCodec.AAC, R.string.video_edit_bottomsheet_encode_audio_encoder_aac_title, R.string.video_edit_bottomsheet_encode_audio_encoder_aac_description),
+    Triple(EncoderParameters.AudioCodec.OPUS, R.string.video_edit_bottomsheet_encode_audio_encoder_opus_title, R.string.video_edit_bottomsheet_encode_audio_encoder_opus_description)
 )
 
 /** 映像コーデックの説明 */
 private val VideoCodecMenu = listOfNotNull(
-    Triple(EncoderParameters.VideoCodec.AVC, "AVC（H.264）", "再生できる端末が一番多いです。高画質にしたい場合はビットレートを結構上げないといけない。とりあえずこれにしておいけばいいはず。"),
-    Triple(EncoderParameters.VideoCodec.HEVC, "HEVC（H.265）", "AVC より効率が良いですが、特許問題があるため使っていいのか不明。法律に詳しくなく分かりません。"),
-    Triple(EncoderParameters.VideoCodec.VP9, "VP9", "WebM コンテナ用。ロイヤルティーフリーなコーデックです。"),
+    Triple(EncoderParameters.VideoCodec.AVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_avc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_avc_description),
+    Triple(EncoderParameters.VideoCodec.HEVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_description),
+    Triple(EncoderParameters.VideoCodec.VP9, R.string.video_edit_bottomsheet_encode_video_encoder_video_vp9_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_vp9_description),
     // AV1 エンコードは Android 14 以降のみ
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        Triple(EncoderParameters.VideoCodec.AV1, "AV1", "HEVC と同等の性能と言われており、かつロイヤリティフリーです。しかし、ほとんどの端末にハードウェアエンコーダーが搭載されていないため、エンコードに相当な時間がかかります。")
+        Triple(EncoderParameters.VideoCodec.AV1, R.string.video_edit_bottomsheet_encode_video_encoder_video_av1_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_av1_description)
     } else null
 )
 
 /** エンコード設定のプリセット */
 private val ParametersPresetList = listOf(
-    Triple(EncoderParameters.LOW_QUALITY, "低画質", "ビットレート 3Mbps"),
-    Triple(EncoderParameters.MEDIUM_QUALITY, "中画質", "ビットレート 6Mbps"),
-    Triple(EncoderParameters.HIGH_QUALITY, "高画質", "ビットレート 12Mbps")
+    Triple(EncoderParameters.LOW_QUALITY, R.string.video_edit_bottomsheet_encode_basic_low_title, R.string.video_edit_bottomsheet_encode_basic_low_description),
+    Triple(EncoderParameters.MEDIUM_QUALITY, R.string.video_edit_bottomsheet_encode_basic_medium_title, R.string.video_edit_bottomsheet_encode_basic_medium_description),
+    Triple(EncoderParameters.HIGH_QUALITY, R.string.video_edit_bottomsheet_encode_basic_high_title, R.string.video_edit_bottomsheet_encode_basic_high_description)
 )
 
-/** タブで切り替えできるように */
-private enum class EncodeBottomSheetPage(val label: String) {
+/**
+ * セグメントボタン？で切り替えできるように
+ *
+ * @param labelResId ボタンの文字列リソース
+ */
+private enum class EncodeBottomSheetPage(val labelResId: Int) {
     /** おまかせ設定 */
-    Basic("おまかせ設定"),
+    Basic(R.string.video_edit_bottomsheet_encode_page_auto),
 
     /** フレームレートとかを手動で設定したい場合 */
-    Advanced("手動で設定")
+    Advanced(R.string.video_edit_bottomsheet_encode_page_manually)
 }
 
 /**
  * 動画の保存画面。エンコード画面
  * TODO バリデーションやってあげたほうが親切かも（コーデックとコンテナ対応しているかとか）
  *
- * @param onEncode エンコードを押した時に呼ばれる
+ * @param videoSize 動画の縦横サイズ
+ * @param onEncode エンコードを押した時に呼ばれる。ファイル名とエンコーダーに渡す設定
  */
 @Composable
 fun EncodeBottomSheet(
@@ -120,7 +127,7 @@ fun EncodeBottomSheet(
 
             Column {
                 Text(
-                    text = "動画の保存（エンコード）",
+                    text = stringResource(id = R.string.video_edit_bottomsheet_encode_title),
                     fontSize = 24.sp
                 )
             }
@@ -160,20 +167,26 @@ fun EncodeBottomSheet(
         Row(modifier = Modifier.padding(10.dp)) {
             Text(
                 modifier = Modifier.weight(1f),
-                text = "保存（エンコード）にはしばらく時間がかかります"
+                text = stringResource(id = R.string.video_edit_bottomsheet_encode_long_time_message)
             )
             Button(
                 onClick = {
                     onEncode(fileName.value, encoderParameters.value)
                 }
             ) {
-                Text(text = "保存を開始")
+                Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_start_encode))
             }
         }
     }
 }
 
-/** ファイル名入力コンポーネント */
+/**
+ * ファイル名入力コンポーネント
+ *
+ * @param fileName ファイル名
+ * @param onFileNameChange ファイル名変更時に呼ばれる
+ * @param extension 動画ファイルの拡張子
+ */
 @Composable
 private fun FileNameInput(
     fileName: String,
@@ -195,7 +208,7 @@ private fun FileNameInput(
 
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(text = "ファイル名") },
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_file_name)) },
             suffix = { Text(text = ".$extension") },
             value = fileName,
             onValueChange = onFileNameChange
@@ -211,7 +224,7 @@ private fun FileNameInput(
             )
             Text(
                 text = """
-                保存先は以下になります。ギャラリーアプリで見れると思います。
+                ${stringResource(id = R.string.video_edit_bottomsheet_encode_file_path_message)}
                 $savePath
             """.trimIndent()
             )
@@ -219,7 +232,13 @@ private fun FileNameInput(
     }
 }
 
-/** 手動で設定する画面 */
+/**
+ * 手動で設定する画面
+ *
+ * @param videoSize 動画の縦横
+ * @param encoderParameters [EncoderParameters.AudioVideo]
+ * @param onUpdate 更新時に呼ばれる
+ */
 @Composable
 private fun AdvancedScreen(
     videoSize: RenderData.Size,
@@ -260,7 +279,12 @@ private fun AdvancedScreen(
     }
 }
 
-/** おまかせ設定 */
+/**
+ * おまかせ設定
+ *
+ * @param encoderParameters [EncoderParameters.AudioVideo]
+ * @param onUpdate 更新時に呼ばれる
+ */
 @Composable
 private fun BasicScreen(
     encoderParameters: EncoderParameters.AudioVideo,
@@ -272,17 +296,17 @@ private fun BasicScreen(
 
         // 選択肢
         NoOpenableExtendMenu(
-            label = "おまかせ設定",
+            label = stringResource(id = R.string.video_edit_bottomsheet_encode_basic_title),
             iconResId = R.drawable.ic_outline_video_file_24,
-            currentMenu = currentMenu
+            currentMenu = currentMenu?.let { stringResource(id = it) }
         ) {
-            ParametersPresetList.forEachIndexed { index, (parameter, title, description) ->
+            ParametersPresetList.forEachIndexed { index, (parameter, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
                 ExtendMenuItem(
-                    title = title,
-                    description = description,
+                    title = stringResource(id = titleResId),
+                    description = stringResource(id = descriptionResId),
                     isSelect = parameter == encoderParameters,
                     onClick = { onUpdate(parameter) }
                 )
@@ -290,11 +314,17 @@ private fun BasicScreen(
         }
 
         // おまかせ設定があるよカード
-        BasicDescriptionCard()
+        MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_basic_description))
     }
 }
 
-/** おまかせ設定・手動で設定を選ぶボタン */
+/**
+ * おまかせ設定・手動で設定を選ぶボタン
+ *
+ * @param modifier [Modifier]
+ * @param currentPage 開いているページ [EncodeBottomSheetPage]
+ * @param onClick 押した時
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EncodeBottomSheetPageSegmentedButton(
@@ -309,29 +339,18 @@ private fun EncodeBottomSheetPageSegmentedButton(
                 onClick = { onClick(page) },
                 selected = currentPage == page
             ) {
-                Text(page.label)
+                Text(text = stringResource(id = page.labelResId))
             }
         }
     }
 }
 
-/** おまかせ設定。プリセットから選んでビットレート等の設定をやる */
-@Composable
-private fun BasicDescriptionCard() {
-    OutlinedCard {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Text(text = "おまかせ設定があります。松竹梅から選ぶことで、動画の画質等の設定が完了します。")
-            Text(text = "よくわからない場合は、松竹梅から選んで保存を開始するといいと思います。")
-            Text(text = "動画のフレームレート（fps）等を変更したい場合は、「手動で設定」を選ぶことで編集できます。")
-            Text(text = "動画コーデックを変更する必要がある（上級者向け）場合も同様です。対応していれば AV1 も使えます。")
-        }
-    }
-}
-
-/** エンコード設定を文字列で見れるように */
+/**
+ * エンコード設定を文字列で見れるように
+ *
+ * @param modifier [Modifier]
+ * @param encoderParameters エンコーダーに渡すパラメーター
+ */
 @Composable
 private fun EncoderParametersLog(
     modifier: Modifier,
@@ -345,7 +364,7 @@ private fun EncoderParametersLog(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(text = "開発用")
+            Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_parameter_log_title))
 
             Text(text = toString)
 
@@ -359,13 +378,18 @@ private fun EncoderParametersLog(
                     context.startActivity(intent)
                 }
             ) {
-                Text(text = "共有")
+                Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_parameter_log_share))
             }
         }
     }
 }
 
-/** コンテナフォーマットの設定 */
+/**
+ * コンテナフォーマットの設定
+ *
+ * @param containerFormat [EncoderParameters.ContainerFormat]
+ * @param onUpdate 更新時に呼ばれる
+ */
 @Composable
 private fun ContainerFormatSetting(
     containerFormat: EncoderParameters.ContainerFormat,
@@ -375,32 +399,32 @@ private fun ContainerFormatSetting(
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "コンテナフォーマット",
+            text = stringResource(id = R.string.video_edit_bottomsheet_encode_container_format_title),
             fontSize = 20.sp
         )
 
         OutlinedCard(modifier = Modifier.fillMaxWidth()) {
             Text(
                 modifier = Modifier.padding(10.dp),
-                text = "ここで mp4 を選択しても、再生可否はプレイヤーが対応しているコーデック次第なので、注意してね。（無いと思うけど）"
+                text = stringResource(id = R.string.video_edit_bottomsheet_encode_container_format_description),
             )
         }
 
         // コンテナフォーマット
         ExtendMenu(
             isOpen = isOpen.value,
-            label = "コンテナフォーマット",
+            label = stringResource(id = R.string.video_edit_bottomsheet_encode_container_format_title),
             iconResId = R.drawable.ic_outline_video_file_24,
             currentMenu = containerFormat.extension,
             onOpenChange = { isOpen.value = !isOpen.value }
         ) {
-            ContainerFormatMenu.forEachIndexed { index, (format, title, description) ->
+            ContainerFormatMenu.forEachIndexed { index, (format, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
                 ExtendMenuItem(
-                    title = title,
-                    description = description,
+                    title = stringResource(id = titleResId),
+                    description = stringResource(id = descriptionResId),
                     isSelect = format == containerFormat,
                     onClick = { onUpdate(format) }
                 )
@@ -409,7 +433,12 @@ private fun ContainerFormatSetting(
     }
 }
 
-/** 音声エンコーダーの設定 */
+/**
+ * 音声エンコーダーの設定
+ *
+ * @param audioEncoderParameters [EncoderParameters.AudioEncoderParameters]
+ * @param onUpdate 更新時に呼ばれる
+ */
 @Composable
 private fun AudioEncoderSetting(
     audioEncoderParameters: EncoderParameters.AudioEncoderParameters,
@@ -423,25 +452,25 @@ private fun AudioEncoderSetting(
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "音声エンコーダーの設定",
+            text = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_title),
             fontSize = 20.sp
         )
 
         // コンテナ
         ExtendMenu(
             isOpen = isOpen.value,
-            label = "音声コーデック",
+            label = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_audio_codec),
             iconResId = R.drawable.ic_outline_audiotrack_24,
             currentMenu = audioEncoderParameters.codec.name,
             onOpenChange = { isOpen.value = !isOpen.value }
         ) {
-            AudioCodecMenu.forEachIndexed { index, (codec, title, description) ->
+            AudioCodecMenu.forEachIndexed { index, (codec, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
                 ExtendMenuItem(
-                    title = title,
-                    description = description,
+                    title = stringResource(id = titleResId),
+                    description = stringResource(id = descriptionResId),
                     isSelect = codec == audioEncoderParameters.codec,
                     onClick = { update { it.copy(codec = codec) } }
                 )
@@ -456,13 +485,19 @@ private fun AudioEncoderSetting(
             modifier = Modifier.fillMaxWidth(),
             value = audioEncoderParameters.bitrate,
             onValueChange = { bitrate -> update { it.copy(bitrate = bitrate) } },
-            label = { Text(text = "音声ビットレート") },
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_audio_bitrate)) },
             suffix = { Text(text = "(${NumberFormat.formatByteUnit(audioEncoderParameters.bitrate)})") }
         )
     }
 }
 
-/** 映像エンコーダーの設定 */
+/**
+ * 映像エンコーダーの設定
+ *
+ * @param videoSize 動画の縦横サイズ
+ * @param videoEncoderParameters [EncoderParameters.VideoEncoderParameters]
+ * @param onUpdate 更新時に呼ばれる
+ */
 @Composable
 private fun VideoEncoderSetting(
     videoSize: RenderData.Size,
@@ -478,7 +513,7 @@ private fun VideoEncoderSetting(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
         Text(
-            text = "映像エンコーダーの設定",
+            text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_title),
             fontSize = 20.sp
         )
 
@@ -488,18 +523,18 @@ private fun VideoEncoderSetting(
         // コーデック
         ExtendMenu(
             isOpen = isOpen.value,
-            label = "映像コーデック",
+            label = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_video_codec),
             iconResId = R.drawable.ic_outline_video_file_24,
             currentMenu = videoEncoderParameters.codec.name,
             onOpenChange = { isOpen.value = !isOpen.value }
         ) {
-            VideoCodecMenu.forEachIndexed { index, (codec, title, description) ->
+            VideoCodecMenu.forEachIndexed { index, (codec, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
                 ExtendMenuItem(
-                    title = title,
-                    description = description,
+                    title = stringResource(id = titleResId),
+                    description = stringResource(id = descriptionResId),
                     isSelect = codec == videoEncoderParameters.codec,
                     onClick = { update { it.copy(codec = codec) } }
                 )
@@ -511,7 +546,7 @@ private fun VideoEncoderSetting(
             modifier = Modifier.fillMaxWidth(),
             value = videoEncoderParameters.bitrate,
             onValueChange = { bitrate -> update { it.copy(bitrate = bitrate) } },
-            label = { Text(text = "映像ビットレート") },
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_video_bitrate)) },
             suffix = { Text(text = "(${NumberFormat.formatByteUnit(videoEncoderParameters.bitrate)})") }
         )
 
@@ -520,7 +555,7 @@ private fun VideoEncoderSetting(
             modifier = Modifier.fillMaxWidth(),
             value = videoEncoderParameters.frameRate,
             onValueChange = { frameRate -> update { it.copy(frameRate = frameRate) } },
-            label = { Text(text = "フレームレート") }
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_framerate)) }
         )
 
         // キーフレーム間隔
@@ -528,13 +563,17 @@ private fun VideoEncoderSetting(
             modifier = Modifier.fillMaxWidth(),
             value = videoEncoderParameters.keyframeInterval,
             onValueChange = { keyframeInterval -> update { it.copy(keyframeInterval = keyframeInterval) } },
-            label = { Text(text = "キーフレーム間隔（秒）") }
+            label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_keyframe_interval)) }
         )
 
     }
 }
 
-/** 動画の縦横サイズ */
+/**
+ * 動画の縦横サイズ
+ *
+ * @param videoSize 縦横サイズ
+ */
 @Composable
 private fun VideoEncoderVideoWidthHeight(videoSize: RenderData.Size) {
     Row(
@@ -543,10 +582,10 @@ private fun VideoEncoderVideoWidthHeight(videoSize: RenderData.Size) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "動画の縦横サイズ",
+                text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_height_width_title),
                 fontSize = 18.sp
             )
-            Text(text = "縦横の変更は、動画情報の編集から変更できます。")
+            Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_height_width_description))
         }
 
         Text(
@@ -565,10 +604,10 @@ private fun AudioEncoderSamplingRate() {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "音声のサンプリングレート",
+                text = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_audio_saplingrate_title),
                 fontSize = 18.sp
             )
-            Text(text = "サンプリングレートの変更はできません。")
+            Text(text = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_audio_saplingrate_description))
         }
 
         Text(

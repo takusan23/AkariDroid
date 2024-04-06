@@ -10,7 +10,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.DurationInput
@@ -40,7 +42,7 @@ fun VideoInfoEditorBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "動画情報の編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_title),
             onComplete = { onUpdate(renderData.value) }
         )
 
@@ -49,7 +51,7 @@ fun VideoInfoEditorBottomSheet(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "動画の時間")
+            Text(text = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_video_duration))
             DurationInput(
                 modifier = Modifier.weight(1f),
                 durationMs = renderData.value.durationMs,
@@ -65,13 +67,13 @@ fun VideoInfoEditorBottomSheet(
                 modifier = Modifier.weight(1f),
                 value = renderData.value.videoSize.width,
                 onValueChange = { int -> update { it.copy(videoSize = it.videoSize.copy(width = int)) } },
-                label = { Text(text = "動画の幅") }
+                label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_video_width)) }
             )
             OutlinedIntTextField(
                 modifier = Modifier.weight(1f),
                 value = renderData.value.videoSize.height,
                 onValueChange = { int -> update { it.copy(videoSize = it.videoSize.copy(height = int)) } },
-                label = { Text(text = "動画の高さ") }
+                label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_video_height)) }
             )
         }
     }

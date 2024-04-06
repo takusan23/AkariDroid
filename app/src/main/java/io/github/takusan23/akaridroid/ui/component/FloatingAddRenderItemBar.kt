@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 
@@ -50,7 +51,7 @@ fun FloatingAddRenderItemBar(
         Row(horizontalArrangement = Arrangement.SpaceEvenly) {
 
             FloatingAddBarItem(
-                title = "追加",
+                title = stringResource(id = R.string.video_edit_floating_add_bar_add),
                 iconResId = R.drawable.ic_outlined_add_24px,
                 onClick = onOpenMenu
             )
@@ -65,7 +66,7 @@ fun FloatingAddRenderItemBar(
 
             recommendedMenuList.forEach { menu ->
                 FloatingAddBarItem(
-                    title = menu.label,
+                    title = stringResource(id = menu.labelResId),
                     iconResId = menu.iconResId,
                     onClick = { creator.create(menu) }
                 )

@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
@@ -46,11 +47,15 @@ sealed interface AboutScreenUiState {
     /** ルート選択（選択肢） */
     data object RouteSelect : AboutScreenUiState
 
-    /** ルート選択の選択肢 */
-    enum class AdvScenario(val title: String) {
-        Sushi("すし"),
-        GitHub("GitHub をみる"),
-        Library("動画編集ライブラリ")
+    /**
+     * ルート選択の選択肢
+     *
+     * @param titleResId 文字列リソースのID
+     */
+    enum class AdvScenario(val titleResId: Int) {
+        Sushi(R.string.setting_about_sushi),
+        GitHub(R.string.setting_about_open_github),
+        Library(R.string.setting_about_library)
     }
 }
 
@@ -126,7 +131,7 @@ private fun InitScreen(onClick: () -> Unit) {
                 .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
-            text = "わたしは動画編集アプリだよ。よろしくね！",
+            text = stringResource(id = R.string.setting_about_message),
             versionText = appVersion
         )
 
@@ -156,7 +161,7 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
                 .padding(10.dp)
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
-            text = "わたしは動画編集アプリだよ。よろしくね！",
+            text = stringResource(id = R.string.setting_about_message),
             versionText = CurrentVersionCodeName.codeName
         )
 

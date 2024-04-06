@@ -19,9 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,6 +41,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -146,7 +147,7 @@ fun TimeLine(
 
             // 時間を表示するやつ
             TimeLineTopTimeLabel(durationMs = maxDurationMs)
-            Divider()
+            HorizontalDivider()
 
             if (timelineScrollableAreaCoordinates.value != null) {
 
@@ -190,7 +191,7 @@ fun TimeLine(
                             onDragAndDropRequest(request)
                         }
                     )
-                    Divider()
+                    HorizontalDivider()
                 }
             }
         }
@@ -450,7 +451,7 @@ private fun TimeLineItemContextMenu(
         onDismissRequest = onDismissRequest
     ) {
         DropdownMenuItem(
-            text = { Text("値の編集") },
+            text = { Text(text = stringResource(id = R.string.timeline_context_menu_edit)) },
             onClick = {
                 onEdit()
                 onDismissRequest()
@@ -459,7 +460,7 @@ private fun TimeLineItemContextMenu(
         )
         if (isEnableCut) {
             DropdownMenuItem(
-                text = { Text("この位置で分割する") },
+                text = { Text(text = stringResource(id = R.string.timeline_context_menu_cut)) },
                 onClick = {
                     onCut()
                     onDismissRequest()
@@ -468,7 +469,7 @@ private fun TimeLineItemContextMenu(
             )
         }
         DropdownMenuItem(
-            text = { Text("削除") },
+            text = { Text(text = stringResource(id = R.string.timeline_context_menu_delete)) },
             onClick = {
                 onDelete()
                 onDismissRequest()

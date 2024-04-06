@@ -6,7 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
@@ -38,7 +40,7 @@ fun ImageRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "画像の編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_image_title),
             onComplete = { onUpdate(imageItem.value) },
             onDelete = { onDelete(imageItem.value) }
         )

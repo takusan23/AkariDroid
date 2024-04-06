@@ -7,7 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
@@ -41,16 +43,19 @@ fun ShapeRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = "図形の編集",
+            title = stringResource(id = R.string.video_edit_bottomsheet_shape_title),
             onComplete = { onUpdate(shapeItem.value) },
             onDelete = { onDelete(shapeItem.value) }
         )
 
         OutlinedDropDownMenu(
-            label = "図形の種類",
+            label = stringResource(id = R.string.video_edit_bottomsheet_shape_select),
             modifier = Modifier.fillMaxWidth(),
             currentSelectIndex = RenderData.CanvasItem.Shape.ShapeType.entries.indexOf(shapeItem.value.shapeType),
-            menuList = listOf("四角", "丸"),
+            menuList = listOf(
+                stringResource(id = R.string.video_edit_bottomsheet_shape_rect),
+                stringResource(id = R.string.video_edit_bottomsheet_shape_circle)
+            ),
             onSelect = { index -> update { it.copy(shapeType = RenderData.CanvasItem.Shape.ShapeType.entries[index]) } }
         )
 

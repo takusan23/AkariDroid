@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -58,7 +59,7 @@ fun RenderItemColorEditComponent(
 
         Text(
             modifier = Modifier.weight(1f),
-            text = "色"
+            text = stringResource(id = R.string.edit_renderitem_color_title)
         )
 
         Box(
@@ -73,7 +74,7 @@ fun RenderItemColorEditComponent(
         OutlinedButton(onClick = { isShowColorDialog.value = true }) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_format_color_fill_24px), contentDescription = null)
             Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            Text(text = "色を変更")
+            Text(text = stringResource(id = R.string.edit_renderitem_color_change_color))
         }
     }
 }
