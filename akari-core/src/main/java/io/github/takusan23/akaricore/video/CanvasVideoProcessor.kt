@@ -7,8 +7,8 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaMuxerTool
+import io.github.takusan23.akaricore.video.gl.CanvasRenderer
 import io.github.takusan23.akaricore.video.gl.InputSurface
-import io.github.takusan23.akaricore.video.gl.TextureRenderer
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -63,20 +63,17 @@ object CanvasVideoProcessor {
         }
 
         // OpenGL の初期化をする。OpenGL 関連の関数を呼び出す場合は、OpenGL 用に用意したスレッドに切り替えてから
-        val canvasInputSurface = withContext(openGlRelatedThreadDispatcher) {
-            // エンコーダーのSurfaceを取得して、OpenGLを利用してCanvasを重ねます
-            InputSurface(
-                encodeMediaCodec.createInputSurface(),
-                TextureRenderer(
-                    outputVideoWidth = outputVideoWidth,
-                    outputVideoHeight = outputVideoHeight
-                )
-            ).apply {
-                makeCurrent()
-                // エンコーダー開始
-                encodeMediaCodec.start()
-                createRender()
-            }
+        val canvasRenderer = CanvasRenderer(
+            outputVideoWidth = outputVideoWidth,
+            outputVideoHeight = outputVideoHeight
+        )
+        val inputSurface = InputSurface(outputSurface = encodeMediaCodec.createInputSurface())
+
+        // エンコード開始と OpenGL ES の初期化
+        withContext(openGlRelatedThreadDispatcher) {
+            inputSurface.makeCurrent()
+            encodeMediaCodec.start()
+            canvasRenderer.createRenderer()
         }
 
         // マルチプレクサ
@@ -102,11 +99,11 @@ object CanvasVideoProcessor {
                     // OpenGL で描画する
                     // Canvas の入力をする
                     var isRunning = false
-                    canvasInputSurface.drawCanvas { canvas ->
+                    canvasRenderer.draw { canvas ->
                         isRunning = onCanvasDrawRequest(canvas, currentPositionUs / 1_000L)
                     }
-                    canvasInputSurface.setPresentationTime(currentPositionUs * 1_000L)
-                    canvasInputSurface.swapBuffers()
+                    inputSurface.setPresentationTime(currentPositionUs * 1_000L)
+                    inputSurface.swapBuffers()
                     if (!isRunning) {
                         outputDone = true
                         encodeMediaCodec.signalEndOfInputStream()
@@ -117,7 +114,8 @@ object CanvasVideoProcessor {
                 }
             } finally {
                 // リソース開放
-                canvasInputSurface.release()
+                inputSurface.destroy()
+                canvasRenderer.destroy()
             }
         }
 

@@ -8,8 +8,8 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
-import io.github.takusan23.akaricore.video.gl.VideoFrameInputSurface
-import io.github.takusan23.akaricore.video.gl.VideoFrameTextureRenderer
+import io.github.takusan23.akaricore.video.gl.FrameExtractorRenderer
+import io.github.takusan23.akaricore.video.gl.InputSurface
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -35,8 +35,11 @@ class VideoFrameBitmapExtractor {
     /** 映像デコーダーから Bitmap として取り出すための ImageReader */
     private var imageReader: ImageReader? = null
 
+    /** MediaCodec と OpenGL ES と繋ぐやつ */
+    private var inputSurface: InputSurface? = null
+
     /** MediaCodec でフレームを受け取って、OpenGL で描画するやつ */
-    private var inputSurface: VideoFrameInputSurface? = null
+    private var frameExtractorRenderer: FrameExtractorRenderer? = null
 
     /** 最後の[getVideoFrameBitmap]で取得したフレームの位置 */
     private var latestDecodePositionMs = 0L
@@ -64,21 +67,21 @@ class VideoFrameBitmapExtractor {
         // Surface 経由で Bitmap が取れる ImageReader つくる
         imageReader = ImageReader.newInstance(videoWidth, videoHeight, PixelFormat.RGBA_8888, 2)
 
-        // OpenGL 描画用スレッドに切り替える
+        // OpenGL ES の用意
+        // MediaCodec と ImageReader の間に OpenGL を経由させる
+        // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
+        inputSurface = InputSurface(outputSurface = imageReader!!.surface)
+        frameExtractorRenderer = FrameExtractorRenderer()
+
+        // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから
         withContext(openGlRendererThreadDispatcher) {
-            // MediaCodec と ImageReader の間に OpenGL を経由させる
-            // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
-            this@VideoFrameBitmapExtractor.inputSurface = VideoFrameInputSurface(
-                surface = imageReader!!.surface,
-                textureRenderer = VideoFrameTextureRenderer()
-            )
-            inputSurface!!.makeCurrent()
-            inputSurface!!.createRender()
+            inputSurface?.makeCurrent()
+            frameExtractorRenderer?.createRenderer()
         }
 
         // 映像デコーダー起動
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
-            configure(mediaFormat, inputSurface!!.drawSurface, null, 0)
+            configure(mediaFormat, frameExtractorRenderer!!.inputSurface, null, 0)
         }
         decodeMediaCodec!!.start()
     }
@@ -88,7 +91,8 @@ class VideoFrameBitmapExtractor {
         decodeMediaCodec?.release()
         mediaExtractor?.release()
         imageReader?.close()
-        inputSurface?.release()
+        inputSurface?.destroy()
+        frameExtractorRenderer?.destroy()
         openGlRendererThreadDispatcher.close()
     }
 
@@ -182,17 +186,9 @@ class VideoFrameBitmapExtractor {
                         // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
                         withContext(openGlRendererThreadDispatcher) {
                             if (doRender) {
-                                var errorWait = false
-                                try {
-                                    inputSurface.awaitNewImage()
-                                } catch (e: Exception) {
-                                    errorWait = true
-                                }
-                                if (!errorWait) {
-                                    inputSurface.drawImage()
-                                    inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
-                                    inputSurface.swapBuffers()
-                                }
+                                frameExtractorRenderer?.draw()
+                                inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                                inputSurface.swapBuffers()
                             }
                         }
                         // 欲しいフレームの時間に到達した場合、ループを抜ける
@@ -287,17 +283,9 @@ class VideoFrameBitmapExtractor {
                         // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
                         withContext(openGlRendererThreadDispatcher) {
                             if (doRender) {
-                                var errorWait = false
-                                try {
-                                    inputSurface.awaitNewImage()
-                                } catch (e: Exception) {
-                                    errorWait = true
-                                }
-                                if (!errorWait) {
-                                    inputSurface.drawImage()
-                                    inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
-                                    inputSurface.swapBuffers()
-                                }
+                                frameExtractorRenderer?.draw()
+                                inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
+                                inputSurface.swapBuffers()
                             }
                         }
                         // 欲しいフレームの時間に到達した場合、ループを抜ける

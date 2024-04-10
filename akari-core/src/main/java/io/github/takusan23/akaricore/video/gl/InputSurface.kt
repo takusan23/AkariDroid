@@ -1,47 +1,24 @@
-/*
- * Copyright (C) 2013 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.github.takusan23.akaricore.video.gl
 
-import android.graphics.Canvas
+
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
 import android.view.Surface
 
 /**
- * 動画無しで Canvas のみを入力として利用する
+ * MediaCodec で描画する際に OpenGL ES の設定が必要だが、EGL 周りの設定をしてくれるやつ。
+ * シェーダーで描画するやつは[TextureRenderer]
  *
- * @param surface [android.media.MediaCodec.createInputSurface]
- * @param textureRenderer [TextureRenderer]
+ * @param outputSurface 出力先 [Surface]
  */
-internal class InputSurface(
-    private val surface: Surface,
-    private val textureRenderer: TextureRenderer,
-) {
+class InputSurface(private val outputSurface: Surface) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
     private var mEGLContext = EGL14.EGL_NO_CONTEXT
     private var mEGLSurface = EGL14.EGL_NO_SURFACE
 
     init {
         eglSetup()
-    }
-
-    fun createRender() {
-        textureRenderer.surfaceCreated()
     }
 
     /**
@@ -86,26 +63,15 @@ internal class InputSurface(
         val surfaceAttribs = intArrayOf(
             EGL14.EGL_NONE
         )
-        mEGLSurface = EGL14.eglCreateWindowSurface(mEGLDisplay, configs[0], surface, surfaceAttribs, 0)
+        mEGLSurface = EGL14.eglCreateWindowSurface(mEGLDisplay, configs[0], outputSurface, surfaceAttribs, 0)
         checkEglError("eglCreateWindowSurface")
-    }
-
-    /**
-     * Canvasに描画してOpenGLに描画する
-     *
-     * @param onCanvasDrawRequest Canvasを渡すので描画して返してください
-     */
-    suspend fun drawCanvas(onCanvasDrawRequest: suspend (Canvas) -> Unit) {
-        textureRenderer.prepareDraw()
-        textureRenderer.drawCanvas(onCanvasDrawRequest)
-        textureRenderer.invokeGlFinish()
     }
 
     /**
      * Discards all resources held by this class, notably the EGL context.  Also releases the
      * Surface that was passed to our constructor.
      */
-    fun release() {
+    fun destroy() {
         if (mEGLDisplay != EGL14.EGL_NO_DISPLAY) {
             EGL14.eglMakeCurrent(mEGLDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
             EGL14.eglDestroySurface(mEGLDisplay, mEGLSurface)
@@ -113,7 +79,6 @@ internal class InputSurface(
             EGL14.eglReleaseThread()
             EGL14.eglTerminate(mEGLDisplay)
         }
-        surface.release()
         mEGLDisplay = EGL14.EGL_NO_DISPLAY
         mEGLContext = EGL14.EGL_NO_CONTEXT
         mEGLSurface = EGL14.EGL_NO_SURFACE
