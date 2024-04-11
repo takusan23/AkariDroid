@@ -23,4 +23,5 @@ object ColorTool {
         runCatching { android.graphics.Color.parseColor(hexColorCode) }
             .map { Color(color = it) }
             .getOrNull()
+
 }

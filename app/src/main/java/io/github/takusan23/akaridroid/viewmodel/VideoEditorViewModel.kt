@@ -382,7 +382,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
             // 編集画面を開く
             if (openEditItem != null) {
-                openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+                openBottomSheet(
+                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                        renderItem = openEditItem,
+                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+                    )
+                )
             }
         }
     }
@@ -414,7 +419,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
             // 編集画面を開く
             if (openEditItem != null) {
-                openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem = openEditItem))
+                openBottomSheet(
+                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                        renderItem = openEditItem,
+                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+                    )
+                )
             }
         }
     }

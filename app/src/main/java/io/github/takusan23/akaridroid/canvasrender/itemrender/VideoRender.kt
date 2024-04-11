@@ -31,12 +31,19 @@ class VideoRender(
         get() = video.layerIndex
 
     override suspend fun prepare() = withContext(Dispatchers.IO) {
+        // クロマキーする場合
+        val isEnableChromaKey = video.chromaKeyColor != null
+
         videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
             // Uri と File で分岐
-            when (video.filePath) {
-                is RenderData.FilePath.File -> prepareDecoder(File(video.filePath.filePath).toAkariCoreInputOutputData())
-                is RenderData.FilePath.Uri -> prepareDecoder(video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context))
-            }
+            prepareDecoder(
+                input = when (video.filePath) {
+                    is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
+                    is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
+                },
+                chromakeyThreshold = if (isEnableChromaKey) CHROMAKEY_THRESHOLD else null,
+                chromakeyColor = if (isEnableChromaKey) video.chromaKeyColor!! else null
+            )
         }
     }
 
@@ -70,4 +77,8 @@ class VideoRender(
     }
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in video.displayTime
+
+    companion object {
+        private const val CHROMAKEY_THRESHOLD = 0.3f // TODO ユーザー入力で変更できるようにする
+    }
 }

@@ -9,8 +9,12 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      * [RenderData.RenderItem]に対応する各編集ボトムシートを出す
      *
      * @param renderItem 編集するアイテム
+     * @param previewPositionMs プレビューの時間
      */
-    data class OpenEditor(val renderItem: RenderData.RenderItem) : VideoEditorBottomSheetRouteRequestData
+    data class OpenEditor(
+        val renderItem: RenderData.RenderItem,
+        val previewPositionMs: Long
+    ) : VideoEditorBottomSheetRouteRequestData
 
     /**
      * 動画情報の編集画面を開く

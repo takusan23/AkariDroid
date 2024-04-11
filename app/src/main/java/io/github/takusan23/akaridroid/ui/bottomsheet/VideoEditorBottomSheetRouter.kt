@@ -81,6 +81,7 @@ fun VideoEditorBottomSheetRouter(
 
                 is RenderData.CanvasItem.Video -> VideoRenderEditBottomSheet(
                     renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    previewPositionMs = videoEditorBottomSheetRouteRequestData.previewPositionMs,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()

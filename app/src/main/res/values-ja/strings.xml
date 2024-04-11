@@ -162,5 +162,9 @@
     <string name="service_encode_notification_title">エンコードサービス実行中</string>
     <string name="service_encode_notification_description">しばらくお待ちください</string>
     <string name="service_encode_notification_cancel">エンコードをキャンセル</string>
+    <string name="dialog_chromakeycolor_title">クロマキー合成で透過する色を選ぶ</string>
+    <string name="edit_renderitem_chromakey_title">クロマキー合成を利用する</string>
+    <string name="edit_renderitem_chromakey_select_color">透明にする色を選ぶ</string>
+    <string name="dialog_chromakeycolor_description">画像を押すことで、透過させたい色を選ぶことができます。</string>
 
 </resources>

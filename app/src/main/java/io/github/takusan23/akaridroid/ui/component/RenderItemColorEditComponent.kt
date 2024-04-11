@@ -1,16 +1,12 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,12 +58,7 @@ fun RenderItemColorEditComponent(
             text = stringResource(id = R.string.edit_renderitem_color_title)
         )
 
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(colorOrDefault.value)
-                .border(width = 1.dp, color = LocalContentColor.current)
-        )
+        ColorItem(color = colorOrDefault.value)
 
         Text(text = ColorTool.toHexColorCode(colorOrDefault.value))
 

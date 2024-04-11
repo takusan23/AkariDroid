@@ -175,7 +175,12 @@ fun VideoEditorScreen(
                     onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
                     onEdit = { timeLineItem ->
                         viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                            viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(renderItem))
+                            viewModel.openBottomSheet(
+                                VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                                    renderItem = renderItem,
+                                    previewPositionMs = previewPlayerStatus.value.currentPositionMs
+                                )
+                            )
                         }
                     },
                     onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },

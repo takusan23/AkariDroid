@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +13,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -263,7 +260,7 @@ fun ColorPickerDialog(
                     )
                 }
 
-                SelectColorStatus(currentColor = currentColor)
+                SelectColorPreview(currentColor = currentColor)
 
                 DialogButton(
                     modifier = Modifier.align(alignment = Alignment.End),
@@ -428,47 +425,6 @@ private fun ColorPickerTab(
 }
 
 /**
- * 選択中の色を RGB / カラーコードで表示するやつ
- *
- * @param modifier [Modifier]
- * @param currentColor 選択中の色
- */
-@Composable
-private fun SelectColorStatus(
-    modifier: Modifier = Modifier,
-    currentColor: Color
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // RGB の配列
-        val rgbValueList = ColorTool.toRgbList(currentColor)
-
-        ColorItem(color = currentColor)
-
-        Column {
-
-            Row {
-                listOf(
-                    "R: ${rgbValueList[0]}",
-                    "G: ${rgbValueList[1]}",
-                    "B: ${rgbValueList[2]}"
-                ).forEach { text ->
-                    Text(
-                        modifier = Modifier.weight(1f),
-                        text = text
-                    )
-                }
-            }
-
-            Text(text = ColorTool.toHexColorCode(currentColor))
-        }
-    }
-}
-
-/**
  * CSS の named-color を表示する。
  * シャンペンサイダー に見えてきた...
  *
@@ -516,27 +472,4 @@ private fun CssNamedColorList(
             )
         }
     }
-}
-
-/**
- * 色の選択とプレビューで使ってる
- *
- * @param modifier [Modifier]
- * @param color 色
- * @param onClick 押した時
- */
-@Composable
-private fun ColorItem(
-    modifier: Modifier = Modifier,
-    color: Color,
-    onClick: () -> Unit = {}
-) {
-    Surface(
-        modifier = modifier.size(50.dp),
-        color = color,
-        border = BorderStroke(width = 2.dp, color = LocalContentColor.current),
-        shape = RoundedCornerShape(10.dp),
-        onClick = onClick,
-        content = { /* do nothing */ }
-    )
 }
