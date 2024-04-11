@@ -125,15 +125,6 @@ class FrameExtractorRenderer(
         }
     }
 
-    /** 16進数を RGBA の配列にする。それぞれ 0から1 */
-    private fun Int.toColorVec4(): FloatArray {
-        val r = (this shr 16 and 0xff) / 255.0f
-        val g = (this shr 8 and 0xff) / 255.0f
-        val b = (this and 0xff) / 255.0f
-        val a = (this shr 24 and 0xff) / 255.0f
-        return floatArrayOf(r, g, b, a)
-    }
-
     override fun destroy() {
         surfaceTexture?.release()
         inputSurface?.release()
@@ -147,6 +138,11 @@ class FrameExtractorRenderer(
         // テクスチャを更新して、フラグを折る
         surfaceTexture?.updateTexImage()
         isAvailableNewFrameFlow.value = false
+
+        // Snapdragon だと glClear が無いと映像が乱れる
+        // Google Pixel だと何も起きないのに、、、
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
+
         // 描画する
         checkGlError("onDrawFrame start")
         surfaceTexture?.getTransformMatrix(mSTMatrix)
@@ -176,6 +172,15 @@ class FrameExtractorRenderer(
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
+    }
+
+    /** 16進数を RGBA の配列にする。それぞれ 0から1 */
+    private fun Int.toColorVec4(): FloatArray {
+        val r = (this shr 16 and 0xff) / 255.0f
+        val g = (this shr 8 and 0xff) / 255.0f
+        val b = (this and 0xff) / 255.0f
+        val a = (this shr 24 and 0xff) / 255.0f
+        return floatArrayOf(r, g, b, a)
     }
 
     companion object {

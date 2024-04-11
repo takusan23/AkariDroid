@@ -144,7 +144,7 @@ private fun RenderItemChromaKeyEditComponent(
         ) {
 
             Icon(
-                painter = painterResource(id = R.drawable.ic_outline_format_color_fill_24px),
+                painter = painterResource(id = R.drawable.ic_background_replace_24px),
                 contentDescription = null
             )
 
