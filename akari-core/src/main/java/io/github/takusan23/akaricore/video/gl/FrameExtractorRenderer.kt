@@ -10,8 +10,25 @@ import kotlinx.coroutines.flow.first
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-/** [io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor]用[TextureRenderer] */
-class FrameExtractorRenderer : TextureRenderer() {
+/**
+ * [io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor]用[TextureRenderer]
+ *
+ * # クロマキーで透過する機能
+ * BB素材を透過できます。CPU ではなく、OpenGL ES（GPU）で処理させるため高速です。
+ * 透過させるかどうかの条件式は以下のとおりです。
+ *
+ * if (length(クロマキーの色.rgba - テクスチャの色.rgba) < しきい値)
+ *
+ * クロマキー機能を使わない場合は両方 null でいいよ。
+ * 参考： https://wgld.org/d/webgl/w080.html
+ *
+ * @param chromakeyThreshold クロマキーのしきい値。
+ * @param chromakeyColor クロマキーの色。しきい値を考慮するので、近しい色も透過するはず。
+ */
+class FrameExtractorRenderer(
+    private val chromakeyThreshold: Float? = null,
+    private val chromakeyColor: Int? = null
+) : TextureRenderer() {
 
     private val mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer()
     private val mMVPMatrix = FloatArray(16)
@@ -26,13 +43,17 @@ class FrameExtractorRenderer : TextureRenderer() {
      * 新しいフレームが来ているか。
      * [SurfaceTexture.OnFrameAvailableListener]が呼ばれたか。
      *
-     * 他スレッドからも参照するので、[mutex]で排他処理が必要です。
+     * 他スレッドからも参照するので、[MutableStateFlow]等のスレッドセーフである必要があります。
      */
     private val isAvailableNewFrameFlow = MutableStateFlow(false)
 
     // MediaCodec でデコードしたフレームをテクスチャで
     private var textureId = -1234567
     private var surfaceTexture: SurfaceTexture? = null
+
+    // クロマキー
+    private var uChromakeyThresholdHandle = 0
+    private var uChromakeyColorHandle = 0
 
     /** MediaCodec の出力先としてこれを使う。MediaCodec で受け取って OpenGL ES で描画するため */
     var inputSurface: Surface? = null
@@ -68,6 +89,16 @@ class FrameExtractorRenderer : TextureRenderer() {
         if (muSTMatrixHandle == -1) {
             throw RuntimeException("Could not get attrib location for uSTMatrix")
         }
+        uChromakeyThresholdHandle = GLES20.glGetUniformLocation(mProgram, "uChromakeyThreshold")
+        checkGlError("glGetUniformLocation uChromakeyThresholdHandle")
+        if (uChromakeyThresholdHandle == -1) {
+            throw RuntimeException("Could not get attrib location for uChromakeyThreshold")
+        }
+        uChromakeyColorHandle = GLES20.glGetUniformLocation(mProgram, "uChromakeyColor")
+        checkGlError("glGetUniformLocation uChromakeyColorHandle")
+        if (uChromakeyColorHandle == -1) {
+            throw RuntimeException("Could not get attrib location for uChromakeyColor")
+        }
 
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
@@ -92,6 +123,15 @@ class FrameExtractorRenderer : TextureRenderer() {
             // StateFlow はスレッドセーフらしいので同期処理は入れない
             isAvailableNewFrameFlow.value = true
         }
+    }
+
+    /** 16進数を RGBA の配列にする。それぞれ 0から1 */
+    private fun Int.toColorVec4(): FloatArray {
+        val r = (this shr 16 and 0xff) / 255.0f
+        val g = (this shr 8 and 0xff) / 255.0f
+        val b = (this and 0xff) / 255.0f
+        val a = (this shr 24 and 0xff) / 255.0f
+        return floatArrayOf(r, g, b, a)
     }
 
     override fun destroy() {
@@ -124,6 +164,13 @@ class FrameExtractorRenderer : TextureRenderer() {
         checkGlError("glVertexAttribPointer maTextureHandle")
         GLES20.glEnableVertexAttribArray(maTextureHandle)
         checkGlError("glEnableVertexAttribArray maTextureHandle")
+
+        // クロマキー用
+        // null の場合は 0 にして動かないように
+        GLES20.glUniform1f(uChromakeyThresholdHandle, chromakeyThreshold ?: 0f)
+        GLES20.glUniform4fv(uChromakeyColorHandle, 1, chromakeyColor?.toColorVec4() ?: floatArrayOf(0f, 0f, 0f, 0f), 0)
+        checkGlError("glUniform1f glUniform4fv")
+
         GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
         GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -160,8 +207,27 @@ void main() {
 precision mediump float;
 varying vec2 vTextureCoord;
 uniform samplerExternalOES sTexture;
+
+uniform float uChromakeyThreshold;
+uniform vec4 uChromakeyColor;
+
 void main() {
-  gl_FragColor = texture2D(sTexture, vTextureCoord);
+  
+  if (uChromakeyThreshold == .0) {
+    // クロマキーしない場合
+    gl_FragColor = texture2D(sTexture, vTextureCoord);  
+  } else {
+    // クロマキーで透過する
+    vec4 textureColor = texture2D(sTexture, vTextureCoord);
+    float diff = length(uChromakeyColor - textureColor);
+    
+    // しきい値まで見る
+    if (diff < uChromakeyThreshold) {
+        discard;
+    } else {
+        gl_FragColor = textureColor;        
+    }
+  }
 }
 """
     }

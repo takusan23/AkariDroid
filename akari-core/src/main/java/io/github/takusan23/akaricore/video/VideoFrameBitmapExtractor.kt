@@ -52,10 +52,17 @@ class VideoFrameBitmapExtractor {
 
     /**
      * デコーダーを初期化する
+     * クロマキー機能を利用しない場合は、[chromakeyThreshold]、[chromakeyColor]は null でいいです。
      *
      * @param input 動画ファイル。詳しくは[AkariCoreInputOutput.Input]
+     * @param chromakeyThreshold クロマキーのしきい値。
+     * @param chromakeyColor クロマキーの色。しきい値を考慮するので、近しい色も透過するはず。
      */
-    suspend fun prepareDecoder(input: AkariCoreInputOutput.Input) {
+    suspend fun prepareDecoder(
+        input: AkariCoreInputOutput.Input,
+        chromakeyThreshold: Float? = null,
+        chromakeyColor: Int? = null
+    ) {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this@VideoFrameBitmapExtractor.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
@@ -71,7 +78,11 @@ class VideoFrameBitmapExtractor {
         // MediaCodec と ImageReader の間に OpenGL を経由させる
         // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
         inputSurface = InputSurface(outputSurface = imageReader!!.surface)
-        frameExtractorRenderer = FrameExtractorRenderer()
+        // クロマキーするなら
+        frameExtractorRenderer = FrameExtractorRenderer(
+            chromakeyThreshold = chromakeyThreshold,
+            chromakeyColor = chromakeyColor
+        )
 
         // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから
         withContext(openGlRendererThreadDispatcher) {

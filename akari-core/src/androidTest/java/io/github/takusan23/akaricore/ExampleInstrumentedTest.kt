@@ -309,6 +309,73 @@ class ExampleInstrumentedTest {
         }
     }
 
+    @Test
+    fun test_動画のフレームの取得とクロマキーで透過ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val videoFrameFileName = listOf(
+            "test_動画のフレームの取得とクロマキーで透過ができる_1_000ms.png",
+            "test_動画のフレームの取得とクロマキーで透過ができる_15_000ms.png",
+            "test_動画のフレームの取得とクロマキーで透過ができる_9_000ms.png"
+        ).map { fileName ->
+            appContext.getExternalFilesDir(null)!!.resolve(fileName)
+        }
+
+        // 仮の動画をつくる。長めに
+        val TEMP_VIDEO_LENGTH_MS = 20_0000
+        val BACKGROUND_COLOR = Color.MAGENTA
+        provideTempFolder { tempFolder ->
+            val demoVideoFile = tempFolder.resolve("demo_video.mp4")
+            val textPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 80f
+            }
+            CanvasVideoProcessor.start(
+                output = demoVideoFile.toAkariCoreInputOutputData(),
+                codecName = MediaFormat.MIMETYPE_VIDEO_AVC,
+                containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+                bitRate = 1_000_000,
+                frameRate = 30,
+                outputVideoWidth = 1280,
+                outputVideoHeight = 720
+            ) { positionMs ->
+                drawColor(BACKGROUND_COLOR)
+                // 枠取り文字
+                val text = "動画の時間 = ${"%.2f".format(positionMs / 1000f)}"
+                textPaint.strokeWidth = 30f
+                textPaint.color = Color.BLACK
+                textPaint.style = Paint.Style.STROKE
+                // 枠取り文字
+                drawText(text, 80f, 80f, textPaint)
+                textPaint.strokeWidth = 30f
+                textPaint.style = Paint.Style.FILL
+                textPaint.color = Color.WHITE
+                // 枠無し文字
+                drawText(text, 80f, 80f, textPaint)
+                // true を返している間は動画を作成する
+                positionMs <= TEMP_VIDEO_LENGTH_MS
+            }
+
+            // 動画のフレーム取得
+            val videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
+                prepareDecoder(
+                    input = demoVideoFile.toAkariCoreInputOutputData(),
+                    chromakeyThreshold = 0.5f,
+                    chromakeyColor = BACKGROUND_COLOR
+                )
+            }
+
+            // 巻き戻すやつもテストしたいから 1 -> 15 -> 9 で
+            val videoFrame_1000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 1_000)!!
+            val videoFrame_15_000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 15_000)!!
+            val videoFrame_9000 = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = 9000)!!
+            // 保存
+            videoFrame_1000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[0].outputStream())
+            videoFrame_15_000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[1].outputStream())
+            videoFrame_9000.compress(Bitmap.CompressFormat.PNG, 100, videoFrameFileName[2].outputStream())
+        }
+    }
+
+
     /** 一時的なファイル置き場を作る。ブロックを抜けたら削除されます。 */
     private suspend fun provideTempFolder(action: suspend (tempFolder: File) -> Unit) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
