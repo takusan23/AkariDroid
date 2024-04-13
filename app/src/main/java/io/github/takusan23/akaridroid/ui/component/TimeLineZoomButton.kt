@@ -30,14 +30,14 @@ fun TimeLineZoomButtons(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        IconButton(onClick = onZoomIn) {
-            Icon(painter = painterResource(id = R.drawable.ic_zoom_in_24px), contentDescription = null)
+        IconButton(onClick = onZoomOut) {
+            Icon(painter = painterResource(id = R.drawable.ic_zoom_out_24px), contentDescription = null)
         }
 
         Text(text = msWidthPx.toString())
 
-        IconButton(onClick = onZoomOut) {
-            Icon(painter = painterResource(id = R.drawable.ic_zoom_out_24px), contentDescription = null)
+        IconButton(onClick = onZoomIn) {
+            Icon(painter = painterResource(id = R.drawable.ic_zoom_in_24px), contentDescription = null)
         }
     }
 }
