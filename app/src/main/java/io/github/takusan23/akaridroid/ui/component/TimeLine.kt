@@ -27,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,26 +58,37 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.abs
 
-/** 1 ミリ秒をどれだけの幅で表すか */
-private const val MillisecondsWidthPx = 20
+/**
+ * タイムラインの拡大縮小用
+ *
+ * @param msWidthPx 1 ミリ秒をどれだけの幅で表すか
+ */
+@JvmInline
+private value class TimeLineMillisecondsWidthPx(val msWidthPx: Int) {
 
-/** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
-private val Long.msToWidthDp: Dp
-    // Pixel to Dp
-    @Composable
-    get() = with(LocalDensity.current) { msToWidth.toDp() }
+    /** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
+    val Long.msToWidthDp: Dp
+        // Pixel to Dp
+        @Composable
+        get() = with(LocalDensity.current) { msToWidth.toDp() }
 
-/** 1 ミリ秒をどれだけの幅で表すか。[Int]版。 */
-private val Long.msToWidth: Int
-    get() = (this / MillisecondsWidthPx).toInt()
+    /** 1 ミリ秒をどれだけの幅で表すか。[Int]版。 */
+    val Long.msToWidth: Int
+        get() = (this / msWidthPx).toInt()
 
-/** 幅や位置は何 ミリ秒を表しているか */
-private val Int.widthToMs: Long
-    get() = (this * MillisecondsWidthPx).toLong()
+    /** 幅や位置は何 ミリ秒を表しているか */
+    val Int.widthToMs: Long
+        get() = (this * msWidthPx).toLong()
 
-/** 幅や位置は何 ミリ秒を表しているか */
-private val Float.widthToMs: Long
-    get() = (this * MillisecondsWidthPx).toLong()
+    /** 幅や位置は何 ミリ秒を表しているか */
+    val Float.widthToMs: Long
+        get() = (this * msWidthPx).toLong()
+
+}
+
+/** タイムラインの拡大、縮小を CompositionLocal で提供する、バケツリレーを回避する */
+private val LocalTimeLineMillisecondsWidthPx = compositionLocalOf { TimeLineMillisecondsWidthPx(msWidthPx = 20) }
+
 
 /**
  * タイムラインのアイテムが移動したときに貰えるデータ
@@ -90,7 +103,11 @@ private data class TimeLineItemComponentDragAndDropData(
     val stopRect: IntRect
 )
 
-/** タイムライン */
+/**
+ * タイムライン
+ *
+ * @param msWidthPx 1 ミリ秒をどれだけの幅で表すか
+ */
 @Composable
 fun TimeLine(
     modifier: Modifier = Modifier,
@@ -108,6 +125,7 @@ fun TimeLine(
     ),
     currentPositionMs: Long,
     durationMs: Long,
+    msWidthPx: Int,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
@@ -115,6 +133,113 @@ fun TimeLine(
     onDelete: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
+    // タイムラインの拡大縮小
+    val millisecondsWidthPx = remember(msWidthPx) { TimeLineMillisecondsWidthPx(msWidthPx) }
+
+    // はみ出しているタイムラインの LayoutCoordinates
+    // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
+    val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    // millisecondsWidthPx を LocalTimeLineMillisecondsWidthPx で提供する
+    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides millisecondsWidthPx) {
+        Box(
+            modifier = modifier
+                .verticalScroll(rememberScrollState())
+                .horizontalScroll(rememberScrollState()),
+        ) {
+
+            // 横に長ーいタイムラインを作る
+            // 画面外にはみ出すので requiredSize
+            RequiredSizeTimeLine(
+                modifier = Modifier
+                    // タイムラインにあるアイテムの座標出すのに使う
+                    .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
+                timeLineData = timeLineData,
+                onSeek = onSeek,
+                timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value,
+                currentPositionMs = currentPositionMs,
+                onEdit = onEdit,
+                onCut = onCut,
+                onDelete = onDelete,
+                onDurationChange = onDurationChange,
+                onDragAndDropRequest = onDragAndDropRequest,
+            )
+
+            // タイムラインの縦の棒
+            // タイムラインに重ねて使う
+            if (timelineScrollableAreaCoordinates.value != null) {
+                OverlayTimeLineComponents(
+                    timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
+                    durationMs = durationMs,
+                    currentPositionMs = currentPositionMs
+                )
+            }
+        }
+    }
+}
+
+/**
+ * タイムラインの縦の棒。タイムラインに重ねるコンポーネント
+ *
+ * @param modifier [Modifier]
+ * @param timeLineScrollableAreaCoordinates [RequiredSizeTimeLine]コンポーネントのサイズ
+ * @param durationMs 動画時間
+ * @param currentPositionMs 再生位置
+ */
+@Composable
+private fun OverlayTimeLineComponents(
+    modifier: Modifier = Modifier,
+    timeLineScrollableAreaCoordinates: LayoutCoordinates,
+    durationMs: Long,
+    currentPositionMs: Long
+) {
+    val barModifier = Modifier.height(with(LocalDensity.current) { timeLineScrollableAreaCoordinates.size.height.toDp() })
+
+    // 動画の長さ
+    TimeLinePositionBar(
+        modifier = barModifier,
+        color = Color.Blue,
+        positionMs = durationMs
+    )
+
+    // 再生位置
+    TimeLinePositionBar(
+        modifier = barModifier,
+        color = Color.Red,
+        positionMs = currentPositionMs
+    )
+}
+
+/**
+ * 必要なサイズ分あるタイムライン。
+ * 横と縦に長いので、親はスクロールできるようにする必要があります。
+ *
+ * @param modifier [Modifier]
+ * @param timeLineData タイムラインのデータ
+ * @param onSeek シークがリクエストされた
+ * @param timeLineScrollableAreaCoordinates このコンポーネントのサイズ
+ * @param currentPositionMs 再生位置
+ * @param onDragAndDropRequest [TimeLineItemComponentDragAndDropData]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
+ * @param onEdit メニューで値の編集を押した
+ * @param onCut メニューで分割を押した
+ * @param onDelete メニューで削除を押した
+ * @param onDurationChange 長さ調整がリクエストされた
+ */
+@Composable
+private fun RequiredSizeTimeLine(
+    modifier: Modifier = Modifier,
+    timeLineData: TimeLineData,
+    onSeek: (positionMs: Long) -> Unit,
+    timeLineScrollableAreaCoordinates: LayoutCoordinates?,
+    currentPositionMs: Long,
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit,
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
+    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean
+) {
+    val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
+
     // 一番遅い時間
     val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }
     // レーンコンポーネントの位置と番号
@@ -122,98 +247,67 @@ fun TimeLine(
     // レーンとレーンのアイテムの Map
     val laneItemMap = remember(timeLineData) { timeLineData.groupByLane() }
 
-    // はみ出しているタイムラインの LayoutCoordinates
-    // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
-    val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    Box(
+    Column(
         modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .horizontalScroll(rememberScrollState()),
-    ) {
-        // 横に長ーいタイムラインを作る
-        // 画面外にはみ出すので requiredWidth
-        Column(
-            modifier = Modifier
-                .requiredWidth(maxDurationMs.msToWidthDp)
-                // タイムラインにあるアイテムの座標出すのに使う
-                .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it }
-                // 再生位置の移動。タイムラインの棒を移動させる
-                .pointerInput(Unit) {
-                    detectTapGestures { onSeek(it.x.toInt().widthToMs) }
-                },
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-
-            // 時間を表示するやつ
-            TimeLineTopTimeLabel(durationMs = maxDurationMs)
-            HorizontalDivider()
-
-            if (timelineScrollableAreaCoordinates.value != null) {
-
-                // タイムラインのアイテム
-                // レーンの数だけ
-                laneItemMap.forEach { (laneIndex, itemList) ->
-                    TimeLineLane(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .onGloballyPositioned {
-                                timeLineLaneIndexRectMap[laneIndex] = timelineScrollableAreaCoordinates.value!!
-                                    .localBoundingBoxOf(it)
-                                    .roundToIntRect()
-                            },
-                        laneIndex = laneIndex,
-                        laneItemList = itemList,
-                        currentPositionMs = currentPositionMs,
-                        onEdit = onEdit,
-                        onCut = onCut,
-                        onDelete = onDelete,
-                        onDurationChange = onDurationChange,
-                        timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
-                        onDragAndDropRequest = {
-                            val (id, start, stop) = it
-                            // ドラッグアンドドロップで移動先に移動してよいか
-                            // 移動元、移動先のレーン番号を取得
-                            val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineLane false
-                            val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineLane false
-
-                            // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
-                            val stopMsInDroppedPos = stop.left.widthToMs
-                            // 移動先の TimeLineItemData を作る
-                            val request = TimeLineData.DragAndDropRequest(
-                                id = id,
-                                dragAndDroppedStartMs = stopMsInDroppedPos,
-                                dragAndDroppedLaneIndex = toLaneIndex
-                            )
-
-                            // 渡して処理させる
-                            onDragAndDropRequest(request)
-                        }
-                    )
-                    HorizontalDivider()
+            .requiredWidth(with(msWidthPx) { maxDurationMs.msToWidthDp })
+            // 再生位置の移動。タイムラインの棒を移動させる
+            .pointerInput(msWidthPx) {
+                detectTapGestures {
+                    val seekMs = with(msWidthPx) { it.x.toInt().widthToMs }
+                    onSeek(seekMs)
                 }
+            },
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+
+        // 時間を表示するやつ
+        TimeLineTopTimeLabel(durationMs = maxDurationMs)
+        HorizontalDivider()
+
+        if (timeLineScrollableAreaCoordinates != null) {
+
+            // タイムラインのアイテム
+            // レーンの数だけ
+            laneItemMap.forEach { (laneIndex, itemList) ->
+                TimeLineLane(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .onGloballyPositioned {
+                            timeLineLaneIndexRectMap[laneIndex] = timeLineScrollableAreaCoordinates
+                                .localBoundingBoxOf(it)
+                                .roundToIntRect()
+                        },
+                    laneIndex = laneIndex,
+                    laneItemList = itemList,
+                    currentPositionMs = currentPositionMs,
+                    onEdit = onEdit,
+                    onCut = onCut,
+                    onDelete = onDelete,
+                    onDurationChange = onDurationChange,
+                    timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
+                    onDragAndDropRequest = {
+                        val (id, start, stop) = it
+                        // ドラッグアンドドロップで移動先に移動してよいか
+                        // 移動元、移動先のレーン番号を取得
+                        val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineLane false
+                        val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineLane false
+
+                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                        val stopMsInDroppedPos = with(msWidthPx) { stop.left.widthToMs }
+                        // 移動先の TimeLineItemData を作る
+                        val request = TimeLineData.DragAndDropRequest(
+                            id = id,
+                            dragAndDroppedStartMs = stopMsInDroppedPos,
+                            dragAndDroppedLaneIndex = toLaneIndex
+                        )
+
+                        // 渡して処理させる
+                        onDragAndDropRequest(request)
+                    }
+                )
+                HorizontalDivider()
             }
-        }
-
-        // タイムラインの縦の棒
-        // タイムラインに重ねて使う
-        if (timelineScrollableAreaCoordinates.value != null) {
-            val barModifier = Modifier.height(with(LocalDensity.current) { timelineScrollableAreaCoordinates.value!!.size.height.toDp() })
-
-            // 動画の長さ
-            TimeLinePositionBar(
-                modifier = barModifier,
-                color = Color.Blue,
-                positionMs = durationMs
-            )
-
-            // 再生位置
-            TimeLinePositionBar(
-                modifier = barModifier,
-                color = Color.Red,
-                positionMs = currentPositionMs
-            )
         }
     }
 }
@@ -230,7 +324,6 @@ fun TimeLine(
  * @param currentPositionMs 現在の再生位置（赤いバーがある位置）
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
  * @param onDragAndDropRequest [TimeLineItemComponentDragAndDropData]参照。ドラッグアンドドロップで移動先に移動してよいかを返します
- * @param onClick 押したときに呼ばれる
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
@@ -301,12 +394,16 @@ private fun TimeLineItem(
     onDelete: () -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
+    // 拡大縮小
+    val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
     // アイテムが移動中かどうか
     val isDragging = remember { mutableStateOf(false) }
     // アイテムの位置
     val latestGlobalRect = remember { mutableStateOf<IntRect?>(null) }
     // アイテムの移動中位置。アイテムが変化したら作り直す
-    val draggingOffset = remember(timeLineItemData) { mutableStateOf(IntOffset(timeLineItemData.startMs.msToWidth, 0)) }
+    val draggingOffset = remember(timeLineItemData) {
+        mutableStateOf(IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0))
+    }
     // メニューを表示するか
     val isVisibleMenu = remember { mutableStateOf(false) }
     // タイムラインのアイテムの表示時間。長さ調整出来るように State で持っている。
@@ -320,10 +417,10 @@ private fun TimeLineItem(
                 if (isDragging.value) {
                     draggingOffset.value
                 } else {
-                    IntOffset(timeLineItemData.startMs.msToWidth, 0)
+                    IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0)
                 }
             }
-            .width(durationMs.longValue.msToWidthDp)
+            .width(with(msWidthPx) { durationMs.longValue.msToWidthDp })
             .fillMaxHeight()
             .onGloballyPositioned {
                 // timeLineScrollableAreaCoordinates の理由は TimeLine() コンポーネント参照
@@ -331,7 +428,7 @@ private fun TimeLineItem(
                     .localBoundingBoxOf(it)
                     .roundToIntRect()
             }
-            .pointerInput(timeLineItemData, currentPositionMs) {
+            .pointerInput(timeLineItemData, currentPositionMs, msWidthPx) {
                 // アイテム移動のシステム
                 // データが変化したら pointerInput も再起動するようにキーに入れる
                 var startRect: IntRect? = null
@@ -347,8 +444,8 @@ private fun TimeLineItem(
                         val x = (draggingOffset.value.x + dragAmount.x).toInt()
                         val y = (draggingOffset.value.y + dragAmount.y).toInt()
                         // もし現在の位置のすぐ近くに移動させる場合は、吸い付かせる
-                        draggingOffset.value = if (abs(currentPositionMs - x.widthToMs) < 100) {
-                            IntOffset(currentPositionMs.msToWidth, y)
+                        draggingOffset.value = if (abs(currentPositionMs - with(msWidthPx) { x.widthToMs }) < 100) {
+                            IntOffset(with(msWidthPx) { currentPositionMs.msToWidth }, y)
                         } else {
                             IntOffset(x, y)
                         }
@@ -366,7 +463,7 @@ private fun TimeLineItem(
                         )
                         // 出来ない場合は戻す
                         if (!isAccept) {
-                            draggingOffset.value = IntOffset(timeLineItemData.startMs.msToWidth, 0)
+                            draggingOffset.value = IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0)
                         }
                     }
                 )
@@ -400,7 +497,7 @@ private fun TimeLineItem(
                         .align(Alignment.CenterEnd)
                         .fillMaxHeight(),
                     resetKey = timeLineItemData,
-                    onDrag = { dragAmountX -> durationMs.longValue += dragAmountX.widthToMs },
+                    onDrag = { dragAmountX -> durationMs.longValue += with(msWidthPx) { dragAmountX.widthToMs } },
                     onDragEnd = {
                         onDurationChange(
                             TimeLineData.DurationChangeRequest(
@@ -486,6 +583,7 @@ private fun TimeLineTopTimeLabel(
     durationMs: Long,
     stepMs: Long = 10_000 // 10 秒間隔
 ) {
+    val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
     val simpleDateFormat = remember { SimpleDateFormat("mm:ss", Locale.getDefault()) }
 
     val labelList = remember(durationMs, stepMs) {
@@ -501,7 +599,7 @@ private fun TimeLineTopTimeLabel(
             Text(
                 modifier = Modifier
                     .offset { IntOffset(-textMeasure.measure(timeText).size.width / 2, 0) }
-                    .offset { IntOffset(timeMs.msToWidth, 0) },
+                    .offset { IntOffset(with(msWidthPx) { timeMs.msToWidth }, 0) },
                 text = timeText
             )
         }
@@ -520,10 +618,12 @@ private fun TimeLinePositionBar(
     color: Color,
     positionMs: Long
 ) {
+    val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
+
     Box(
         modifier = modifier
             .width(2.dp)
-            .offset { IntOffset(positionMs.msToWidth, 0) }
+            .offset { IntOffset(with(msWidthPx) { positionMs.msToWidth }, 0) }
             .background(color)
     )
 }

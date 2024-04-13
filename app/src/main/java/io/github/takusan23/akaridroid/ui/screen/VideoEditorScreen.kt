@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,7 +33,8 @@ import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
 import io.github.takusan23.akaridroid.ui.component.TimeLine
-import io.github.takusan23.akaridroid.ui.component.UndoRedoButton
+import io.github.takusan23.akaridroid.ui.component.TimeLineZoomButtons
+import io.github.takusan23.akaridroid.ui.component.UndoRedoButtons
 import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
@@ -49,6 +51,9 @@ fun VideoEditorScreen(
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
+
+    // タイムライン拡大率
+    val timeLineMsWidthPx = remember { mutableIntStateOf(20) }
 
     // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
@@ -154,7 +159,12 @@ fun VideoEditorScreen(
                         onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
                         onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
                     )
-                    UndoRedoButton(
+                    TimeLineZoomButtons(
+                        msWidthPx = timeLineMsWidthPx.intValue,
+                        onZoomIn = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
+                        onZoomOut = { timeLineMsWidthPx.intValue++ }
+                    )
+                    UndoRedoButtons(
                         hasUndo = historyState.value.hasUndo,
                         hasRedo = historyState.value.hasRedo,
                         onUndo = { viewModel.renderDataUndo() },
@@ -171,6 +181,7 @@ fun VideoEditorScreen(
                     timeLineData = timeLineData.value,
                     currentPositionMs = previewPlayerStatus.value.currentPositionMs,
                     durationMs = renderData.value.durationMs,
+                    msWidthPx = timeLineMsWidthPx.intValue,
                     onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
                     onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
                     onEdit = { timeLineItem ->

@@ -21,7 +21,7 @@ import io.github.takusan23.akaridroid.R
  * @param onRedo 戻す操作を取り消すを押した時に呼ばれる
  */
 @Composable
-fun UndoRedoButton(
+fun UndoRedoButtons(
     modifier: Modifier = Modifier,
     hasUndo: Boolean,
     hasRedo: Boolean,

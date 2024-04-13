@@ -63,6 +63,7 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                 timeLineData = sushiData.value,
                 currentPositionMs = currentPositionMs.longValue,
                 durationMs = 60_000,
+                msWidthPx = 20,
                 onSeek = { positionMs -> currentPositionMs.longValue = positionMs },
                 onDragAndDropRequest = { request ->
                     // 位置更新のみ、入るかの判定はしていない。
