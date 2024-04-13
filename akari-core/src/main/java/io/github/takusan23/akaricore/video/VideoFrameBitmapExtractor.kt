@@ -6,6 +6,7 @@ import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import androidx.core.graphics.scale
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.video.gl.FrameExtractorRenderer
@@ -50,6 +51,12 @@ class VideoFrameBitmapExtractor {
     /** 前回[getImageReaderBitmap]で作成した Bitmap */
     private var prevBitmap: Bitmap? = null
 
+    // 動画の縦横
+    // どうやっても ImageReader でぶっ壊れた映像が出てくることがあるので（videoWidth = 1104 / videoHeight = 2560）、
+    // 縦横同じサイズで ImageReader を作り、出てきた Bitmap を scale して戻す。
+    private var videoHeight: Int = 0
+    private var videoWidth: Int = 0
+
     /**
      * デコーダーを初期化する
      * クロマキー機能を利用しない場合は、[chromakeyThreshold]、[chromakeyColor]は null でいいです。
@@ -68,11 +75,29 @@ class VideoFrameBitmapExtractor {
         mediaExtractor.selectTrack(index)
 
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
-        val videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
-        val videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+        videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+        videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
 
-        // Surface 経由で Bitmap が取れる ImageReader つくる
-        imageReader = ImageReader.newInstance(videoWidth, videoHeight, PixelFormat.RGBA_8888, 2)
+        // Surface 経由で Bitmap が取れる ImageReader つくる 。本来は、元動画の縦横サイズを入れるべきである。
+        // しかし、一部の縦動画（画面録画）を入れるとどうしても乱れてしまう。
+        // Google Pixel の場合は、縦と横にを 16 で割り切れる数字にすることで修正できたが、Snapdragon は直らなかった。
+        // ・・・・
+        // Snapdragon がどうやっても直んないので、別の方法を取る。
+        // 色々いじってみた結果、Snapdragon も 320 / 480 / 720 / 1280 / 1920 / 2560 / 3840 とかのキリがいい数字は何故か動くので、もうこの値を縦と横に適用する。
+        // その後元あった Bitmap のサイズに戻す。もう何もわからない。なんだよこれ・・
+        val maxSize = maxOf(videoWidth, videoHeight)
+        val imageReaderSize = when {
+            maxSize < 320 -> 320
+            maxSize < 480 -> 480
+            maxSize < 720 -> 720
+            maxSize < 1280 -> 1280
+            maxSize < 1920 -> 1920
+            maxSize < 2560 -> 2560
+            maxSize < 3840 -> 3840
+            else -> 1920 // 何もなければ適当に Full HD
+        }
+        println(imageReaderSize)
+        imageReader = ImageReader.newInstance(imageReaderSize, imageReaderSize, PixelFormat.RGBA_8888, 2)
 
         // OpenGL ES の用意
         // MediaCodec と ImageReader の間に OpenGL を経由させる
@@ -319,10 +344,22 @@ class VideoFrameBitmapExtractor {
         val buffer = image.planes.first().buffer
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         bitmap.copyPixelsFromBuffer(buffer)
-        prevBitmap = bitmap
+        // アスペクト比を戻す
+        val fixAspectRateBitmap = bitmap.scale(videoWidth, videoHeight)
+        prevBitmap = fixAspectRateBitmap
         // Image を close する
         image.close()
-        return@withContext bitmap
+        return@withContext fixAspectRateBitmap
+    }
+
+    private fun Int.fixDivision16(): Int {
+        return if (this % 16 == 0) {
+            this
+        } else {
+            // 割り切れないなら、あまりを引いて 16 足す。
+            val amari = this % 16
+            (this - amari) + 16
+        }
     }
 
     companion object {
