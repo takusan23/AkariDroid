@@ -96,7 +96,6 @@ class VideoFrameBitmapExtractor {
             maxSize < 3840 -> 3840
             else -> 1920 // 何もなければ適当に Full HD
         }
-        println(imageReaderSize)
         imageReader = ImageReader.newInstance(imageReaderSize, imageReaderSize, PixelFormat.RGBA_8888, 2)
 
         // OpenGL ES の用意

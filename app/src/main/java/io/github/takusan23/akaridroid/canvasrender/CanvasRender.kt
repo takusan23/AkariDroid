@@ -28,6 +28,14 @@ class CanvasRender(private val context: Context) {
      * @param canvasRenderItem 描画する
      */
     suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>) = withContext(Dispatchers.IO) {
+
+        // 前の呼び出しから消えた素材は destroy を呼んでリソース開放させる
+        itemRenderList.forEach { renderItem ->
+            if (canvasRenderItem.none { renderItem.isEquals(it) }) {
+                renderItem.destroy()
+            }
+        }
+
         itemRenderList = canvasRenderItem.map { renderItem ->
             // 描画するやつを用意する
             // 並列で初期化をする
