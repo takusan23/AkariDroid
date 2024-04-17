@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,11 +32,10 @@ import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
-import io.github.takusan23.akaridroid.ui.component.PreviewPlayerController
+import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.TimeLineZoomButtons
 import io.github.takusan23.akaridroid.ui.component.UndoRedoButtons
-import io.github.takusan23.akaridroid.ui.component.VideoPlayerPreviewAndTouchEditor
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
@@ -138,27 +138,23 @@ fun VideoEditorScreen(
                 .fillMaxSize()
         ) {
             Column {
-                // プレビュー
-                VideoPlayerPreviewAndTouchEditor(
+                // タッチ編集・プレビュー
+                PreviewContainer(
                     modifier = Modifier
+                        .aspectRatio(1f)
                         .fillMaxWidth()
-                        .aspectRatio(1f),
+                        .fillMaxHeight(0.5f),
                     previewBitmap = previewBitmap.value?.asImageBitmap(),
                     touchEditorData = touchEditorData.value,
                     onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
-                    onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) }
+                    onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
+                    playerStatus = previewPlayerStatus.value,
+                    onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+                    onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
                 )
 
-                // シークバーとか
-                Row {
-                    PreviewPlayerController(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(5.dp),
-                        playerStatus = previewPlayerStatus.value,
-                        onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
-                    )
+                // 戻るボタンとか
+                Row(modifier = Modifier.align(Alignment.End)) {
                     TimeLineZoomButtons(
                         msWidthPx = timeLineMsWidthPx.intValue,
                         onZoomIn = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },

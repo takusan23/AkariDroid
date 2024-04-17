@@ -1,13 +1,9 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -16,13 +12,9 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
@@ -32,14 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -61,67 +50,6 @@ private enum class TouchEditorItemTextDescriptionType {
 }
 
 /**
- * [io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer]
- * プレビューを表示する機能と、キャンバス要素をタッチで移動できるようにするやつ
- *
- * @param modifier [Modifier]
- * @param previewBitmap プレビューBitmap。[io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer.previewBitmap]
- * @param touchEditorData 現在表示されているキャンバス要素を[TouchEditorData]で
- * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
- * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
- */
-@Composable
-fun VideoPlayerPreviewAndTouchEditor(
-    modifier: Modifier = Modifier,
-    previewBitmap: ImageBitmap?,
-    touchEditorData: TouchEditorData,
-    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
-    onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit
-) {
-    // タッチ移動機能の ON/OFF
-    val isEnableTouchEditor = remember { mutableStateOf(true) }
-
-    Box(modifier = modifier) {
-        // プレビューを出す
-        if (previewBitmap != null) {
-            Image(
-                modifier = Modifier
-                    .matchParentSize()
-                    .align(Alignment.Center),
-                bitmap = previewBitmap,
-                contentDescription = null
-            )
-        } else {
-            Text(text = stringResource(id = R.string.video_preview_generating))
-        }
-
-        // キャンバス要素をドラッグアンドドロップで移動できるように
-        // ON/OFF 切り替えできるように
-        if (isEnableTouchEditor.value) {
-            TouchEditor(
-                modifier = Modifier
-                    .matchParentSize()
-                    .align(Alignment.Center),
-                videoSize = touchEditorData.videoSize,
-                touchEditorItemList = touchEditorData.visibleTouchEditorItemList,
-                onDragAndDropEnd = onDragAndDropEnd,
-                onSizeChangeRequest = onSizeChangeRequest
-            )
-        }
-
-        // タッチ移動モードスイッチ
-        TouchEditSwitch(
-            modifier = Modifier.align(Alignment.TopEnd),
-            isEnable = isEnableTouchEditor.value,
-            onChange = { isEnableTouchEditor.value = it }
-        )
-
-        // おしらせ（プレビューがとても遅いけど、出力には関係ないよ）
-        PreviewNotice(modifier = Modifier.align(Alignment.TopStart))
-    }
-}
-
-/**
  * キャンバス要素自体をタッチ操作で直感的に移動できるようにする
  *
  * @param modifier [Modifier]
@@ -131,7 +59,7 @@ fun VideoPlayerPreviewAndTouchEditor(
  * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
  */
 @Composable
-private fun TouchEditor(
+fun TouchEditor(
     modifier: Modifier = Modifier,
     videoSize: RenderData.Size,
     touchEditorItemList: List<TouchEditorData.TouchEditorItem>,
@@ -296,81 +224,6 @@ private fun TouchEditorItem(
             tint = Color.Black
         )
 
-    }
-}
-
-/**
- * タッチ移動モード変更スイッチ
- *
- * @param modifier [Modifier]
- * @param isEnable 有効かどうか
- * @param onChange 変更時
- */
-@Composable
-private fun TouchEditSwitch(
-    modifier: Modifier = Modifier,
-    isEnable: Boolean,
-    onChange: (Boolean) -> Unit
-) {
-    val context = LocalContext.current
-
-    Surface(
-        modifier = modifier,
-        checked = isEnable,
-        onCheckedChange = {
-            val after = !isEnable
-            onChange(after)
-
-            // 意味分からんと思うので Toast も出す
-            val toastMessage = if (after) context.getString(R.string.video_preview_enable_touch_edit) else context.getString(R.string.video_preview_disable_touch_edit)
-            Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
-        },
-        shape = RoundedCornerShape(5.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_outlined_touch_app_24px),
-                contentDescription = null
-            )
-            Switch(
-                checked = isEnable,
-                onCheckedChange = null
-            )
-        }
-    }
-}
-
-/** プレビューがとても遅いけど、出力には問題ないよ */
-@Composable
-private fun PreviewNotice(modifier: Modifier = Modifier) {
-    val isShow = remember { mutableStateOf(false) }
-
-    // プレビューがとても遅いけど仕様だからごめん。
-    if (isShow.value) {
-        AlertDialog(
-            onDismissRequest = { isShow.value = false },
-            title = { Text(text = stringResource(id = R.string.video_preview_dialog_title)) },
-            text = { Text(text = stringResource(id = R.string.video_preview_dialog_description)) },
-            confirmButton = {
-                Button(onClick = { isShow.value = false }) {
-                    Text(text = stringResource(id = R.string.video_preview_dialog_close))
-                }
-            }
-        )
-    }
-
-    IconButton(
-        modifier = modifier,
-        onClick = { isShow.value = !isShow.value }
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_outlined_info_24px),
-            contentDescription = null
-        )
     }
 }
 
