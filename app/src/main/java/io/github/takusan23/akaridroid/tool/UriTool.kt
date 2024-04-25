@@ -28,11 +28,19 @@ object UriTool {
         }
     }
 
-    /** [takePersistableUriPermission]で永続化して、有効な（削除されていない）Uri 一覧を返す。 */
-    fun getTakePersistableUriList(context: Context): List<Uri> {
-        return context.contentResolver.persistedUriPermissions
-            .filter { it.isReadPermission }
-            .map { it.uri }
+    /**
+     * [Uri]が存在するかを返す
+     *
+     * @param context [Context]
+     * @param uri 真偽が不明な[Uri]
+     * @return 存在すれば true
+     */
+    suspend fun existsContentUri(context: Context, uri: Uri): Boolean = withContext(Dispatchers.IO) {
+        // Uri が存在するかを返す処理はない
+        // 仕方ないので try-catch で開けるか試す。あれば true のハズ。
+        runCatching {
+            context.contentResolver.query(uri, emptyArray(), null, null, null)?.close()
+        }.isSuccess
     }
 
     /**

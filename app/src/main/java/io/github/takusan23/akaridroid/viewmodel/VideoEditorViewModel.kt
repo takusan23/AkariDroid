@@ -117,15 +117,24 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             val readRenderData = runCatching {
                 ProjectFolderManager.readRenderData(context)
             }.getOrNull() ?: renderData.value
-            // 前回の利用から、すでに削除されて使えない素材（画像、動画、音声）を弾く
-            val availableUriList = UriTool.getTakePersistableUriList(context)
 
-            /** ファイルが有効かどうか */
-            fun RenderData.FilePath.existsFilePath(): Boolean = when (this) {
+            /** ファイルが有効かどうか。もし存在しない場合は false。
+             * Uri の場合は releasePersistableUriPermission する
+             */
+            suspend fun RenderData.FilePath.existsFilePath(): Boolean = when (this) {
                 is RenderData.FilePath.File -> File(this.filePath).exists()
-                is RenderData.FilePath.Uri -> this.uriPath.toUri() in availableUriList
+                is RenderData.FilePath.Uri -> {
+                    val exists = UriTool.existsContentUri(context, this.uriPath.toUri())
+                    if (!exists) {
+                        // 存在しない Uri は releasePersistableUriPermission する
+                        UriTool.revokePersistableUriPermission(context, this.uriPath.toUri())
+                    }
+                    exists
+                }
             }
 
+            // 前回の利用から、すでに削除されて使えない素材（画像、動画、音声）を弾く
+            // 多分 MediaStore に問いただすしか無い
             val existsRenderItemList = (readRenderData.canvasRenderItem + readRenderData.audioRenderItem)
                 .filter {
                     when (it) {

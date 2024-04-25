@@ -36,12 +36,8 @@ class ImageRender(
             )
 
         // リサイズする
-        bitmap = if (image.size != null) {
-            val (width, height) = image.size
-            request.submit(width, height).get()
-        } else {
-            request.submit().get()
-        }
+        val (width, height) = image.size
+        bitmap = request.submit(width, height).get()
     }
 
     override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {

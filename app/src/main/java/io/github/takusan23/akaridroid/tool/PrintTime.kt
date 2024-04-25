@@ -3,11 +3,11 @@ package io.github.takusan23.akaridroid.tool
 import kotlin.system.measureTimeMillis
 
 /** 時間測って println する */
-inline fun <T> String.measureTime(code: () -> T): T {
+internal inline fun <T> printTime(tag: String, code: () -> T): T {
     val result: T
     val time = measureTimeMillis {
         result = code()
     }
-    println("[$this] $time ms")
+    println("[$tag] $time ms")
     return result
 }

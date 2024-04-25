@@ -351,16 +351,6 @@ class VideoFrameBitmapExtractor {
         return@withContext fixAspectRateBitmap
     }
 
-    private fun Int.fixDivision16(): Int {
-        return if (this % 16 == 0) {
-            this
-        } else {
-            // 割り切れないなら、あまりを引いて 16 足す。
-            val amari = this % 16
-            (this - amari) + 16
-        }
-    }
-
     companion object {
         /** MediaCodec タイムアウト */
         private const val TIMEOUT_US = 10_000L
