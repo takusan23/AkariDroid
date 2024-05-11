@@ -47,7 +47,7 @@ class ImageRender(
     }
 
     override fun destroy() {
-        bitmap?.recycle()
+        bitmap = null
     }
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
