@@ -261,7 +261,16 @@ private fun RequiredSizeTimeLine(
     ) {
 
         // 時間を表示するやつ
-        TimeLineTopTimeLabel(durationMs = maxDurationMs)
+        TimeLineTopTimeLabel(
+            durationMs = maxDurationMs,
+            // TODO もっといい感じにする
+            stepMs = if (10 < msWidthPx.msWidthPx) {
+                10_000
+            } else {
+                2_000
+            }
+        )
+
         HorizontalDivider()
 
         if (timeLineScrollableAreaCoordinates != null) {
@@ -496,8 +505,10 @@ private fun TimeLineItem(
                         .padding(horizontal = 10.dp)
                         .align(Alignment.CenterEnd)
                         .fillMaxHeight(),
-                    resetKey = timeLineItemData,
-                    onDrag = { dragAmountX -> durationMs.longValue += with(msWidthPx) { dragAmountX.widthToMs } },
+                    resetKeys = arrayOf(timeLineItemData, msWidthPx),
+                    onDrag = { dragAmountX ->
+                        durationMs.longValue += with(msWidthPx) { dragAmountX.widthToMs }
+                    },
                     onDragEnd = {
                         onDurationChange(
                             TimeLineData.DurationChangeRequest(
@@ -596,6 +607,8 @@ private fun TimeLineTopTimeLabel(
             val textMeasure = rememberTextMeasurer()
             val timeText = simpleDateFormat.format(timeMs)
 
+            println(with(msWidthPx) { timeMs.msToWidth })
+
             Text(
                 modifier = Modifier
                     .offset { IntOffset(-textMeasure.measure(timeText).size.width / 2, 0) }
@@ -632,19 +645,19 @@ private fun TimeLinePositionBar(
  * 長さ調整用のつまみ
  *
  * @param modifier [Modifier]
- * @param resetKey [Modifier.pointerInput]のリセット用
+ * @param resetKeys [Modifier.pointerInput]のリセット用
  * @param onDrag つまみ移動中に呼ばれる
  * @param onDragEnd つまみ移動が終わったら（指を離したら）呼ばれる
  */
 @Composable
 private fun DurationChangeHandle(
     modifier: Modifier = Modifier,
-    resetKey: Any,
+    resetKeys: Array<Any>,
     onDrag: (dragAmountX: Float) -> Unit,
     onDragEnd: () -> Unit
 ) {
     Row(
-        modifier = modifier.pointerInput(resetKey) {
+        modifier = modifier.pointerInput(*resetKeys) {
             detectDragGestures(
                 onDrag = { change, dragAmount ->
                     change.consume()

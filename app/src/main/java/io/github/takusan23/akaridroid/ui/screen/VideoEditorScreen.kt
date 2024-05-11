@@ -157,8 +157,8 @@ fun VideoEditorScreen(
                 Row(modifier = Modifier.align(Alignment.End)) {
                     TimeLineZoomButtons(
                         msWidthPx = timeLineMsWidthPx.intValue,
-                        onZoomIn = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
-                        onZoomOut = { timeLineMsWidthPx.intValue++ }
+                        onZoomIn = { timeLineMsWidthPx.intValue++ },
+                        onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) }
                     )
                     UndoRedoButtons(
                         hasUndo = historyState.value.hasUndo,
