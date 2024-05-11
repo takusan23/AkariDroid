@@ -4,14 +4,12 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRender
-import io.github.takusan23.akaridroid.canvasrender.itemrender.ItemRenderInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShapeRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -19,8 +17,8 @@ import kotlinx.coroutines.withContext
 /** [Canvas] に [RenderData.CanvasItem]の内容を描画するやつ */
 class CanvasRender(private val context: Context) {
 
-    /** 描画する [ItemRenderInterface] の配列 */
-    private var itemRenderList = emptyList<ItemRenderInterface>()
+    /** 描画する [BaseItemRender] の配列 */
+    private var itemRenderList = emptyList<BaseItemRender>()
 
     /**
      * [RenderData]をセット、更新する
@@ -29,35 +27,24 @@ class CanvasRender(private val context: Context) {
      */
     suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>) = withContext(Dispatchers.IO) {
 
-        // 前の呼び出しから消えた素材は destroy を呼んでリソース開放させる
+        // 前の呼び出しから消えた素材はリソース開放させる
         itemRenderList.forEach { renderItem ->
             if (canvasRenderItem.none { renderItem.isEquals(it) }) {
-                renderItem.destroy()
+                renderItem.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
             }
         }
 
         itemRenderList = canvasRenderItem.map { renderItem ->
-            // 描画するやつを用意する
-            // 並列で初期化をする
-            async {
-                // データが変化していない場合は使い回す
-                val existsOrNull = itemRenderList.firstOrNull { it.isEquals(renderItem) }
-                if (existsOrNull != null) {
-                    return@async existsOrNull
-                }
-
-                // 無ければ作る
-                val newItem = when (renderItem) {
-                    is RenderData.CanvasItem.Text -> TextRender(context, renderItem)
-                    is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
-                    is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
-                    is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
-                }
-                // 初期化も
-                newItem.prepare()
-                return@async newItem
+            // データが変化していない場合は使い回す
+            itemRenderList.firstOrNull {
+                it.isEquals(renderItem)
+            } ?: when (renderItem) { // 無ければ作る
+                is RenderData.CanvasItem.Text -> TextRender(context, renderItem)
+                is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
+                is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
+                is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
             }
-        }.awaitAll()
+        }
     }
 
     /**
@@ -70,18 +57,34 @@ class CanvasRender(private val context: Context) {
     suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
         // 黒埋めする
         canvas.drawColor(Color.BLACK)
+
+        // 時間的にもう使われない場合は DESTROY にする
+        itemRenderList
+            .filter { itemRender -> itemRender.currentLifecycleState == BaseItemRender.RenderLifecycleState.PREPARED }
+            .filter { itemRender -> !itemRender.isDisplayPosition(currentPositionMs) }
+            .map { itemRender -> launch { itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED) } }
+            .joinAll()
+
         // 描画すべきリスト
         val displayPositionItemList = itemRenderList.filter { it.isDisplayPosition(currentPositionMs) }
+
+        // 描画すべきリストで PREPARED していない場合は呼び出す
+        // 必要な素材のみ準備する
+        displayPositionItemList
+            .filter { it.currentLifecycleState == BaseItemRender.RenderLifecycleState.DESTROYED }
+            .map { itemRender -> launch { itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.PREPARED) } }
+            .joinAll()
+
         // preDraw を並列で呼び出す
         displayPositionItemList.map { itemRender ->
             launch {
                 itemRender.preDraw(
-                    canvas = canvas,
                     durationMs = durationMs,
                     currentPositionMs = currentPositionMs
                 )
             }
         }.joinAll()
+
         // 描画する
         // レイヤー順に
         displayPositionItemList
@@ -96,9 +99,9 @@ class CanvasRender(private val context: Context) {
     }
 
     /** 破棄する */
-    fun destroy() {
-        itemRenderList.forEach {
-            it.destroy()
+    suspend fun destroy() {
+        itemRenderList.forEach { itemRender ->
+            itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
         }
     }
 

@@ -11,7 +11,7 @@ import io.github.takusan23.akaridroid.tool.FontManager
 class TextRender(
     private val context: Context,
     private val text: RenderData.CanvasItem.Text
-) : ItemRenderInterface {
+) : BaseItemRender() {
 
     // 枠なし文字
     private val fillPaint = createPaint(text).apply {

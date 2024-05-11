@@ -8,7 +8,7 @@ import io.github.takusan23.akaridroid.RenderData
 /** 図形を描画する */
 class ShapeRender(
     private val shape: RenderData.CanvasItem.Shape
-) : ItemRenderInterface {
+) : BaseItemRender() {
 
     /** Canvas に描画する際に使う Paint */
     private val paint = Paint()

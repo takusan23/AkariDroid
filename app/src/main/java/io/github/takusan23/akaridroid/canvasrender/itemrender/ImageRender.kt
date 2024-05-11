@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 class ImageRender(
     private val context: Context,
     private val image: RenderData.CanvasItem.Image
-) : ItemRenderInterface {
+) : BaseItemRender() {
 
     /** Glide でロードした画像 */
     private var bitmap: Bitmap? = null
