@@ -186,6 +186,7 @@ class VideoFrameBitmapExtractor {
             return@withContext false
         }
 
+        var returnValue = true
         var isRunning = isActive
         val bufferInfo = MediaCodec.BufferInfo()
         while (isRunning) {
@@ -219,18 +220,19 @@ class VideoFrameBitmapExtractor {
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
                         // OpenGL で描画して、ImageReader で撮影する
                         // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
-                        withContext(openGlRendererThreadDispatcher) {
-                            if (doRender) {
+                        if (doRender) {
+                            withContext(openGlRendererThreadDispatcher) {
                                 frameExtractorRenderer?.draw()
                                 inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
                                 inputSurface.swapBuffers()
                             }
-                        }
-                        // 欲しいフレームの時間に到達した場合、ループを抜ける
-                        val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
-                        if (seekToMs <= presentationTimeMs) {
-                            isRunning = false
-                            latestDecodePositionMs = presentationTimeMs
+                            // 欲しいフレームの時間に到達した場合、ループを抜ける
+                            // doRender == true じゃないと ImageReader から取り出せないので
+                            val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                            if (seekToMs <= presentationTimeMs) {
+                                isRunning = false
+                                latestDecodePositionMs = presentationTimeMs
+                            }
                         }
                     }
                 }
@@ -239,6 +241,8 @@ class VideoFrameBitmapExtractor {
             // 次に進める。advance() が false の場合はもうデータがないので、break する。
             val isEndOfFile = !mediaExtractor.advance()
             if (isEndOfFile) {
+                // return で false（フレームが取得できない旨）を返す
+                returnValue = false
                 break
             }
 
@@ -259,7 +263,7 @@ class VideoFrameBitmapExtractor {
             }
         }
 
-        return@withContext true
+        return@withContext returnValue
     }
 
     /**
@@ -316,18 +320,19 @@ class VideoFrameBitmapExtractor {
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
                         // OpenGL で描画して、ImageReader で撮影する
                         // OpenGL 描画用スレッドに切り替えてから、swapBuffers とかやる
-                        withContext(openGlRendererThreadDispatcher) {
-                            if (doRender) {
+                        if (doRender) {
+                            withContext(openGlRendererThreadDispatcher) {
                                 frameExtractorRenderer?.draw()
                                 inputSurface.setPresentationTime(bufferInfo.presentationTimeUs * 1000)
                                 inputSurface.swapBuffers()
                             }
-                        }
-                        // 欲しいフレームの時間に到達した場合、ループを抜ける
-                        val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
-                        if (seekToMs <= presentationTimeMs) {
-                            isRunning = false
-                            latestDecodePositionMs = presentationTimeMs
+                            // 欲しいフレームの時間に到達した場合、ループを抜ける
+                            // doRender == true じゃないと ImageReader から取り出せないので
+                            val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                            if (seekToMs <= presentationTimeMs) {
+                                isRunning = false
+                                latestDecodePositionMs = presentationTimeMs
+                            }
                         }
                     }
                 }
