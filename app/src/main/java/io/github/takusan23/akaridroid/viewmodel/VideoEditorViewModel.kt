@@ -259,8 +259,6 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 .distinctUntilChanged()
                 .collect { renderItem ->
                     videoEditorPreviewPlayer.setCanvasRenderItem(renderItem)
-                    // プレビューを更新
-                    videoEditorPreviewPlayer.playInSingle()
                 }
         }
 

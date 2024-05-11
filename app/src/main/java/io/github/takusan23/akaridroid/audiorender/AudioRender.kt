@@ -106,12 +106,16 @@ class AudioRender(
         inputStream = outPcmFile.inputStream()
     }
 
-    /** シークする。秒なので音ズレが訪れする */
-    suspend fun seek(currentSec: Int) = withContext(Dispatchers.IO) {
+    /**
+     * シークする
+     *
+     * @param currentPositionMs シークしたい位置。ミリ秒
+     */
+    suspend fun seek(currentPositionMs: Long) = withContext(Dispatchers.IO) {
         // 読み取り位置を見て、もし戻る必要があれば
         val available = inputStream?.available() ?: return@withContext
         val currentReadPos = outPcmFile.length() - available
-        val seekBytePos = (AkariCoreAudioProperties.CHANNEL_COUNT * AkariCoreAudioProperties.BIT_DEPTH * AkariCoreAudioProperties.SAMPLING_RATE) * currentSec
+        val seekBytePos = AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE * currentPositionMs
         if (currentReadPos < seekBytePos) {
             // Skip する
             inputStream?.skip(seekBytePos - currentReadPos)

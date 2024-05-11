@@ -9,12 +9,14 @@ import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -53,14 +55,86 @@ class VideoEditorPreviewPlayer(
         )
     )
 
-    /** [playInSingle]を複数回呼び出した時にキャンセルできるように */
-    private var playInSingleJob: Job? = null
-
     /** プレビュープレイヤーのプレイヤー状態 Flow */
     val playerStatus = _playerStatus.asStateFlow()
 
     /** プレビュー画像として[Bitmap]を流す Flow */
     val previewBitmap = bitmapCanvasController.latestBitmap
+
+    init {
+
+        // プレビュー再生を PlayerStatus の値変更をトリガーに行う
+
+        playerScope.launch {
+            // 単発の動画フレーム更新
+            // isPlaying が false のとき
+            // 再生位置か動画の長さが変化したら
+            // collectLatest で新しい値が来たら既存のブロックをキャンセルするよう
+            playerStatus
+                .filterPrepareCompleted()
+                .filter { !it.isPlaying }
+                .map { status -> status.currentPositionMs to status.durationMs }
+                .distinctUntilChanged()
+                .collectLatest { (currentPositionMs, durationMs) ->
+                    // update {} するので distinctUntilChanged 必須です
+                    setProgress(ProgressType.CANVAS) {
+                        drawVideoFrame(durationMs, currentPositionMs)
+                    }
+                }
+        }
+
+        playerScope.launch {
+            // 連続のフレーム更新
+            // isPlaying のみ受け取り、それ以外で起動しない
+            // collectLatest で新しい値が来たら既存のブロックをキャンセルするよう
+            playerStatus
+                .filterPrepareCompleted()
+                .map { it.isPlaying }
+                .distinctUntilChanged()
+                .collectLatest { isPlaying ->
+
+                    // false なら起動しない
+                    if (!isPlaying) return@collectLatest
+
+                    // 1ミリ秒間に必要な ByteArray を用意して読み出す
+                    val pcmByteArray = ByteArray(AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE)
+                    // 再生を開始
+                    pcmPlayer.play()
+
+                    try {
+                        // 終わるかするまで
+                        while (isActive) {
+
+                            // 生成すべき時間
+                            val (_, currentPositionMs, durationMs) = _playerStatus.value
+
+                            // フレームを生成する
+                            // Canvas に書く
+                            drawVideoFrame(durationMs, currentPositionMs)
+
+                            // 1フレーム分の音を再生する
+                            // シークする
+                            audioRender.seek(currentPositionMs)
+                            audioRender.readPcmByteArray(pcmByteArray)
+                            // スピーカーへ流す
+                            pcmPlayer.writePcmData(pcmByteArray)
+
+                            // 次のフレームのために時間を進める
+                            if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
+                                val frameMs = 16 // TODO fps を RenderData から取り出す
+                                _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + frameMs) }
+                            } else {
+                                // 動画時間超えたら終わり
+                                break
+                            }
+                        }
+                    } finally {
+                        pcmPlayer.pause()
+                        pause()
+                    }
+                }
+        }
+    }
 
     /** 動画の情報をセットする */
     fun setVideoInfo(
@@ -70,7 +144,6 @@ class VideoEditorPreviewPlayer(
     ) {
         _playerStatus.update { it.copy(durationMs = durationMs) }
         bitmapCanvasController.createCanvas(videoWidth, videoHeight)
-        playInSingle()
     }
 
     /**
@@ -92,93 +165,35 @@ class VideoEditorPreviewPlayer(
     suspend fun setCanvasRenderItem(
         canvasItemList: List<RenderData.CanvasItem> = emptyList(),
     ) = withContext(Dispatchers.Default) {
+        // 準備とプレビュー再生が反映されるまで prepare に
         setProgress(ProgressType.CANVAS) {
             canvasRender.setRenderData(canvasItemList)
+            drawVideoFrame()
         }
     }
 
     /** シークする */
     fun seekTo(seekToMs: Long) {
         _playerStatus.update { it.copy(currentPositionMs = seekToMs) }
-        // プレビューを更新
-        playInSingle()
     }
 
-    /** 現在位置のプレビューを更新する。更新は一回だけ */
-    fun playInSingle() {
-        playerScope.launch {
-            // 既にプレビュー進行中ならキャンセル
-            playInSingleJob?.cancelAndJoin()
-
-            playInSingleJob = launch {
-                val (_, currentPosition, videoDuration) = _playerStatus.first()
-                setProgress(ProgressType.CANVAS) {
-                    bitmapCanvasController.update { canvas ->
-                        canvasRender.draw(canvas, videoDuration, currentPosition)
-                    }
-                }
-            }
-        }
-    }
-
-    /** プレビュー再生を開始する。停止するまで時間が進み続けます。 */
+    /**
+     * プレビュー再生を開始する。停止するまで時間が進み続けます。
+     * プレビュー再生は動画のフレーム（画像）生成に時間がかかるのでかくかくします。
+     * （これでも自前クラス[io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor]のおかげでかなり早いです）
+     */
     fun playInRepeat() {
-
         _playerStatus.update { it.copy(isPlaying = true) }
-
-        // 時間を進める
-        playerScope.launch {
-            while (isActive) {
-                // 時間を進める
-                if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
-                    // 1秒ごとなのは、AudioRender が時間の単位が秒なのでそれの最低値
-                    _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + 1_000) }
-                    delay(1_000)
-                } else {
-                    // 動画時間超えたら折る
-                    _playerStatus.update { it.copy(isPlaying = false) }
-                    break
-                }
-            }
-        }
-
-        // Canvas に書く
-        // プレビュー重たい
-        // 速度優先のため1秒ごと
-        playerScope.launch {
-            _playerStatus.collect { (_, currentPosition, videoDuration) ->
-                bitmapCanvasController.update { canvas ->
-                    canvasRender.draw(canvas, videoDuration, currentPosition)
-                }
-            }
-        }
-
-        // 再生を開始
-        pcmPlayer.play()
-        // AudioRender も用意
-        // 1秒間に必要な ByteArray を用意して読み出す
-        val pcmByteArray = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
-        playerScope.launch {
-            _playerStatus.collect { (_, currentPosition, _) ->
-                // シークする
-                audioRender.seek((currentPosition / 1000).toInt())
-                audioRender.readPcmByteArray(pcmByteArray)
-                // スピーカーへ流す
-                pcmPlayer.writePcmData(pcmByteArray)
-            }
-        }
     }
 
     /** 再生を一時停止する */
     fun pause() {
         _playerStatus.update { it.copy(isPlaying = false) }
-        pcmPlayer.pause()
-        playerScope.coroutineContext.cancelChildren()
     }
 
     /** 破棄する */
     fun destroy() {
-        pause()
+        playerScope.cancel()
         pcmPlayer.destroy()
         audioRender.destroy()
     }
@@ -200,6 +215,27 @@ class VideoEditorPreviewPlayer(
                 ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = true)
                 ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = true)
             }
+        }
+    }
+
+    /**
+     * 再生準備ができたときのみ、このあとの Flow を流す
+     * [PlayerStatus.isPrepareCompleteAudio]と[PlayerStatus.isPrepareCompleteCanvas]
+     */
+    private fun Flow<PlayerStatus>.filterPrepareCompleted() = this.filter { it.isPrepareCompleteAudio && it.isPrepareCompleteCanvas }
+
+    /**
+     * 指定した時間の動画フレームを Canvas で描画する
+     *
+     * @param durationMs 動画の時間。ミリ秒
+     * @param currentPositionMs 再生位置。ミリ秒
+     */
+    private suspend fun drawVideoFrame(
+        durationMs: Long = playerStatus.value.durationMs,
+        currentPositionMs: Long = playerStatus.value.currentPositionMs
+    ) {
+        bitmapCanvasController.update { canvas ->
+            canvasRender.draw(canvas, durationMs, currentPositionMs)
         }
     }
 

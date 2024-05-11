@@ -607,8 +607,6 @@ private fun TimeLineTopTimeLabel(
             val textMeasure = rememberTextMeasurer()
             val timeText = simpleDateFormat.format(timeMs)
 
-            println(with(msWidthPx) { timeMs.msToWidth })
-
             Text(
                 modifier = Modifier
                     .offset { IntOffset(-textMeasure.measure(timeText).size.width / 2, 0) }

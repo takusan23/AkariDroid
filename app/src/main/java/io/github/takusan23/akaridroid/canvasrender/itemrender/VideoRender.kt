@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.tool.printTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -32,24 +31,29 @@ class VideoRender(
         get() = video.layerIndex
 
     override suspend fun prepare() = withContext(Dispatchers.IO) {
-        // クロマキーする場合
-        val isEnableChromaKey = video.chromaKeyColor != null
-
-        videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
-            // Uri と File で分岐
-            prepareDecoder(
-                input = when (video.filePath) {
-                    is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
-                    is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
-                },
-                chromakeyThreshold = if (isEnableChromaKey) CHROMAKEY_THRESHOLD else null,
-                chromakeyColor = if (isEnableChromaKey) video.chromaKeyColor!! else null
-            )
-        }
+        // ここで VideoFrameBitmapExtractor を起動してしまうと、MediaCodec のハードウェアデコーダーが足りなくなってしまう
+        // TODO 使わなくなった VideoFrameBitmapExtractor を破棄するような処理。というか必要なときのみデコーダーを起動するような処理。
     }
 
     override suspend fun preDraw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         super.preDraw(canvas, durationMs, currentPositionMs)
+
+        // クロマキーする場合
+        val isEnableChromaKey = video.chromaKeyColor != null
+        if (videoFrameBitmapExtractor == null) {
+            videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
+                // Uri と File で分岐
+                prepareDecoder(
+                    input = when (video.filePath) {
+                        is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
+                        is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
+                    },
+                    chromakeyThreshold = if (isEnableChromaKey) CHROMAKEY_THRESHOLD else null,
+                    chromakeyColor = if (isEnableChromaKey) video.chromaKeyColor!! else null
+                )
+            }
+        }
+
         // 動画のフレーム取得は時間がかかるので、preDraw で取得する
         val videoFrameBitmapExtractor = videoFrameBitmapExtractor ?: return@withContext
 
