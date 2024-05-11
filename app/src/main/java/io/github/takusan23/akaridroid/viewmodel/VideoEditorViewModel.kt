@@ -664,6 +664,30 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /**
+     * タイムラインのアイテムを複製する。字幕とかコピーしたいでしょ。
+     * 複製したアイテムはタイムライン上に追加されます。
+     *
+     * @param id コピーしたいアイテムのID
+     */
+    fun duplicateRenderItem(id: Long) {
+        val copyFromItem = getRenderItem(id) ?: return
+        val layerIndex = calcInsertableLaneIndex(copyFromItem.displayTime)
+
+        // 複製する
+        val copyItem = when (copyFromItem) {
+            is RenderData.AudioItem.Audio -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+            is RenderData.CanvasItem.Image -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+            is RenderData.CanvasItem.Shape -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+            is RenderData.CanvasItem.Text -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+            is RenderData.CanvasItem.Video -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+        }
+        when (copyItem) {
+            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(copyItem)
+            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(copyItem)
+        }
+    }
+
+    /**
      * タイムラインから来た、長さ調整リクエストをさばく
      *
      * @param request 長さ調整したいアイテムの [TimeLineData.DurationChangeRequest]

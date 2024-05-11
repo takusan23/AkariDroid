@@ -166,5 +166,6 @@
     <string name="edit_renderitem_chromakey_title">クロマキー合成を利用する</string>
     <string name="edit_renderitem_chromakey_select_color">透明にする色を選ぶ</string>
     <string name="dialog_chromakeycolor_description">画像を押すことで、透過させたい色を選ぶことができます。</string>
+    <string name="timeline_context_menu_duplicate">複製</string>
 
 </resources>

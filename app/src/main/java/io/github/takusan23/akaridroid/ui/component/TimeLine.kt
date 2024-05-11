@@ -131,6 +131,7 @@ fun TimeLine(
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit, // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
     onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // タイムラインの拡大縮小
@@ -161,6 +162,7 @@ fun TimeLine(
                 onEdit = onEdit,
                 onCut = onCut,
                 onDelete = onDelete,
+                onDuplicate = onDuplicate,
                 onDurationChange = onDurationChange,
                 onDragAndDropRequest = onDragAndDropRequest,
             )
@@ -223,6 +225,7 @@ private fun OverlayTimeLineComponents(
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
+ * @param onDuplicate メニューで複製を押した
  * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
@@ -235,6 +238,7 @@ private fun RequiredSizeTimeLine(
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
     onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean
 ) {
@@ -293,6 +297,7 @@ private fun RequiredSizeTimeLine(
                     onEdit = onEdit,
                     onCut = onCut,
                     onDelete = onDelete,
+                    onDuplicate = onDuplicate,
                     onDurationChange = onDurationChange,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                     onDragAndDropRequest = {
@@ -336,6 +341,7 @@ private fun RequiredSizeTimeLine(
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
+ * @param onDuplicate メニューで複製を押した
  * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
@@ -349,6 +355,7 @@ private fun TimeLineLane(
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
     onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -372,6 +379,7 @@ private fun TimeLineLane(
                 onEdit = { onEdit(timeLineItemData) },
                 onCut = { onCut(timeLineItemData) },
                 onDelete = { onDelete(timeLineItemData) },
+                onDuplicate = { onDuplicate(timeLineItemData) },
                 onDurationChange = onDurationChange
             )
         }
@@ -389,6 +397,7 @@ private fun TimeLineLane(
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
  * @param onDelete 削除を押した
+ * @param onDuplicate 複製を押した
  * @param onDurationChange 長さ調整がリクエストされた。長さ調整つまみを離したら呼ばれる。
  */
 @Composable
@@ -401,6 +410,7 @@ private fun TimeLineItem(
     onEdit: () -> Unit,
     onCut: () -> Unit,
     onDelete: () -> Unit,
+    onDuplicate: () -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // 拡大縮小
@@ -529,7 +539,8 @@ private fun TimeLineItem(
             onDismissRequest = { isVisibleMenu.value = false },
             onEdit = onEdit,
             onCut = onCut,
-            onDelete = onDelete
+            onDelete = onDelete,
+            onDuplicate = onDuplicate
         )
     }
 }
@@ -544,6 +555,7 @@ private fun TimeLineItem(
  * @param onEdit 値の編集を押した
  * @param onCut 分割を押した
  * @param onDelete 削除を押した
+ * @param onDuplicate 複製を押した
  */
 @Composable
 private fun TimeLineItemContextMenu(
@@ -552,7 +564,8 @@ private fun TimeLineItemContextMenu(
     onDismissRequest: () -> Unit,
     onEdit: () -> Unit,
     onCut: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onDuplicate: () -> Unit
 ) {
     DropdownMenu(
         expanded = isVisibleMenu,
@@ -576,6 +589,14 @@ private fun TimeLineItemContextMenu(
                 leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_outline_cut_24px), contentDescription = null) }
             )
         }
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.timeline_context_menu_duplicate)) },
+            onClick = {
+                onDuplicate()
+                onDismissRequest()
+            },
+            leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_content_copy_24px), contentDescription = null) }
+        )
         DropdownMenuItem(
             text = { Text(text = stringResource(id = R.string.timeline_context_menu_delete)) },
             onClick = {

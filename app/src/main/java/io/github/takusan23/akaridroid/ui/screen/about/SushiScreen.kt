@@ -101,6 +101,12 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                         itemList = sushiData.value.itemList.filter { it.id != deleteItem.id }
                     )
                 },
+                onDuplicate = {
+                    // ID 被らんように
+                    sushiData.value = sushiData.value.copy(
+                        itemList = sushiData.value.itemList + it.copy(id = it.id * 2)
+                    )
+                },
                 onDurationChange = { request ->
                     // 長さ調整
                     val (id, newDurationMs) = request

@@ -192,6 +192,7 @@ fun VideoEditorScreen(
                     },
                     onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
                     onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
+                    onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
                     onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
                 )
             }
