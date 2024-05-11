@@ -179,6 +179,18 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             // 前回のファイル
             var prevRenderItemList = emptyList<RenderData.FilePath>()
 
+            // File の削除、Uri の永続化解除を、タイムラインから消えた時点でやってしまうと、元に戻す機能が動かなくなってしまうので、
+            // ViewModel が生きている間はしないように配列に入れておくだけにする
+            val deleteFilePathList = arrayListOf<RenderData.FilePath>()
+            addCloseable {
+                deleteFilePathList.forEach { filePath ->
+                    when (filePath) {
+                        is RenderData.FilePath.File -> File(filePath.filePath).delete()
+                        is RenderData.FilePath.Uri -> UriTool.revokePersistableUriPermission(context, filePath.uriPath.toUri())
+                    }
+                }
+            }
+
             /**
              * [RenderData.FilePath]が新しく追加されたときの処理
              * [Uri]の場合は永続化を行う
@@ -193,11 +205,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
              * [RenderData.FilePath]が前回から削除されたときの処理
              * [Uri]の場合は永続化を解除する。[File]の場合は削除する
              */
-            suspend fun RenderData.FilePath.remove() = withContext(Dispatchers.IO) {
-                when (this@remove) {
-                    is RenderData.FilePath.File -> File(this@remove.filePath).delete()
-                    is RenderData.FilePath.Uri -> UriTool.revokePersistableUriPermission(context, uriPath.toUri())
-                }
+            fun RenderData.FilePath.remove() {
+                deleteFilePathList += this
             }
 
             // RenderItem 一覧を受け取って、ファイル管理する
