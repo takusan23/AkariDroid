@@ -90,7 +90,7 @@ object AvAnalyze {
             val width = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toInt() ?: return@withContext null
             val height = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt() ?: return@withContext null
             val durationMs = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: return@withContext null
-            val trackCount = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_NUM_TRACKS)?.toInt() ?: return@withContext null
+            val hasAudioTrack = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) != null
 
             // 縦動画の場合、rotation で開店情報が入っていれば width / height を入れ替える
             val size = when (rotation) {
@@ -101,7 +101,7 @@ object AvAnalyze {
             AvAnalyzeResult.Video(
                 size = size,
                 durationMs = durationMs,
-                hasAudioTrack = trackCount == 2
+                hasAudioTrack = hasAudioTrack
             )
         }
     }
@@ -109,6 +109,7 @@ object AvAnalyze {
     /** [MediaMetadataRetriever]に[AutoCloseable]が実装されたのは Android 10 以降から。下位互換性つき use { } */
     private inline fun <R> MediaMetadataRetriever.compatUse(block: (MediaMetadataRetriever) -> R): R {
         // AutoCloseable を実装したのは Android 10 以降
+        @Suppress("USELESS_IS_CHECK")
         return if (this is AutoCloseable) {
             this.use(block)
         } else {
