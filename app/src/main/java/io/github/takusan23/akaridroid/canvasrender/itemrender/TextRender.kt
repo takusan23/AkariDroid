@@ -21,6 +21,7 @@ class TextRender(
     // 枠あり文字の際に枠を書く
     private val strokePaint = createPaint(text).apply {
         style = Paint.Style.STROKE
+        strokeWidth = 5f
     }
 
     override val layerIndex: Int
