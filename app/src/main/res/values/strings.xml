@@ -153,9 +153,9 @@ It will take some time, so please kill time.</string>
     <string name="video_preview_enable_touch_edit">Touch editing is now enabled</string>
     <string name="video_preview_disable_touch_edit">Touch editing has been disabled</string>
     <string name="video_preview_dialog_title">About the preview function</string>
-    <string name="video_preview_dialog_description">The preview is very slow, but the output is fine.\n
-I think it\'s difficult to use. Excuse me.\n
-I\'ll fix it if I can think of a better way.</string>
+    <string name="video_preview_dialog_description">The preview is very slow, but there is no problem with saving.\n
+The audio may also be mixed with noise, but there is no problem with saving it.\n
+I think it\'s difficult to use, sorry.</string>
     <string name="video_preview_dialog_close">close</string>
     <string name="service_encode_notification_channel_title">Encoding service running notification</string>
     <string name="service_encode_notification_title">Encoding service running</string>

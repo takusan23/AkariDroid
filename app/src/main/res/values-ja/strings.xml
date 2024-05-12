@@ -154,9 +154,9 @@
     <string name="video_preview_enable_touch_edit">"タッチ編集が有効になりました "</string>
     <string name="video_preview_disable_touch_edit">"タッチ編集が無効になりました "</string>
     <string name="video_preview_dialog_title">"プレビュー機能について "</string>
-    <string name="video_preview_dialog_description">プレビューがとても遅いですが、出力には問題ありません。\n
-使いにくいと思います。すいません。\n
-いい方法が思いつけば直します。</string>
+    <string name="video_preview_dialog_description">プレビューがとても遅いですが、保存には問題ありません。\n
+音声も雑音混じりの場合がありますが、こちらも保存には問題ありません。\n
+使いにくいと思います、すいません。</string>
     <string name="video_preview_dialog_close">とじる</string>
     <string name="service_encode_notification_channel_title">エンコードサービス実行中通知</string>
     <string name="service_encode_notification_title">エンコードサービス実行中</string>

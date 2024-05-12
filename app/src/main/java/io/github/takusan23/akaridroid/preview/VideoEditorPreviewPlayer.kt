@@ -96,8 +96,11 @@ class VideoEditorPreviewPlayer(
                     // false なら起動しない
                     if (!isPlaying) return@collectLatest
 
-                    // 1ミリ秒間に必要な ByteArray を用意して読み出す
-                    val pcmByteArray = ByteArray(AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE)
+                    // TODO fps を RenderData からもらう
+                    val fps = 60
+
+                    // 1フレームの時間（60fps なら16ミリ秒）の PCM 音声を再生するのに必要なバイト配列
+                    val pcmByteArrayFromOneVideoFrame = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE / fps)
                     // 再生を開始
                     pcmPlayer.play()
 
@@ -112,16 +115,14 @@ class VideoEditorPreviewPlayer(
                             // Canvas に書く
                             drawVideoFrame(durationMs, currentPositionMs)
 
-                            // 1フレーム分の音を再生する
-                            // シークする
+                            // 動画の1フレーム分の音声を取り出して再生する
                             audioRender.seek(currentPositionMs)
-                            audioRender.readPcmByteArray(pcmByteArray)
-                            // スピーカーへ流す
-                            pcmPlayer.writePcmData(pcmByteArray)
+                            audioRender.readPcmByteArray(pcmByteArrayFromOneVideoFrame)
+                            pcmPlayer.writePcmData(pcmByteArrayFromOneVideoFrame)
 
                             // 次のフレームのために時間を進める
                             if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
-                                val frameMs = 16 // TODO fps を RenderData から取り出す
+                                val frameMs = 1000 / fps // TODO fps を RenderData から取り出す
                                 _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + frameMs) }
                             } else {
                                 // 動画時間超えたら終わり
