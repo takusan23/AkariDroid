@@ -6,7 +6,7 @@ import androidx.core.net.toUri
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
-import io.github.takusan23.akaricore.audio.ReSamplingRateProcessor
+import io.github.takusan23.akaricore.audio.AudioSonicProcessor
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.CancellationException
@@ -154,7 +154,7 @@ class AudioDecodeManager(
                 .let { inputFile ->
                     if (samplingRate != AkariCoreAudioProperties.SAMPLING_RATE) {
                         reSamplingFile.also { reSamplingFile ->
-                            ReSamplingRateProcessor.reSamplingBySonic(
+                            AudioSonicProcessor.reSamplingBySonic(
                                 input = inputFile.toAkariCoreInputOutputData(),
                                 output = reSamplingFile.toAkariCoreInputOutputData(),
                                 channelCount = channelCount,

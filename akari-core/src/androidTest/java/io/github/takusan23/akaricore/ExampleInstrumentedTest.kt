@@ -10,8 +10,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
+import io.github.takusan23.akaricore.audio.AudioSonicProcessor
 import io.github.takusan23.akaricore.audio.AudioVolumeProcessor
-import io.github.takusan23.akaricore.audio.ReSamplingRateProcessor
 import io.github.takusan23.akaricore.audio.SilenceAudioProcessor
 import io.github.takusan23.akaricore.common.CutProcessor
 import io.github.takusan23.akaricore.common.MediaExtractorTool
@@ -170,10 +170,10 @@ class ExampleInstrumentedTest {
             // デコード
             AudioEncodeDecodeProcessor.decode(
                 input = bgmFile.toAkariCoreInputOutputData(),
-                output = pcmFile.toAkariCoreInputOutputData(),
+                output = pcmFile.toAkariCoreInputOutputData()
             )
             // アップサンプリング
-            ReSamplingRateProcessor.reSamplingBySonic(
+            AudioSonicProcessor.reSamplingBySonic(
                 input = pcmFile.toAkariCoreInputOutputData(),
                 output = resamplingPcmFile.toAkariCoreInputOutputData(),
                 channelCount = 1,
@@ -182,7 +182,7 @@ class ExampleInstrumentedTest {
             )
             // エンコード
             AudioEncodeDecodeProcessor.encode(
-                input = pcmFile.toAkariCoreInputOutputData(),
+                input = resamplingPcmFile.toAkariCoreInputOutputData(),
                 output = resultFile.toAkariCoreInputOutputData(),
                 channelCount = 1
             )
