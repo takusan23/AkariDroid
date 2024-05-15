@@ -7,6 +7,7 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
@@ -375,6 +376,37 @@ class ExampleInstrumentedTest {
         }
     }
 
+    @Test
+    fun test_PCMファイルの速度調整ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_PCMファイルの速度調整ができる${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        // TODO 音声カットしような
+        val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
+
+        provideTempFolder { tempFolder ->
+            val pcmFile = tempFolder.resolve("pcm_file")
+            val applyPlaybackSpeedPcm = tempFolder.resolve("apply_playback_speed_pcm_file")
+            // デコード
+            AudioEncodeDecodeProcessor.decode(
+                input = bgmFile.toAkariCoreInputOutputData(),
+                output = pcmFile.toAkariCoreInputOutputData()
+            )
+            // 速度調整
+            AudioSonicProcessor.playbackSpeedBySonic(
+                input = pcmFile.toAkariCoreInputOutputData(),
+                output = applyPlaybackSpeedPcm.toAkariCoreInputOutputData(),
+                samplingRate = AkariCoreAudioProperties.SAMPLING_RATE,
+                channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
+                speed = 2f
+            )
+            // エンコード
+            AudioEncodeDecodeProcessor.encode(
+                input = applyPlaybackSpeedPcm.toAkariCoreInputOutputData(),
+                output = resultFile.toAkariCoreInputOutputData()
+            )
+        }
+    }
 
     /** 一時的なファイル置き場を作る。ブロックを抜けたら削除されます。 */
     private suspend fun provideTempFolder(action: suspend (tempFolder: File) -> Unit) {
