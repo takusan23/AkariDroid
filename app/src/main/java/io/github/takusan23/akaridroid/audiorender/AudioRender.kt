@@ -94,10 +94,10 @@ class AudioRender(
         AudioMixingProcessor.start(
             output = outPcmFile.toAkariCoreInputOutputData(),
             durationMs = durationMs,
-            onMixingByteArrays = { positionSec, byteArraySize ->
+            onMixingByteArrays = { positionMs, byteArraySize ->
                 // 範囲内のものを取り出す
                 audioItemRenderList
-                    .filter { it.isDisplayPosition(positionSec * 1_000L) }
+                    .filter { it.isDisplayPosition(positionMs) }
                     .map { it.readPcmData(byteArraySize) }
             }
         )

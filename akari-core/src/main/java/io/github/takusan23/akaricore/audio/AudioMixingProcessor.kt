@@ -2,6 +2,7 @@ package io.github.takusan23.akaricore.audio
 
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 
@@ -22,7 +23,7 @@ object AudioMixingProcessor {
     suspend fun start(
         output: AkariCoreInputOutput.Output,
         durationMs: Long,
-        onMixingByteArrays: suspend (positionSec: Int, byteArraySize: Int) -> List<ByteArray>
+        onMixingByteArrays: suspend (positionMs: Long, byteArraySize: Int) -> List<ByteArray>
     ) = withContext(Dispatchers.IO) {
         // 音声を合成する
 
@@ -30,18 +31,17 @@ object AudioMixingProcessor {
         output.outputStream().buffered().use { outputStream ->
 
             // 音を重ねていく
-            // サンプリングレートの分だけ
-            // TODO たぶん、合成の際に秒より小さい値は見ていない。切り捨てられてる
-            val durationSec = (durationMs / 1000).toInt()
-            repeat(durationSec) { sec ->
+            // 毎ミリ秒ごとに、タイムラインの音声素材を取ってくる
+            repeat(durationMs.toInt()) { ms ->
 
-                // 合成対象の ByteArray たち
-                // 毎秒取り出す
-                val byteArrayList = onMixingByteArrays(sec, AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
-                // ByteArray 読み出し位置
+                // 取り出した、合成する音声
+                val filterCurrentMsAudioByteArrayList = onMixingByteArrays(ms.toLong(), AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE)
+                // それぞれ読み出さないといけない PCM の位置
                 var pcmReadPosition = 0
 
-                repeat(AkariCoreAudioProperties.SAMPLING_RATE) {
+                // 合成していく
+                while (isActive) {
+
                     // それぞれの配列から同じ位置のデータを取り出す
                     // 以下のように、同じ位置のバイトを各ファイル取得して、全部足していく
                     // 最初の2バイトが多分左から聞こえて、次の2バイトが右から聞こえるはず
@@ -54,10 +54,8 @@ object AudioMixingProcessor {
 
                     var leftSum = 0
                     var rightSum = 0
-                    byteArrayList.forEach { byteArray ->
+                    filterCurrentMsAudioByteArrayList.forEach { byteArray ->
                         leftSum += byteArrayOf(byteArray[pcmReadPosition], byteArray[pcmReadPosition + 1]).toShort().toInt()
-                    }
-                    byteArrayList.forEach { byteArray ->
                         rightSum += byteArrayOf(byteArray[pcmReadPosition + 2], byteArray[pcmReadPosition + 3]).toShort().toInt()
                     }
 
@@ -72,6 +70,11 @@ object AudioMixingProcessor {
 
                     // 2バイト、2チャンネル分読み出したので次に行く
                     pcmReadPosition += AkariCoreAudioProperties.BIT_DEPTH * AkariCoreAudioProperties.CHANNEL_COUNT
+
+                    // 次ない場合は break
+                    if (AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE <= pcmReadPosition) {
+                        break
+                    }
                 }
             }
         }

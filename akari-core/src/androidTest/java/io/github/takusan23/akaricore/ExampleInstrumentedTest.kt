@@ -66,7 +66,7 @@ class ExampleInstrumentedTest {
             AudioMixingProcessor.start(
                 output = outPcm.toAkariCoreInputOutputData(),
                 durationMs = 10_000,
-                onMixingByteArrays = { position, byteArraySize ->
+                onMixingByteArrays = { _, byteArraySize ->
                     val videoByteArray = ByteArray(byteArraySize)
                     val bgmByteArray = ByteArray(byteArraySize)
                     videoOutputStream.read(videoByteArray)
