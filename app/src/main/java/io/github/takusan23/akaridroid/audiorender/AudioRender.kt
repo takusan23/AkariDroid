@@ -123,7 +123,7 @@ class AudioRender(
             // 戻れないので、InputStream を開き直す
             inputStream?.close()
             inputStream = outPcmFile.inputStream()
-            inputStream?.skip(seekBytePos.toLong())
+            inputStream?.skip(seekBytePos)
         }
     }
 

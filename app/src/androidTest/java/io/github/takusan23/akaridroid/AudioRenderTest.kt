@@ -138,6 +138,44 @@ class AudioRenderTest {
         tempFolder.deleteRecursively()
     }
 
+    @Test
+    fun test_音声の速度変更ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // ファイルを用意
+        val testToomoMp4 = copyTestFileFromRawFolder()
+        // 作る
+        val resultPcm = createTempFile("result_pcm")
+        AudioRender(
+            context = context,
+            outputDecodePcmFolder = tempFolder,
+            outPcmFile = resultPcm,
+            tempFolder = tempFolder
+        ).apply {
+            setRenderData(
+                audioRenderItem = listOf(
+                    // 2倍速
+                    RenderData.AudioItem.Audio(
+                        displayTime = RenderData.DisplayTime(0, 10_000L),
+                        layerIndex = 0,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
+                        playbackSpeed = 2f
+                    ),
+                    // 0.5倍速
+                    RenderData.AudioItem.Audio(
+                        displayTime = RenderData.DisplayTime(5_000L, 10_000L),
+                        layerIndex = 0,
+                        filePath = RenderData.FilePath.File(testToomoMp4.path),
+                        playbackSpeed = 0.5f
+                    )
+                ),
+                durationMs = 10_000L
+            )
+        }
+        // エンコードする
+        encodeAndSaveAudio(resultPcm, "test_音声の速度変更ができる")
+        // 消す
+        tempFolder.deleteRecursively()
+    }
+
     /** app/src/androidTest/res/raw/ をコピーする */
     private suspend fun copyTestFileFromRawFolder(): File = withContext(Dispatchers.IO) {
         createTempFile("test_toomo").also { testToomoMp4 ->

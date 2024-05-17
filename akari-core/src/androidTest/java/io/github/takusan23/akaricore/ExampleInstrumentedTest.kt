@@ -380,7 +380,7 @@ class ExampleInstrumentedTest {
     fun test_PCMファイルの速度調整ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val resultFile = File(appContext.getExternalFilesDir(null), "test_PCMファイルの速度調整ができる${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "whileミリ秒-test_PCMファイルの速度調整ができる${System.currentTimeMillis()}.aac").apply { createNewFile() }
         // TODO 音声カットしような
         val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
 
@@ -396,7 +396,7 @@ class ExampleInstrumentedTest {
             AudioSonicProcessor.playbackSpeedBySonic(
                 input = pcmFile.toAkariCoreInputOutputData(),
                 output = applyPlaybackSpeedPcm.toAkariCoreInputOutputData(),
-                samplingRate = AkariCoreAudioProperties.SAMPLING_RATE,
+                samplingRate = 44100,
                 channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
                 speed = 2f
             )

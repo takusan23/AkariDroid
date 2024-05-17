@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.audiorender
 
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.audio.AudioSonicProcessor
 import io.github.takusan23.akaricore.audio.AudioVolumeProcessor
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
@@ -9,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
+import java.io.InputStream
 
 /**
  * [AudioDecodeManager]でデコードしたファイルを[RenderData.AudioItem.Audio]通りに音声加工するクラス
@@ -21,7 +23,14 @@ class AudioItemRender(
     private val decodePcmFile: File
 ) : AudioRenderInterface {
 
+    /** デコード済みファイルを読み出すための[InputStream]。read は巻き戻せないので、戻る場合は作り直して。 */
     private var inputStream: FileInputStream? = null
+
+    /**
+     * 速度調整のために、1秒ごとに PCM 音声データを分割してデータを処理する
+     * ただ、[readPcmData]はミリ秒単位で呼び出されるため、必要になったら更新されるように。
+     */
+    private var applyEffectByteArrayStream = byteArrayOf().inputStream() // 最初は空で
 
     override suspend fun prepareRead(): Unit = withContext(Dispatchers.IO) {
         // InputStream を開く
@@ -34,28 +43,65 @@ class AudioItemRender(
     }
 
     override suspend fun readPcmData(readSize: Int): ByteArray = withContext(Dispatchers.IO) {
-        val inputStream = inputStream ?: return@withContext byteArrayOf()
+        // 秒単位で処理されたデータから、ミリ秒単位の要求には秒単位で計算済みのバイト配列を返す
+        val readByteArray = ByteArray(readSize)
+        val size = applyEffectByteArrayStream.read(readByteArray)
 
-        // データを埋める
-        var readByteArray = ByteArray(readSize)
-        inputStream.read(readByteArray)
-
-        // 音量調整を適用する
-        // 加工したデータはメモリに乗せるので
-        if (audioItem.volume != RenderData.AudioItem.DEFAULT_VOLUME) {
-            val output = AkariCoreInputOutput.OutputJavaByteArray()
-            AudioVolumeProcessor.start(
-                input = readByteArray.toAkariCoreInputOutputData(),
-                output = output,
-                volume = audioItem.volume
-            )
-            readByteArray = output.byteArray
+        // なかった場合は次の1秒間のデータを
+        if (size == -1) {
+            applyEffectByteArrayStream.close()
+            // 次の1秒間のデータを取り出し、再生速度とかを適用する
+            val oneSecondsByteArray = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE)
+            inputStream?.read(oneSecondsByteArray)
+            applyEffectByteArrayStream = applyEffectPcmData(oneSecondsByteArray).inputStream()
+            // ByteArray 読み出して返り値に
+            applyEffectByteArrayStream.read(readByteArray)
         }
 
         readByteArray
     }
 
-    override fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in audioItem.displayTime
+    /**
+     * 音量や速度調整を適用したバイト配列を生成する
+     *
+     * @param byteArray 読み出した PCM データ。最低でも1秒間くらいは無いと再生速度が速くなりすぎる？
+     * @return 適用された[ByteArray]
+     */
+    private suspend fun applyEffectPcmData(byteArray: ByteArray): ByteArray {
+        return byteArray
+            // 音量調整を適用する
+            .let { input ->
+                if (audioItem.volume != RenderData.AudioItem.DEFAULT_VOLUME) {
+                    val output = AkariCoreInputOutput.OutputJavaByteArray()
+                    AudioVolumeProcessor.start(
+                        input = input.toAkariCoreInputOutputData(),
+                        output = output,
+                        volume = audioItem.volume
+                    )
+                    output.byteArray
+                } else {
+                    input
+                }
+            }
+            // 再生速度を適用する
+            .let { input ->
+                if (audioItem.playbackSpeed != RenderData.AudioItem.DEFAULT_PLAYBACK_SPEED) {
+                    val output = AkariCoreInputOutput.OutputJavaByteArray()
+                    AudioSonicProcessor.playbackSpeedBySonic(
+                        input = input.toAkariCoreInputOutputData(),
+                        output = output,
+                        samplingRate = AkariCoreAudioProperties.SAMPLING_RATE,
+                        channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
+                        speed = audioItem.playbackSpeed
+                    )
+                    output.byteArray
+                } else {
+                    input
+                }
+            }
+    }
+
+    override fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in audioItem.displayTime.setPlaybackSpeed(audioItem.playbackSpeed)
 
     /** 破棄する */
     override fun destroy() {

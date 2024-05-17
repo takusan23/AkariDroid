@@ -93,13 +93,20 @@ data class RenderData(
         data class Video(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
-            override val displayTime: DisplayTime,
+            @Deprecated("速度調整に対応していない") override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size,
             val displayOffset: DisplayOffset = DisplayOffset(0),
-            val chromaKeyColor: Int? = null
-        ) : CanvasItem
+            val chromaKeyColor: Int? = null,
+            val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
+        ) : CanvasItem {
+            companion object {
+
+                /** 再生速度 */
+                const val DEFAULT_PLAYBACK_SPEED = 1f
+            }
+        }
 
         /** 図形 */
         @Serializable
@@ -135,17 +142,21 @@ data class RenderData(
         @SerialName("audio")
         data class Audio(
             override val id: Long = System.currentTimeMillis(),
-            override val displayTime: DisplayTime,
+            @Deprecated("速度調整に対応していない") override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
             val displayOffset: DisplayOffset = DisplayOffset(0),
-            val volume: Float = DEFAULT_VOLUME
+            val volume: Float = DEFAULT_VOLUME,
+            val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
         ) : AudioItem
 
         companion object {
 
             /** [Audio.volume]の省略時の値 */
             const val DEFAULT_VOLUME = 1f
+
+            /** 再生速度 */
+            const val DEFAULT_PLAYBACK_SPEED = 1f
         }
     }
 
@@ -183,7 +194,7 @@ data class RenderData(
     @Serializable
     data class DisplayTime(
         val startMs: Long,
-        val stopMs: Long
+        val stopMs: Long // TODO ここに速度調整を入れる
     ) : ClosedRange<Long> {
         // ClosedRange<Long> を実装することで、 in が使えるようになる
         override val start: Long
@@ -224,6 +235,19 @@ data class RenderData(
         fun setDuration(durationMs: Long): DisplayTime = DisplayTime(
             startMs = startMs,
             stopMs = startMs + durationMs
+        )
+
+        /**
+         * 再生速度を適用する
+         * [stopMs]が再生速度に合わせて調整される
+         *
+         * @param playbackSpeed 再生速度
+         * @return [DisplayTime]
+         */
+        fun setPlaybackSpeed(playbackSpeed: Float): DisplayTime = DisplayTime(
+            startMs = startMs,
+            // 2倍速なら半分
+            stopMs = ((startMs + durationMs) / playbackSpeed).toLong()
         )
     }
 
