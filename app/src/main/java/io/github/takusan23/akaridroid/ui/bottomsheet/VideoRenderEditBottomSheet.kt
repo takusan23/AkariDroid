@@ -91,6 +91,7 @@ fun VideoRenderEditBottomSheet(
         )
 
         RenderItemDisplayTimeEditComponent(
+            isEditPlayback = true,
             displayTime = videoItem.value.displayTime,
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
         )

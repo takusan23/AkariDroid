@@ -85,14 +85,14 @@ class AudioItemRender(
             }
             // 再生速度を適用する
             .let { input ->
-                if (audioItem.playbackSpeed != RenderData.AudioItem.DEFAULT_PLAYBACK_SPEED) {
+                if (audioItem.displayTime.playbackSpeed != RenderData.DisplayTime.DEFAULT_PLAYBACK_SPEED) {
                     val output = AkariCoreInputOutput.OutputJavaByteArray()
                     AudioSonicProcessor.playbackSpeedBySonic(
                         input = input.toAkariCoreInputOutputData(),
                         output = output,
                         samplingRate = AkariCoreAudioProperties.SAMPLING_RATE,
                         channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
-                        speed = audioItem.playbackSpeed
+                        speed = audioItem.displayTime.playbackSpeed
                     )
                     output.byteArray
                 } else {
@@ -101,7 +101,7 @@ class AudioItemRender(
             }
     }
 
-    override fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in audioItem.displayTime.setPlaybackSpeed(audioItem.playbackSpeed)
+    override fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in audioItem.displayTime
 
     /** 破棄する */
     override fun destroy() {

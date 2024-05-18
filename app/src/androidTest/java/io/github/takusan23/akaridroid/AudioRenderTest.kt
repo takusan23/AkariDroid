@@ -50,7 +50,7 @@ class AudioRenderTest {
             setRenderData(
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(0, 10_000),
+                        displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                         layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path)
                     )
@@ -79,19 +79,19 @@ class AudioRenderTest {
             setRenderData(
                 audioRenderItem = listOf(
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(0, 3_000),
+                        displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 3_000),
                         layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
                     ),
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(3_000, 6_000),
+                        displayTime = RenderData.DisplayTime(startMs = 3_000, durationMs = 3_000),
                         layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.5f
                     ),
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(6_000, 10_000),
+                        displayTime = RenderData.DisplayTime(startMs = 6_000, durationMs = 3_000),
                         layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 1f
@@ -123,7 +123,7 @@ class AudioRenderTest {
                 // 音割れ？ 0xFFFF を超えるかも？ので音量を下げる
                 audioRenderItem = (0 until 10).map { index ->
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(index * 1_000L, 10_000L),
+                        displayTime = RenderData.DisplayTime(startMs = index * 1_000L, durationMs = 10_000L),
                         layerIndex = 0,
                         filePath = RenderData.FilePath.File(testToomoMp4.path),
                         volume = 0.1f
@@ -154,17 +154,15 @@ class AudioRenderTest {
                 audioRenderItem = listOf(
                     // 2倍速
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(0, 10_000L),
+                        displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000, playbackSpeed = 2f),
                         layerIndex = 0,
-                        filePath = RenderData.FilePath.File(testToomoMp4.path),
-                        playbackSpeed = 2f
+                        filePath = RenderData.FilePath.File(testToomoMp4.path)
                     ),
                     // 0.5倍速
                     RenderData.AudioItem.Audio(
-                        displayTime = RenderData.DisplayTime(5_000L, 10_000L),
+                        displayTime = RenderData.DisplayTime(startMs = 5_000, durationMs = 10_000, playbackSpeed = 0.5f),
                         layerIndex = 0,
-                        filePath = RenderData.FilePath.File(testToomoMp4.path),
-                        playbackSpeed = 0.5f
+                        filePath = RenderData.FilePath.File(testToomoMp4.path)
                     )
                 ),
                 durationMs = 10_000L

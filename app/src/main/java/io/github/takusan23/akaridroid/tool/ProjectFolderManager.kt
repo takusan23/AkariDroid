@@ -16,6 +16,15 @@ object ProjectFolderManager {
     /** [RenderData]を JSON にしたときのファイル名 */
     private const val RENDER_DATA_JSON_FILE_NAME = "render_data.json"
 
+    /** JSONパースするときに使う */
+    private val jsonSerialization = Json {
+        // JSONのキーが全部揃ってなくてもパース
+        ignoreUnknownKeys = true
+        // data class の省略時の値を使うように
+        encodeDefaults = true
+    }
+
+
     /**
      * プロジェクトで利用できるフォルダを返す。
      * デコードした音声とか、エンコード中の一次保存先のとかに使われる。
@@ -45,7 +54,7 @@ object ProjectFolderManager {
             getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME).readText()
         }
         val renderData = withContext(Dispatchers.Default) {
-            Json.decodeFromString<RenderData>(renderDataJson)
+            jsonSerialization.decodeFromString<RenderData>(renderDataJson)
         }
         return renderData
     }
@@ -64,7 +73,7 @@ object ProjectFolderManager {
         val jsonFile = getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME)
 
         val jsonString = withContext(Dispatchers.Default) {
-            Json.encodeToString(renderData)
+            jsonSerialization.encodeToString(renderData)
         }
         withContext(Dispatchers.IO) {
             jsonFile.writeText(jsonString)

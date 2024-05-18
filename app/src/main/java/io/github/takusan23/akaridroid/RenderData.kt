@@ -93,20 +93,13 @@ data class RenderData(
         data class Video(
             override val id: Long = System.currentTimeMillis(),
             override val position: Position,
-            @Deprecated("速度調整に対応していない") override val displayTime: DisplayTime,
+            override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
             val size: Size,
             val displayOffset: DisplayOffset = DisplayOffset(0),
-            val chromaKeyColor: Int? = null,
-            val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
-        ) : CanvasItem {
-            companion object {
-
-                /** 再生速度 */
-                const val DEFAULT_PLAYBACK_SPEED = 1f
-            }
-        }
+            val chromaKeyColor: Int? = null
+        ) : CanvasItem
 
         /** 図形 */
         @Serializable
@@ -142,21 +135,17 @@ data class RenderData(
         @SerialName("audio")
         data class Audio(
             override val id: Long = System.currentTimeMillis(),
-            @Deprecated("速度調整に対応していない") override val displayTime: DisplayTime,
+            override val displayTime: DisplayTime,
             override val layerIndex: Int,
             val filePath: FilePath,
             val displayOffset: DisplayOffset = DisplayOffset(0),
-            val volume: Float = DEFAULT_VOLUME,
-            val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
+            val volume: Float = DEFAULT_VOLUME
         ) : AudioItem
 
         companion object {
 
             /** [Audio.volume]の省略時の値 */
             const val DEFAULT_VOLUME = 1f
-
-            /** 再生速度 */
-            const val DEFAULT_PLAYBACK_SPEED = 1f
         }
     }
 
@@ -186,15 +175,21 @@ data class RenderData(
     )
 
     /**
-     * 開始、終了を表す
+     * 素材の表示時間を表す
+     * [_stopMs]は使われなくなります。
+     * 開始と終了を決めてしまうと、開始時間をずらすのが面倒だったり、再生速度の変更がかなり面倒になるので。。。
      *
      * @param startMs 開始時間、ミリ秒
-     * @param stopMs 終了時間、ミリ秒
+     * @param _stopMs 後方互換のために残しているだけで、使われていません。将来的に消します。後継パラメーターは[stopMs]です。そのため[copy]の際も適当な値で埋めて OK です。
+     * @param durationMs この時間から、何ミリ秒再生するか。[stopMs]の計算にも利用されます。再生速度は考慮しない値になります。
+     * @param playbackSpeed 再生速度。動画と音声ではこれが利用されます
      */
     @Serializable
     data class DisplayTime(
         val startMs: Long,
-        val stopMs: Long // TODO ここに速度調整を入れる
+        @SerialName("stopMs") @Deprecated("コメント通り") private val _stopMs: Long = 0,
+        val durationMs: Long,
+        val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
     ) : ClosedRange<Long> {
         // ClosedRange<Long> を実装することで、 in が使えるようになる
         override val start: Long
@@ -202,9 +197,13 @@ data class RenderData(
         override val endInclusive: Long
             get() = stopMs
 
-        /** 時間を出す */
-        val durationMs: Long
-            get() = stopMs - start
+        /** 再生速度を考慮した、終了時間を出す */
+        val stopMs: Long
+            get() = ((startMs + durationMs) / playbackSpeed).toLong()
+
+        /** 再生速度を考慮した[durationMs] */
+        val speedDurationMs: Long
+            get() = stopMs - startMs
 
         /**
          * 時間を足した（もしくは引いた）[DisplayTime]を作る。
@@ -212,43 +211,35 @@ data class RenderData(
          * @param appendTimeMs [startMs]よりどれだけ時間を増加（もしくは減少）させるか
          * @return [DisplayTime]
          */
-        fun appendTime(appendTimeMs: Long): DisplayTime = setTime(setTimeMs = startMs + appendTimeMs)
+        fun appendTime(appendTimeMs: Long): DisplayTime = copy(startMs = startMs + appendTimeMs)
 
         /**
-         * [startMs]の時間を[setTimeMs]にして、その分ずらす
+         * 指定した時間で[DisplayTime]を2つに分割する。
          *
-         * @param setTimeMs 開始位置。[startMs]になる
-         * @return [DisplayTime]
+         * @param cutMs 分割する時間。再生速度は考慮しないで（例：10秒で前後期に切りたいけど、2倍速だから5秒を渡す。とかにはしないで良い）
+         * @return Pair。first が前。second が後ろ
          */
-        fun setTime(setTimeMs: Long): DisplayTime = DisplayTime(
-            startMs = setTimeMs,
-            stopMs = setTimeMs + durationMs
-        )
+        fun splitTime(cutMs: Long): Pair<DisplayTime, DisplayTime> {
+            // 再生速度を変更している場合は以下の手順で
+            // RenderData.durationMs は再生速度を適用していないので、再生速度は等倍速（1倍速）に戻して考える必要がある
+            val x1SpeedPositionMs = (cutMs * playbackSpeed).toLong()
+            // 1つ目
+            val displayTimeA = copy(
+                startMs = startMs,
+                durationMs = x1SpeedPositionMs
+            )
+            // ２つ目
+            val displayTimeB = copy(
+                startMs = displayTimeA.stopMs,
+                durationMs = durationMs - x1SpeedPositionMs
+            )
+            return displayTimeA to displayTimeB
+        }
 
-        /**
-         * [startMs]から[durationMs]までの[DisplayTime]を作る。
-         * [stopMs]を足す手間が減る。
-         *
-         * @param durationMs 表示時間。[DisplayTime.durationMs]です。
-         * @return [DisplayTime]
-         */
-        fun setDuration(durationMs: Long): DisplayTime = DisplayTime(
-            startMs = startMs,
-            stopMs = startMs + durationMs
-        )
-
-        /**
-         * 再生速度を適用する
-         * [stopMs]が再生速度に合わせて調整される
-         *
-         * @param playbackSpeed 再生速度
-         * @return [DisplayTime]
-         */
-        fun setPlaybackSpeed(playbackSpeed: Float): DisplayTime = DisplayTime(
-            startMs = startMs,
-            // 2倍速なら半分
-            stopMs = ((startMs + durationMs) / playbackSpeed).toLong()
-        )
+        companion object {
+            /** 再生速度 */
+            const val DEFAULT_PLAYBACK_SPEED = 1f
+        }
     }
 
     /**

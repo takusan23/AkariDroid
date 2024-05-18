@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
  * @param iconResId アイコン
  * @param value 値
  * @param onChange 値変化時
+ * @param valueRange スライダーの範囲
  */
 @Composable
 fun RenderItemFloatEditComponent(
@@ -27,7 +28,8 @@ fun RenderItemFloatEditComponent(
     label: String,
     iconResId: Int,
     value: Float,
-    onChange: (Float) -> Unit
+    onChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f
 ) {
     Row(
         modifier = modifier.padding(10.dp),
@@ -48,7 +50,8 @@ fun RenderItemFloatEditComponent(
         Slider(
             modifier = Modifier.weight(1f),
             value = value,
-            onValueChange = onChange
+            onValueChange = onChange,
+            valueRange = valueRange
         )
 
         // 小数点2桁まで

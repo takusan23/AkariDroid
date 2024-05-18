@@ -54,6 +54,7 @@ fun AudioEditBottomSheet(
         )
 
         RenderItemDisplayTimeEditComponent(
+            isEditPlayback = true,
             displayTime = audioItem.value.displayTime,
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
         )

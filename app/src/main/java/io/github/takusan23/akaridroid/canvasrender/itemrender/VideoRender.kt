@@ -56,7 +56,7 @@ class VideoRender(
         val framePositionFromCurrentPositionMs = currentPositionMs - video.displayTime.startMs
         val includeOffsetFramePositionMs = framePositionFromCurrentPositionMs + video.displayOffset.offsetFirstMs
         // 速度調整
-        val applyPlaybackSpeedPositionMs = (includeOffsetFramePositionMs * video.playbackSpeed).toLong()
+        val applyPlaybackSpeedPositionMs = (includeOffsetFramePositionMs * video.displayTime.playbackSpeed).toLong()
         preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(applyPlaybackSpeedPositionMs)?.let { origin ->
             // リサイズする場合
             val (width, height) = video.size
@@ -78,7 +78,7 @@ class VideoRender(
         return renderItem == video
     }
 
-    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in video.displayTime.setPlaybackSpeed(video.playbackSpeed)
+    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean = currentPositionMs in video.displayTime
 
     companion object {
         private const val CHROMAKEY_THRESHOLD = 0.3f // TODO ユーザー入力で変更できるようにする

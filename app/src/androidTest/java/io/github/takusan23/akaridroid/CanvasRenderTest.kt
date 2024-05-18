@@ -50,7 +50,7 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 100f),
                             layerIndex = 0,
                             text = "枠取り文字",
@@ -59,21 +59,21 @@ class CanvasRenderTest {
                             textSize = 100f
                         ),
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 300f),
                             layerIndex = 0,
                             text = "あかりどろいど",
                             fontColor = "#ff0000"
                         ),
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(3_000, 5_000),
+                            displayTime = RenderData.DisplayTime(startMs = 3_000, durationMs = 5_000),
                             position = RenderData.Position(100f, 700f),
                             layerIndex = 0,
                             text = "3 ～ 5 の間しかでない文字",
                             fontColor = "#ff0000"
                         ),
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(500f, 300f),
                             layerIndex = 0,
                             text = """
@@ -109,14 +109,14 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Image(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 100f),
                             filePath = RenderData.FilePath.File(imagePath.path),
                             layerIndex = 0,
                             size = RenderData.Size(100, 100)
                         ),
                         RenderData.CanvasItem.Image(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(300f, 300f),
                             filePath = RenderData.FilePath.File(imagePath.path),
                             layerIndex = 0,
@@ -147,28 +147,28 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(0f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(640f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(0f, 360f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(640f, 500f),
                             layerIndex = 0,
                             text = "こんにちは",
@@ -200,14 +200,14 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(0f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(4_000, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 4_000, durationMs = 10_000),
                             position = RenderData.Position(640f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
@@ -215,7 +215,7 @@ class CanvasRenderTest {
                             displayOffset = RenderData.DisplayOffset(4_000) // 4秒 スキップ
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(8_000, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 8_000, durationMs = 10_000),
                             position = RenderData.Position(0f, 360f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
@@ -223,7 +223,7 @@ class CanvasRenderTest {
                             displayOffset = RenderData.DisplayOffset(8_000) // 8秒 スキップ
                         ),
                         RenderData.CanvasItem.Text(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(640f, 500f),
                             layerIndex = 0,
                             text = "こんにちは",
@@ -245,7 +245,7 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(0f, 0f),
                             layerIndex = 0,
                             color = "#ffffff",
@@ -253,7 +253,7 @@ class CanvasRenderTest {
                             shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                         ),
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 100f),
                             layerIndex = 0,
                             color = "#0000ff",
@@ -261,7 +261,7 @@ class CanvasRenderTest {
                             shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(300f, 100f),
                             layerIndex = 0,
                             color = "#ffff00",
@@ -269,7 +269,7 @@ class CanvasRenderTest {
                             shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(500f, 100f),
                             layerIndex = 0,
                             color = "#ff0000",
@@ -277,7 +277,7 @@ class CanvasRenderTest {
                             shapeType = RenderData.CanvasItem.Shape.ShapeType.Circle
                         ),
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 400f),
                             layerIndex = 0,
                             color = "#ff0000",
@@ -285,7 +285,7 @@ class CanvasRenderTest {
                             shapeType = RenderData.CanvasItem.Shape.ShapeType.Rect
                         ),
                         RenderData.CanvasItem.Shape(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                             position = RenderData.Position(100f, 500f),
                             layerIndex = 0,
                             color = "#0000ff",
@@ -316,20 +316,18 @@ class CanvasRenderTest {
                 setRenderData(
                     canvasRenderItem = listOf(
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(0, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000, playbackSpeed = 2f),
                             position = RenderData.Position(0f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
-                            size = RenderData.Size(640, 360),
-                            playbackSpeed = 2f
+                            size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(4_000, 10_000),
+                            displayTime = RenderData.DisplayTime(startMs = 5_000, durationMs = 10_000, playbackSpeed = 0.5f),
                             position = RenderData.Position(640f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),
-                            size = RenderData.Size(640, 360),
-                            playbackSpeed = 0.5f
+                            size = RenderData.Size(640, 360)
                         )
                     )
                 )

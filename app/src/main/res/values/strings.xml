@@ -166,4 +166,5 @@ I think it\'s difficult to use, sorry.</string>
     <string name="edit_renderitem_chromakey_select_color">Choose a color to make transparent</string>
     <string name="dialog_chromakeycolor_description">By pressing the image, you can select the color you want to make transparent.</string>
     <string name="timeline_context_menu_duplicate">duplication</string>
+    <string name="edit_renderitem_displaytime_playback_speed">playback speed</string>
 </resources>

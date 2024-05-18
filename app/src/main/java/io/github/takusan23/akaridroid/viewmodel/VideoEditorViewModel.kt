@@ -475,8 +475,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         val renderItem = getRenderItem(request.id)!!
         // ドラッグアンドドロップ移動先に合った DisplayTime を作る
         // マイナスに入らないように
-        val dragAndDroppedDisplayTime = renderItem.displayTime.setTime(
-            setTimeMs = max(request.dragAndDroppedStartMs, 0)
+        val dragAndDroppedDisplayTime = renderItem.displayTime.copy(
+            startMs = max(request.dragAndDroppedStartMs, 0)
         )
 
         // 移動先のレーンに空きがあること
@@ -587,20 +587,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      */
     fun resolveTimeLineCutRequest(request: TimeLineData.Item) {
         val cutPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-        // そもそも範囲内にいない場合は
-        if (cutPositionMs !in request.timeRange) return
-
         // 分割したいアイテム
         val targetItem = getRenderItem(request.id)!!
+        // そもそも範囲内にいない場合は
+        if (cutPositionMs !in targetItem.displayTime) return
+
         // 2つに分けるので、表示する時間も2つにする
-        val displayTimeA = targetItem.displayTime.copy(
-            startMs = targetItem.displayTime.startMs,
-            stopMs = cutPositionMs
-        )
-        val displayTimeB = targetItem.displayTime.copy(
-            startMs = cutPositionMs,
-            stopMs = targetItem.displayTime.stopMs
-        )
+        val (displayTimeA, displayTimeB) = targetItem.displayTime.splitTime(cutPositionMs)
 
         // テキストと画像と図形はそのまま2つに分ければいい
         fun processTextOrImageOrShape(): List<RenderData.RenderItem> = listOf(displayTimeA, displayTimeB)
@@ -617,14 +610,15 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // 音声と映像の場合は再生位置の調整が必要なので分岐しています、、、！
         fun processAudioOrVideo(): List<RenderData.RenderItem> {
             // すでに DisplayOffset 持っていれば考慮（分割したアイテムをさらに分割）
-            val targetOffsetFirstMs = when (targetItem) {
+            val haveOffsetFirstMs = when (targetItem) {
                 is RenderData.AudioItem.Audio -> targetItem.displayOffset
                 is RenderData.CanvasItem.Video -> targetItem.displayOffset
                 is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> null
             }?.offsetFirstMs!!
             // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
-            val displayOffsetA = RenderData.DisplayOffset(targetOffsetFirstMs)
-            val displayOffsetB = RenderData.DisplayOffset(offsetFirstMs = targetOffsetFirstMs + (displayTimeB.startMs - displayTimeA.startMs))
+            // 再生速度が設定された場合は、再生速度を考慮して分割する
+            val displayOffsetA = RenderData.DisplayOffset(haveOffsetFirstMs)
+            val displayOffsetB = RenderData.DisplayOffset(offsetFirstMs = haveOffsetFirstMs + displayTimeA.durationMs)
             return listOf(
                 displayTimeA to displayOffsetA,
                 displayTimeB to displayOffsetB
@@ -696,9 +690,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // 長さ調整
         // 現状映像、音声は来ないので return
         val newDurationRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
-            is RenderData.CanvasItem.Image -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
-            is RenderData.CanvasItem.Text -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
-            is RenderData.CanvasItem.Shape -> renderItem.copy(displayTime = renderItem.displayTime.setDuration(request.newDurationMs))
+            is RenderData.CanvasItem.Image -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
+            is RenderData.CanvasItem.Text -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
+            is RenderData.CanvasItem.Shape -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> return
         }
         // 上記の通り来ないので...
@@ -853,7 +847,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      * @return [RenderData.CanvasItem.Text]
      */
     private fun createTextCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Text {
-        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 10_000
+        )
 
         return RenderData.CanvasItem.Text(
             text = "",
@@ -872,7 +869,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      */
     private suspend fun createImageCanvasItem(displayTimeStartMs: Long, ioType: IoType): RenderData.CanvasItem.Image? {
         val size = AvAnalyze.analyzeImage(context, ioType)?.size ?: return null
-        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 10_000
+        )
 
         return RenderData.CanvasItem.Image(
             filePath = ioType.toRenderDataFilePath(),
@@ -892,7 +892,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      */
     private suspend fun createAudioItem(displayTimeStartMs: Long, ioType: IoType): RenderData.AudioItem.Audio? {
         val durationMs = AvAnalyze.analyzeAudio(context, ioType)?.durationMs ?: return null
-        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = durationMs
+        )
 
         return RenderData.AudioItem.Audio(
             filePath = ioType.toRenderDataFilePath(),
@@ -911,7 +914,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     private suspend fun createVideoItem(displayTimeStartMs: Long, ioType: IoType): List<RenderData.RenderItem> {
         val analyzeVideo = AvAnalyze.analyzeVideo(context, ioType) ?: return emptyList()
         val durationMs = analyzeVideo.durationMs
-        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + durationMs)
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = durationMs
+        )
 
         // 映像トラックの追加位置
         val videoTrackLayerIndex = calcInsertableLaneIndex(displayTime)
@@ -945,7 +951,10 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
      * @return [RenderData.CanvasItem.Shape]
      */
     private fun createShapeCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Shape {
-        val displayTime = RenderData.DisplayTime(displayTimeStartMs, displayTimeStartMs + 10_000)
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 10_000
+        )
 
         return RenderData.CanvasItem.Shape(
             displayTime = displayTime,
