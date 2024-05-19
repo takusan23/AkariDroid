@@ -1,10 +1,12 @@
 package io.github.takusan23.akaricore
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import androidx.core.graphics.scale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
@@ -18,7 +20,9 @@ import io.github.takusan23.akaricore.common.CutProcessor
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
+import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaricore.video.gl.ShaderImageRenderer
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -380,7 +384,7 @@ class ExampleInstrumentedTest {
     fun test_PCMファイルの速度調整ができる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val resultFile = File(appContext.getExternalFilesDir(null), "whileミリ秒-test_PCMファイルの速度調整ができる${System.currentTimeMillis()}.aac").apply { createNewFile() }
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_PCMファイルの速度調整ができる${System.currentTimeMillis()}.aac").apply { createNewFile() }
         // TODO 音声カットしような
         val bgmFile = sampleVideoFolder.resolve("famipop.mp3")
 
@@ -405,6 +409,27 @@ class ExampleInstrumentedTest {
                 input = applyPlaybackSpeedPcm.toAkariCoreInputOutputData(),
                 output = resultFile.toAkariCoreInputOutputData()
             )
+        }
+    }
+
+    @Test
+    fun test_画像にGLSLでエフェクトを適用できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+        val resultFile = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる${System.currentTimeMillis()}.png").apply { createNewFile() }
+        val imageBitmap = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image.jpg").path)
+            .copy(Bitmap.Config.ARGB_8888, true)
+            .scale(1280, 720) // GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, Bitmap.createBitmap(1280, 720, Bitmap.Config.ARGB_8888), 0) 参照
+
+        val shaderImageProcessor = GpuShaderImageProcessor()
+        shaderImageProcessor.prepare(
+            fragmentShaderCode = ShaderImageRenderer.DEMO_FRAGMENT_SHADER,
+            width = 1280,
+            height = 720
+        )
+        val applyEffectImageBitmap = shaderImageProcessor.drawShader(imageBitmap)
+        resultFile.outputStream().use { outputStream ->
+            applyEffectImageBitmap?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
         }
     }
 

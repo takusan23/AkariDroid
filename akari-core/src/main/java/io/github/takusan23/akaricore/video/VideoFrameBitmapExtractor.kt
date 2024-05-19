@@ -6,7 +6,6 @@ import android.media.ImageReader
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
-import androidx.core.graphics.scale
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.video.gl.FrameExtractorRenderer
@@ -341,19 +340,11 @@ class VideoFrameBitmapExtractor {
     }
 
     /** [imageReader]から[Bitmap]を取り出す */
-    private suspend fun getImageReaderBitmap(): Bitmap = withContext(Dispatchers.Default) {
-        val image = imageReader!!.acquireLatestImage()
-        val width = image.width
-        val height = image.height
-        val buffer = image.planes.first().buffer
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        bitmap.copyPixelsFromBuffer(buffer)
-        // アスペクト比を戻す
-        val fixAspectRateBitmap = bitmap.scale(videoWidth, videoHeight)
+    private suspend fun getImageReaderBitmap(): Bitmap {
+        // ImageReader から取り出して、アスペクト比を戻す
+        val fixAspectRateBitmap = imageReader!!.getImageReaderBitmap(videoWidth, videoHeight)
         prevBitmap = fixAspectRateBitmap
-        // Image を close する
-        image.close()
-        return@withContext fixAspectRateBitmap
+        return fixAspectRateBitmap
     }
 
     companion object {
