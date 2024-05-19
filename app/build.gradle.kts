@@ -13,7 +13,7 @@ android {
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "2.0.0"
 
         // アプリのビルド時間をアプリ側で取得できるように
         resValue("string", "build_date", System.currentTimeMillis().toString())

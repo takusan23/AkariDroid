@@ -6,7 +6,7 @@
 - `AudioEncodeDecodeProcessor.decode`で音声ファイルをデコードする
   - 圧縮されているので、戻します
   - PCM ファイルが取得できます
-- `AudioVolumeProcessor`とかで加工をします
+- `AudioVolumeProcessor`、`AudioSonicProcessor`とかで加工をします
   - 引数は PCM ファイル
 - `AudioEncodeDecodeProcessor.encode`で音声ファイルをエンコードします
   - PCM ファイルを mp4 ( aac ) に出来ます
@@ -19,7 +19,7 @@ PCM ファイルは以下になるのを期待してます
 - チャンネル数
   - 2
 - サンプリングレート
-  - 44,100
+  - 48000
 
 # 用意されてる関数
 
@@ -31,7 +31,8 @@ PCM ファイルは以下になるのを期待してます
   - 複数の PCM のバイト配列を合成したり同時に再生するような PCM を吐き出す
 - AudioVolumeProcessor
   - PCM の音量を調整する
-- ReSamplingRateProcessor
+- AudioSonicProcessor
   - サンプリングレート変換器
+  - 再生速度の変更も追加
   - special thanks
     - https://github.com/waywardgeek/sonic

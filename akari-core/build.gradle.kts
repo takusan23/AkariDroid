@@ -68,7 +68,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "io.github.takusan23"
             artifactId = "akaricore"
-            version = "2.0.0-alpha01"
+            version = "3.0.0"
 
             // afterEvaluate しないとエラーなる
             afterEvaluate {

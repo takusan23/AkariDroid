@@ -1,6 +1,17 @@
 # akari-core リリースノート
 更新忘れたらごめん
 
+## 3.0.0 時代
+### akaricore:3.0.0
+API の互換がない、アプリで 2.0.0 リリースしたのでこちらも。
+alpha とか付けてたけど誰も使わんだろうし外すわ。
+
+- VideoFrameBitmapExtractor にクロマキー機能追加。指定した色とそれに近しい色が透明になります
+- AudioMixingProcessor が秒ではなくミリ秒単位で処理されるよう
+- ReSamplingRateProcessor が AudioSonicProcessor へ。追加で再生速度を適用する関数がつきました。
+- core の OpenGL ES 周りがちょっと共通化
+- VideoFrameBitmapExtractor が一部動画ではやっぱり崩れたので修正
+
 ## 2.0.0 時代
 - akaricore:2.0.0-alpha01
   - 2.0.0 試験的公開
