@@ -616,7 +616,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape -> null
             }?.offsetFirstMs!!
             // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
-            // 再生速度が設定された場合は、再生速度を考慮して分割する
+            // 再生速度が設定された場合でも、再生速度を加味して位置合わせをするのは Audio/Video Render 側なので、ここでは等倍速の値で考える
             val displayOffsetA = RenderData.DisplayOffset(haveOffsetFirstMs)
             val displayOffsetB = RenderData.DisplayOffset(offsetFirstMs = haveOffsetFirstMs + displayTimeA.durationMs)
             return listOf(
