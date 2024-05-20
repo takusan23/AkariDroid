@@ -418,7 +418,7 @@ class ExampleInstrumentedTest {
 
         val shaderImageProcessor = GpuShaderImageProcessor()
         shaderImageProcessor.prepare(
-            fragmentShaderCode = ShaderImageRenderer.DEMO_FRAGMENT_SHADER,
+            fragmentShaderCode = ShaderImageRenderer.FRAGMENT_SHADER_TEXTURE_RENDER,
             width = 1280,
             height = 720
         )

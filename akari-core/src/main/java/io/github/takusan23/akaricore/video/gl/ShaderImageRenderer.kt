@@ -8,16 +8,25 @@ import java.nio.ByteOrder
 
 /**
  * @param fragmentShaderCode フラグメントシェーダー
+ * @param width 出力する画像の幅
+ * @param height 出力する画像の高さ
  */
 class ShaderImageRenderer(
-    private val fragmentShaderCode: String
+    private val fragmentShaderCode: String,
+    private val width: Int,
+    private val height: Int
 ) : TextureRenderer() {
 
     private val mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer()
+
+    // 必須 Uniform 変数へのハンドル
     private var mProgram = 0
     private var maPositionHandle = 0
-    private var maTextureHandle = 0
     private var sTextureHandle = 0
+
+    // これ以降は入力したフラグメントシェーダーによっては無いかも
+    /** 縦横を vec2 で渡す uniform へのハンドル。例 : vec2(width, height) */
+    private var uResolutionHandleOrNull: Int? = null
 
     // 渡された Bitmap をテクスチャとして使うので、ユニット番号
     private var textureId = -1234567
@@ -39,15 +48,17 @@ class ShaderImageRenderer(
         if (maPositionHandle == -1) {
             throw RuntimeException("Could not get attrib location for maPositionHandle")
         }
-        maTextureHandle = GLES20.glGetAttribLocation(mProgram, "a_textureCoord")
-        checkGlError("glGetAttribLocation maTextureHandle")
-        if (maTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for maTextureHandle")
-        }
         sTextureHandle = GLES20.glGetUniformLocation(mProgram, "s_texture")
         checkGlError("glGetUniformLocation sTextureHandle")
         if (sTextureHandle == -1) {
             throw RuntimeException("Could not get attrib location for sTextureHandle")
+        }
+
+        // 任意のハンドル
+        // 存在しない可能性もあるので例外での確認はしない
+        uResolutionHandleOrNull = GLES20.glGetUniformLocation(mProgram, "v_resolution")
+        if (uResolutionHandleOrNull == -1) {
+            uResolutionHandleOrNull = null
         }
 
         // テクスチャ ID を払い出してもらう
@@ -84,10 +95,12 @@ class ShaderImageRenderer(
         GLES20.glEnableVertexAttribArray(maPositionHandle)
         checkGlError("glEnableVertexAttribArray maPositionHandle")
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET)
-        GLES20.glVertexAttribPointer(maTextureHandle, 2, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maTextureHandle")
-        GLES20.glEnableVertexAttribArray(maTextureHandle)
-        checkGlError("glEnableVertexAttribArray maTextureHandle")
+
+        // フラグメントシェーダーで使っているなら渡す
+        if (uResolutionHandleOrNull != null) {
+            GLES20.glUniform2f(uResolutionHandleOrNull!!, width.toFloat(), height.toFloat())
+            checkGlError("glUniform2fv uResolutionHandleOrNull")
+        }
 
         // Snapdragon だと glClear が無いと映像が乱れる
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
@@ -124,27 +137,27 @@ class ShaderImageRenderer(
 
         private const val VERTEX_SHADER = """
 attribute vec4 a_position;
-attribute vec4 a_textureCoord;
-varying vec2 v_textureCoord;
 
 void main() {
   gl_Position = a_position;
-  v_textureCoord = a_textureCoord.xy;
-  v_textureCoord.y = 1.-v_textureCoord.y;
 }
 """
 
-        // TODO 時間と height/width を取るようにしたい
-        internal const val DEMO_FRAGMENT_SHADER = """
+        internal const val FRAGMENT_SHADER_TEXTURE_RENDER = """
 precision mediump float;
-varying vec2 v_textureCoord;
+
 uniform sampler2D s_texture;
+uniform vec2 v_resolution;
 
 void main() {
-  vec4 color = texture2D(s_texture, v_textureCoord);
-  // color.g = 0.0;
-  // color.b = 0.0;
-  gl_FragColor = color;
+    vec4 fragCoord = gl_FragCoord;
+    // 正規化する
+    vec2 uv = fragCoord.xy / v_resolution.xy;
+    // 反転しているので
+    uv = vec2(uv.x, 1.-uv.y);
+    // 色を出す
+    vec4 color = texture2D(s_texture, uv);
+    gl_FragColor = color;
 }
 """
     }

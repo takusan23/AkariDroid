@@ -48,11 +48,15 @@ class GpuShaderImageProcessor {
             maxSize < 3840 -> 3840
             else -> 1920 // 何もなければ適当に Full HD
         }
-        imageReader = ImageReader.newInstance(imageReaderSize, imageReaderSize, PixelFormat.RGBA_8888, 2)
+        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
         inputSurface = InputSurface(outputSurface = imageReader!!.surface)
 
         // 画像にエフェクトをかけるための TextureRenderer
-        shaderImageRenderer = ShaderImageRenderer(fragmentShaderCode = fragmentShaderCode)
+        shaderImageRenderer = ShaderImageRenderer(
+            fragmentShaderCode = fragmentShaderCode,
+            width = width,
+            height = height
+        )
 
         // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから
         withContext(openGlRendererThreadDispatcher) {
