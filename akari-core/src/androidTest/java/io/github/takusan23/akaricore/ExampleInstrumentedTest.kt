@@ -415,10 +415,6 @@ class ExampleInstrumentedTest {
     fun test_画像にGLSLでエフェクトを適用できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val resultFile1 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_1_${System.currentTimeMillis()}.png").apply { createNewFile() }
-        val resultFile2 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_2_${System.currentTimeMillis()}.png").apply { createNewFile() }
-        val imageBitmap1 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image1.jpg").path)
-        val imageBitmap2 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image2.jpg").path)
 
         val shaderImageProcessor = GpuShaderImageProcessor()
         shaderImageProcessor.prepare(
@@ -426,6 +422,12 @@ class ExampleInstrumentedTest {
             width = 1280,
             height = 720
         )
+
+        // シェーダーのコンパイルが通ったら生成
+        val resultFile1 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_1_${System.currentTimeMillis()}.png").apply { createNewFile() }
+        val resultFile2 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_2_${System.currentTimeMillis()}.png").apply { createNewFile() }
+        val imageBitmap1 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image1.jpg").path)
+        val imageBitmap2 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image2.jpg").path)
 
         listOf(
             resultFile1 to imageBitmap1,

@@ -3,7 +3,6 @@ package io.github.takusan23.akaricore.video.gl
 import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.opengl.GLUtils
-import android.opengl.Matrix
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -15,11 +14,7 @@ class ShaderImageRenderer(
 ) : TextureRenderer() {
 
     private val mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer()
-    private val mMVPMatrix = FloatArray(16)
-    private val mSTMatrix = FloatArray(16)
     private var mProgram = 0
-    private var muMVPMatrixHandle = 0
-    private var muSTMatrixHandle = 0
     private var maPositionHandle = 0
     private var maTextureHandle = 0
     private var sTextureHandle = 0
@@ -29,7 +24,6 @@ class ShaderImageRenderer(
 
     init {
         mTriangleVertices.put(mTriangleVerticesData).position(0)
-        Matrix.setIdentityM(mSTMatrix, 0)
     }
 
     override fun createRenderer() {
@@ -40,27 +34,17 @@ class ShaderImageRenderer(
         }
 
         // Uniform 変数へのハンドル
-        maPositionHandle = GLES20.glGetAttribLocation(mProgram, "aPosition")
-        checkGlError("glGetAttribLocation aPosition")
+        maPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_position")
+        checkGlError("glGetAttribLocation maPositionHandle")
         if (maPositionHandle == -1) {
-            throw RuntimeException("Could not get attrib location for aPosition")
+            throw RuntimeException("Could not get attrib location for maPositionHandle")
         }
-        maTextureHandle = GLES20.glGetAttribLocation(mProgram, "aTextureCoord")
-        checkGlError("glGetAttribLocation aTextureCoord")
+        maTextureHandle = GLES20.glGetAttribLocation(mProgram, "a_textureCoord")
+        checkGlError("glGetAttribLocation maTextureHandle")
         if (maTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for aTextureCoord")
+            throw RuntimeException("Could not get attrib location for maTextureHandle")
         }
-        muMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix")
-        checkGlError("glGetUniformLocation uMVPMatrix")
-        if (muMVPMatrixHandle == -1) {
-            throw RuntimeException("Could not get attrib location for uMVPMatrix")
-        }
-        muSTMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uSTMatrix")
-        checkGlError("glGetUniformLocation uSTMatrix")
-        if (muSTMatrixHandle == -1) {
-            throw RuntimeException("Could not get attrib location for uSTMatrix")
-        }
-        sTextureHandle = GLES20.glGetUniformLocation(mProgram, "sTexture")
+        sTextureHandle = GLES20.glGetUniformLocation(mProgram, "s_texture")
         checkGlError("glGetUniformLocation sTextureHandle")
         if (sTextureHandle == -1) {
             throw RuntimeException("Could not get attrib location for sTextureHandle")
@@ -118,16 +102,7 @@ class ShaderImageRenderer(
         GLES20.glUniform1i(sTextureHandle, 0)
         checkGlError("glUniform1i sTextureHandle")
 
-        // アスペクト比の調整はいらないのでリセット（エンコーダーの出力サイズにCanvasを合わせて作っているため）
-        Matrix.setIdentityM(mMVPMatrix, 0)
-        // それとは別に、OpenGLの画像は原点が左下なので（普通は左上）、行列を反転させる
-        // すいませんよくわかりません。
-        Matrix.setIdentityM(mSTMatrix, 0)
-        Matrix.scaleM(mSTMatrix, 0, 1f, -1f, 1f)
-
         // 描画する
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
@@ -148,25 +123,28 @@ class ShaderImageRenderer(
         )
 
         private const val VERTEX_SHADER = """
-uniform mat4 uMVPMatrix;
-uniform mat4 uSTMatrix;
-attribute vec4 aPosition;
-attribute vec4 aTextureCoord;
-varying vec2 vTextureCoord;
+attribute vec4 a_position;
+attribute vec4 a_textureCoord;
+varying vec2 v_textureCoord;
+
 void main() {
-  gl_Position = uMVPMatrix * aPosition;
-  vTextureCoord = (uSTMatrix * aTextureCoord).xy;
+  gl_Position = a_position;
+  v_textureCoord = a_textureCoord.xy;
+  v_textureCoord.y = 1.-v_textureCoord.y;
 }
 """
 
         // TODO 時間と height/width を取るようにしたい
         internal const val DEMO_FRAGMENT_SHADER = """
 precision mediump float;
-varying vec2 vTextureCoord;
-uniform sampler2D sTexture;
+varying vec2 v_textureCoord;
+uniform sampler2D s_texture;
 
 void main() {
-  gl_FragColor = texture2D(sTexture, vTextureCoord);
+  vec4 color = texture2D(s_texture, v_textureCoord);
+  // color.g = 0.0;
+  // color.b = 0.0;
+  gl_FragColor = color;
 }
 """
     }
