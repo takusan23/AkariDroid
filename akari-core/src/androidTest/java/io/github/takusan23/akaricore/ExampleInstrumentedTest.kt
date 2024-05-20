@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.media.MediaFormat
 import android.media.MediaMuxer
-import androidx.core.graphics.scale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
@@ -416,10 +415,10 @@ class ExampleInstrumentedTest {
     fun test_画像にGLSLでエフェクトを適用できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
-        val resultFile = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる${System.currentTimeMillis()}.png").apply { createNewFile() }
-        val imageBitmap = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image.jpg").path)
-            .copy(Bitmap.Config.ARGB_8888, true)
-            .scale(1280, 720) // GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, Bitmap.createBitmap(1280, 720, Bitmap.Config.ARGB_8888), 0) 参照
+        val resultFile1 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_1_${System.currentTimeMillis()}.png").apply { createNewFile() }
+        val resultFile2 = File(appContext.getExternalFilesDir(null), "test_画像にGLSLでエフェクトを適用できる_2_${System.currentTimeMillis()}.png").apply { createNewFile() }
+        val imageBitmap1 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image1.jpg").path)
+        val imageBitmap2 = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image2.jpg").path)
 
         val shaderImageProcessor = GpuShaderImageProcessor()
         shaderImageProcessor.prepare(
@@ -427,9 +426,15 @@ class ExampleInstrumentedTest {
             width = 1280,
             height = 720
         )
-        val applyEffectImageBitmap = shaderImageProcessor.drawShader(imageBitmap)
-        resultFile.outputStream().use { outputStream ->
-            applyEffectImageBitmap?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+
+        listOf(
+            resultFile1 to imageBitmap1,
+            resultFile2 to imageBitmap2
+        ).forEach { (file, bitmap) ->
+            val applyEffectImageBitmap = shaderImageProcessor.drawShader(bitmap)
+            file.outputStream().use { outputStream ->
+                applyEffectImageBitmap?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
         }
     }
 

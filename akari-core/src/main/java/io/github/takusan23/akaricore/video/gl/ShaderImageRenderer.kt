@@ -27,8 +27,6 @@ class ShaderImageRenderer(
     // 渡された Bitmap をテクスチャとして使うので、ユニット番号
     private var textureId = -1234567
 
-    var debugHandle = 0
-
     init {
         mTriangleVertices.put(mTriangleVerticesData).position(0)
         Matrix.setIdentityM(mSTMatrix, 0)
@@ -68,9 +66,6 @@ class ShaderImageRenderer(
             throw RuntimeException("Could not get attrib location for sTextureHandle")
         }
 
-        debugHandle = GLES20.glGetUniformLocation(mProgram, "isDebug")
-        checkGlError("glGetUniformLocation isDebug")
-
         // テクスチャ ID を払い出してもらう
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
@@ -84,9 +79,6 @@ class ShaderImageRenderer(
         // 縮小拡大時の補間設定
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-
-        // なぜか知らないけど必要
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, Bitmap.createBitmap(1280, 720, Bitmap.Config.ARGB_8888), 0)
     }
 
     override fun destroy() {
@@ -116,27 +108,15 @@ class ShaderImageRenderer(
         // Snapdragon だと glClear が無いと映像が乱れる
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
 
-        // テクスチャ設定
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
-
-        // 縮小拡大時の補間設定
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
-
-        // Bitmap を CPU から GPU に転送する
-        // 更新の際はコンテキストを切り替えた上で texImage2D を使う
-//        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, 0, bitmap, 0)
-        GLUtils.texSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, bitmap)
-        checkGlError("GLUtils.texSubImage2D")
+        // 画像を渡す
+        // texImage2D、引数違いがいるので注意
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+        checkGlError("GLUtils.texImage2D")
 
         // Uniform 変数へテクスチャを設定
         // 第二引数は GLES20.GL_TEXTURE0 なので 0
         GLES20.glUniform1i(sTextureHandle, 0)
         checkGlError("glUniform1i sTextureHandle")
-
-        // TODO フラグごと消す
-        GLES20.glUniform1f(this.debugHandle, 0f)
 
         // アスペクト比の調整はいらないのでリセット（エンコーダーの出力サイズにCanvasを合わせて作っているため）
         Matrix.setIdentityM(mMVPMatrix, 0)
@@ -184,14 +164,9 @@ void main() {
 precision mediump float;
 varying vec2 vTextureCoord;
 uniform sampler2D sTexture;
-uniform float isDebug;
 
 void main() {
-  if (bool(isDebug)) {
-    gl_FragColor = vec4(1.0,0.0,1.0,1.0);
-  }else{
-    gl_FragColor = texture2D(sTexture, vTextureCoord);
-  }
+  gl_FragColor = texture2D(sTexture, vTextureCoord);
 }
 """
     }
