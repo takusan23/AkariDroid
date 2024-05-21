@@ -142,23 +142,5 @@ void main() {
   gl_Position = a_position;
 }
 """
-
-        internal const val FRAGMENT_SHADER_TEXTURE_RENDER = """
-precision mediump float;
-
-uniform sampler2D s_texture;
-uniform vec2 v_resolution;
-
-void main() {
-    vec4 fragCoord = gl_FragCoord;
-    // 正規化する
-    vec2 uv = fragCoord.xy / v_resolution.xy;
-    // 反転しているので
-    uv = vec2(uv.x, 1.-uv.y);
-    // 色を出す
-    vec4 color = texture2D(s_texture, uv);
-    gl_FragColor = color;
-}
-"""
     }
 }

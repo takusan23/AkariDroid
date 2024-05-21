@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -38,7 +39,7 @@ class TextRender(
             }
     }
 
-    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
+    override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) {
         fillPaint.color = Color.parseColor(text.fontColor)
         fillPaint.textSize = text.textSize
 

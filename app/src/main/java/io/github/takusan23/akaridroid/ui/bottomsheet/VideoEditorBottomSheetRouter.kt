@@ -103,6 +103,8 @@ fun VideoEditorBottomSheetRouter(
                         onClose()
                     }
                 )
+
+                is RenderData.CanvasItem.Shader -> TODO() // TODO 実装する
             }
 
             // 動画情報編集画面

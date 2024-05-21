@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import io.github.takusan23.akaridroid.RenderData
 
@@ -51,10 +52,16 @@ abstract class BaseItemRender {
      * サスペンド関数ですが、レイヤー順に直列で呼び出されるため、あんまり時間をかけないでください。
      *
      * @param canvas 描画先
+     * @param drawFrame 現段階で書き込まれた動画フレーム[Bitmap]。エフェクトをかけるために必要。
      * @param durationMs 動画の合計時間
      * @param currentPositionMs 描画したい時間
      */
-    abstract suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long)
+    abstract suspend fun draw(
+        canvas: Canvas,
+        drawFrame: Bitmap,
+        durationMs: Long,
+        currentPositionMs: Long
+    )
 
     /**
      * 素材が使われる時間を抜けた。

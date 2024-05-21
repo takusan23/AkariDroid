@@ -1,11 +1,14 @@
 package io.github.takusan23.akaridroid.canvasrender
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.ShaderRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShapeRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
@@ -19,6 +22,9 @@ class CanvasRender(private val context: Context) {
 
     /** 描画する [BaseItemRender] の配列 */
     private var itemRenderList = emptyList<BaseItemRender>()
+
+    /** [Bitmap] 転写で使う [Paint] */
+    private val paint = Paint()
 
     /**
      * [RenderData]をセット、更新する
@@ -43,6 +49,7 @@ class CanvasRender(private val context: Context) {
                 is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
                 is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
                 is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
+                is RenderData.CanvasItem.Shader -> ShaderRender(renderItem)
             }
         }
     }
@@ -50,13 +57,19 @@ class CanvasRender(private val context: Context) {
     /**
      * 描画する
      *
-     * @param canvas [Canvas]
+     * @param outCanvas [Canvas]
      * @param durationMs 動画の合計時間
      * @param currentPositionMs 再生位置
      */
-    suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
+    suspend fun draw(outCanvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
+
         // 黒埋めする
-        canvas.drawColor(Color.BLACK)
+        outCanvas.drawColor(Color.BLACK)
+
+        // Canvas に直接書くのではなく、一旦別の Canvas に書いて、全部描き終わったら Bitmap を引数の outCanvas へ転写する
+        // これをすることで、描いている途中のフレームにエフェクトをかけられるようになる。
+        val tempBitmap = Bitmap.createBitmap(outCanvas.width, outCanvas.height, Bitmap.Config.ARGB_8888)
+        val tempCanvas = Canvas(tempBitmap)
 
         // 時間的にもう使われない場合は DESTROY にする
         itemRenderList
@@ -91,11 +104,15 @@ class CanvasRender(private val context: Context) {
             .sortedBy { it.layerIndex }
             .forEach { itemRender ->
                 itemRender.draw(
-                    canvas = canvas,
+                    canvas = tempCanvas,
+                    drawFrame = tempBitmap,
                     durationMs = durationMs,
                     currentPositionMs = currentPositionMs
                 )
             }
+
+        // outCanvas へ転写する
+        outCanvas.drawBitmap(tempBitmap, 0f, 0f, paint)
     }
 
     /** 破棄する */

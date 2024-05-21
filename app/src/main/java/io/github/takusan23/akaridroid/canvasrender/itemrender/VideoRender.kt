@@ -64,7 +64,7 @@ class VideoRender(
         }
     }
 
-    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
+    override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         val preLoadBitmap = preLoadBitmap ?: return@withContext
         val (x, y) = video.position
         canvas.drawBitmap(preLoadBitmap, x, y, paint)

@@ -40,7 +40,7 @@ class ImageRender(
         bitmap = request.submit(width, height).get()
     }
 
-    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
+    override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         val bitmap = bitmap ?: return@withContext
         val (x, y) = image.position
         canvas.drawBitmap(bitmap, x, y, paint)

@@ -21,7 +21,6 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
-import io.github.takusan23.akaricore.video.gl.ShaderImageRenderer
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -418,7 +417,7 @@ class ExampleInstrumentedTest {
 
         val shaderImageProcessor = GpuShaderImageProcessor()
         shaderImageProcessor.prepare(
-            fragmentShaderCode = ShaderImageRenderer.FRAGMENT_SHADER_TEXTURE_RENDER,
+            fragmentShaderCode = GpuShaderImageProcessor.FRAGMENT_SHADER_TEXTURE_RENDER,
             width = 1280,
             height = 720
         )

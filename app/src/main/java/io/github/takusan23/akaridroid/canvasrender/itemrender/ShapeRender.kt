@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -20,7 +21,7 @@ class ShapeRender(
         // do noting
     }
 
-    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
+    override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) {
         val (x, y) = shape.position
         val (width, height) = shape.size
 

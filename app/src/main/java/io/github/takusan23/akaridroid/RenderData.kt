@@ -124,6 +124,19 @@ data class RenderData(
             }
 
         }
+
+        /** シェーダー */
+        @Serializable
+        @SerialName("shader")
+        data class Shader(
+            override val id: Long = System.currentTimeMillis(),
+            override val displayTime: DisplayTime,
+            override val layerIndex: Int,
+            override val position: Position,
+            val size: Size,
+            val name: String, // タイムラインの名前表示に使ってる
+            val fragmentShader: String
+        ) : CanvasItem
     }
 
     /** 音声 */

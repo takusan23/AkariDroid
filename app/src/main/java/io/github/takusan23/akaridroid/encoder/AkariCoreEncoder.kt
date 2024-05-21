@@ -112,7 +112,7 @@ object AkariCoreEncoder {
                                 )
                             )
                             canvasRender.draw(
-                                canvas = this,
+                                outCanvas = this,
                                 durationMs = durationMs,
                                 currentPositionMs = positionMs
                             )
