@@ -45,7 +45,8 @@ class ShaderRender(
         // ここまでの描いたフレームを加工する
         val effectBitmap = gpuShaderImageProcessor?.drawShader(drawFrame) ?: return
         // Canvas に描く
-        canvas.drawBitmap(effectBitmap, 0f, 0f, paint)
+        val (x, y) = shader.position
+        canvas.drawBitmap(effectBitmap, x, y, paint)
     }
 
     override fun destroy() {

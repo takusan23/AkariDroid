@@ -162,9 +162,23 @@ I think it\'s difficult to use, sorry.</string>
     <string name="service_encode_notification_description">Please wait</string>
     <string name="service_encode_notification_cancel">cancel encoding</string>
     <string name="dialog_chromakeycolor_title">Choose chromakey color</string>
-    <string name="edit_renderitem_chromakey_title">Use chromakey composition</string>
-    <string name="edit_renderitem_chromakey_select_color">Choose a color to make transparent</string>
+    <string name="video_edit_renderitem_chromakey_title">Use chromakey composition</string>
+    <string name="video_edit_renderitem_chromakey_select_color">Choose a color to make transparent</string>
     <string name="dialog_chromakeycolor_description">By pressing the image, you can select the color you want to make transparent.</string>
     <string name="timeline_context_menu_duplicate">duplication</string>
     <string name="edit_renderitem_displaytime_playback_speed">playback speed</string>
+    <string name="video_edit_bottomsheet_shader_title">Edit shader</string>
+    <string name="video_edit_bottomsheet_shader_fragment_shader">Fragment Shader</string>
+    <string name="video_edit_bottomsheet_shader_sorry">Sorry it\'s hard to edit.\n
+I think it\'s a good idea to draft the fragment shader in Notepad or something, and then paste it here once you\'ve finished writing it.</string>
+    <string name="video_edit_bottomsheet_shader_description">OpenGL ES version is 2.0.\n
+The following uniform variables are available in the fragment shader.\n
+・uniform sampler2D s_texture;\n
+A texture representing video frames. Please put it in texture2D() and use it.\n
+・uniform vec2 v_resolution;\n
+This is a vec2 that contains the width / height of the screen. vec2(width, height).\n
+Use it to normalize coordinates.</string>
+    <string name="video_edit_renderitem_shader_title">Shader (Fragment Shader)</string>
+    <string name="video_edit_renderitem_shader_description">You can color video frames with OpenGL ES using a fragment shader.This item is for advanced users who can write fragment shaders.</string>
+    <string name="video_edit_bottomsheet_shader_name">name</string>
 </resources>

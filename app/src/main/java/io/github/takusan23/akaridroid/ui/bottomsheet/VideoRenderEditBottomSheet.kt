@@ -151,7 +151,7 @@ private fun RenderItemChromaKeyEditComponent(
 
             Text(
                 modifier = Modifier.weight(1f),
-                text = stringResource(id = R.string.edit_renderitem_chromakey_title)
+                text = stringResource(id = R.string.video_edit_renderitem_chromakey_title)
             )
 
             Switch(
@@ -178,7 +178,7 @@ private fun RenderItemChromaKeyEditComponent(
                 OutlinedButton(onClick = { isShowChromaKeyDialog.value = true }) {
                     Icon(painter = painterResource(id = R.drawable.ic_outline_format_color_fill_24px), contentDescription = null)
                     Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-                    Text(text = stringResource(id = R.string.edit_renderitem_chromakey_select_color))
+                    Text(text = stringResource(id = R.string.video_edit_renderitem_chromakey_select_color))
                 }
             }
         }

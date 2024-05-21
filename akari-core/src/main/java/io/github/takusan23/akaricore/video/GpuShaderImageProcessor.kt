@@ -24,7 +24,7 @@ import kotlinx.coroutines.withContext
  *
  * ## uniform sampler2D s_texture;
  * [drawShader]の引数[Bitmap]は、この s_texture でテクスチャとして利用できます。
- * sampler2D() に入れて使ってください。
+ * texture2D() に入れて使ってください。
  *
  * ## uniform vec2 v_resolution;
  * これは画面の width / height を入れている vec2 です。vec2(width, height) です。
@@ -120,8 +120,7 @@ class GpuShaderImageProcessor {
     companion object {
 
         /** 画像を表示するだけの、最低限のシェーダー */
-        const val FRAGMENT_SHADER_TEXTURE_RENDER = """
-precision mediump float;
+        const val FRAGMENT_SHADER_TEXTURE_RENDER = """precision mediump float;
 
 uniform sampler2D s_texture;
 uniform vec2 v_resolution;

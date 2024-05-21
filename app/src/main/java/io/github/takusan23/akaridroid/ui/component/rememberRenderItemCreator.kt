@@ -19,13 +19,14 @@ fun AddRenderItemMenuResult.toMenu() = when (this) {
     AddRenderItemMenuResult.Shape -> AddRenderItemMenu.Shape
     AddRenderItemMenuResult.Text -> AddRenderItemMenu.Text
     is AddRenderItemMenuResult.Video -> AddRenderItemMenu.Video
+    AddRenderItemMenuResult.Shader -> AddRenderItemMenu.Shader
 }
 
 /**
  * メニュー一覧
  *
- * @param label なまえの文字列リソース
- * @param description せつめいの文字列リソース
+ * @param labelResId なまえの文字列リソース
+ * @param descriptionResId せつめいの文字列リソース
  * @param iconResId あいこん
  */
 enum class AddRenderItemMenu(
@@ -68,6 +69,13 @@ enum class AddRenderItemMenu(
         R.drawable.ic_outline_category_24
     ),
 
+    /** GLSL シェーダー */
+    Shader(
+        R.string.video_edit_renderitem_shader_title,
+        R.string.video_edit_renderitem_shader_description,
+        R.drawable.android_akari_droid_shader_icon
+    ),
+
     /** あかりんく */
     AkaLink(
         R.string.video_edit_renderitem_akalink_title,
@@ -94,6 +102,9 @@ sealed interface AddRenderItemMenuResult {
 
     /** 図形の追加 */
     data object Shape : AddRenderItemMenuResult, Addable
+
+    /** シェーダーの追加 */
+    data object Shader : AddRenderItemMenuResult, Addable
 
     /** フォトピッカーで選んだ画像の追加 */
     data class Image(val uri: Uri) : AddRenderItemMenuResult, Addable
@@ -172,13 +183,12 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             return
         }
 
+        // StorageAccessFramework が必要な項目のみ
         val result = when (latestMenu) {
-            AddRenderItemMenu.Text -> null
             AddRenderItemMenu.Image -> AddRenderItemMenuResult.Image(uri)
             AddRenderItemMenu.Video -> AddRenderItemMenuResult.Video(uri)
             AddRenderItemMenu.Audio -> AddRenderItemMenuResult.Audio(uri)
-            AddRenderItemMenu.Shape -> null
-            AddRenderItemMenu.AkaLink -> null
+            AddRenderItemMenu.Text, AddRenderItemMenu.Shape, AddRenderItemMenu.AkaLink, AddRenderItemMenu.Shader -> null
             null -> null
         } ?: return
         onResult(result)
@@ -197,6 +207,7 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             AddRenderItemMenu.Audio -> onStartFilePicker?.invoke("audio/*")
             AddRenderItemMenu.Shape -> onResult(AddRenderItemMenuResult.Shape)
             AddRenderItemMenu.AkaLink -> onResult(AddRenderItemMenuResult.AkaLink)
+            AddRenderItemMenu.Shader -> onResult(AddRenderItemMenuResult.Shader)
         }
     }
 

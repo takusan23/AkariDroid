@@ -163,9 +163,23 @@
     <string name="service_encode_notification_description">しばらくお待ちください</string>
     <string name="service_encode_notification_cancel">エンコードをキャンセル</string>
     <string name="dialog_chromakeycolor_title">クロマキー合成で透過する色を選ぶ</string>
-    <string name="edit_renderitem_chromakey_title">クロマキー合成を利用する</string>
-    <string name="edit_renderitem_chromakey_select_color">透明にする色を選ぶ</string>
+    <string name="video_edit_renderitem_chromakey_title">クロマキー合成を利用する</string>
+    <string name="video_edit_renderitem_chromakey_select_color">透明にする色を選ぶ</string>
     <string name="dialog_chromakeycolor_description">画像を押すことで、透過させたい色を選ぶことができます。</string>
     <string name="timeline_context_menu_duplicate">複製</string>
     <string name="edit_renderitem_displaytime_playback_speed">再生速度</string>
+    <string name="video_edit_bottomsheet_shader_title">シェーダーの編集</string>
+    <string name="video_edit_bottomsheet_shader_fragment_shader">フラグメントシェーダー</string>
+    <string name="video_edit_bottomsheet_shader_sorry">編集しにくくてすいません。\n
+フラグメントシェーダーはメモ帳とかで下書きして、書き上げたらここに貼り付けるのが良いと思います。</string>
+    <string name="video_edit_bottomsheet_shader_description">OpenGL ES のバージョンは 2.0 です。\n
+フラグメントシェーダーでは、以下の uniform 変数が利用できます。\n
+・uniform sampler2D s_texture;\n
+動画のフレームを表すテクスチャです。texture2D() に入れて使ってください。\n
+・uniform vec2 v_resolution;\n
+これは画面の width / height を入れている vec2 です。vec2(width, height) です。\n
+座標の正規化に使ってください。</string>
+    <string name="video_edit_renderitem_shader_title">シェーダー (フラグメントシェーダー)</string>
+    <string name="video_edit_renderitem_shader_description">OpenGL ES (GPU)で動画のフレームにフラグメントシェーダーで色を付けられます。フラグメントシェーダーが書ける上級者向けの項目です。</string>
+    <string name="video_edit_bottomsheet_shader_name">名前</string>
 </resources>

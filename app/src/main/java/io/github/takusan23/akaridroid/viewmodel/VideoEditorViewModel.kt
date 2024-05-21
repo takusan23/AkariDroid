@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
@@ -296,7 +297,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                     is RenderData.CanvasItem.Text -> R.drawable.ic_outline_text_fields_24
                                     is RenderData.CanvasItem.Video -> R.drawable.ic_outline_video_file_24
                                     is RenderData.CanvasItem.Shape -> R.drawable.ic_outline_category_24
-                                    is RenderData.CanvasItem.Shader -> TODO() // TODO 実装する
+                                    is RenderData.CanvasItem.Shader -> R.drawable.android_akari_droid_shader_icon
                                 },
                                 // 動画以外は表示時間変更がタイムラインできるよう（動画と音声は面倒そう）
                                 isChangeDuration = when (renderItem) {
@@ -395,6 +396,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
                 AddRenderItemMenuResult.Shape -> createShapeCanvasItem(displayTimeStartMs)
                     .also { shape -> addOrUpdateCanvasRenderItem(shape) }
+
+                AddRenderItemMenuResult.Shader -> createShaderCanvasItem(displayTimeStartMs)
+                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
             }
 
             // 編集画面を開く
@@ -556,7 +560,12 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 )
             )
 
-            is RenderData.CanvasItem.Shader -> TODO() // TODO 実装する
+            is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
+            )
         }
 
         return true
@@ -951,6 +960,28 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             }
         )
         return resultList
+    }
+
+    /**
+     * [RenderData.CanvasItem.Shader]を作成する
+     *
+     * @param displayTimeStartMs 開始位置
+     * @return [RenderData.CanvasItem.Shader]
+     */
+    private fun createShaderCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Shader {
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 10_000
+        )
+
+        return RenderData.CanvasItem.Shader(
+            displayTime = displayTime,
+            position = renderData.value.centerPosition(),
+            layerIndex = calcInsertableLaneIndex(displayTime),
+            size = renderData.value.videoSize, // シェーダーは多分、動画の縦横埋め尽くしたいと思うので
+            name = "Fragment Shader #${Random.nextInt()}",
+            fragmentShader = GpuShaderImageProcessor.FRAGMENT_SHADER_TEXTURE_RENDER
+        )
     }
 
     /**
