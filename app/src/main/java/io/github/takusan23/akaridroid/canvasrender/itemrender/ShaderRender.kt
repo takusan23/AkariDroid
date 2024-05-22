@@ -12,7 +12,14 @@ import kotlinx.coroutines.withContext
 /**
  * フラグメントシェーダーで[Bitmap]を描画する。
  * 各フレームを[Bitmap]で受け取って、GLSL のフラグメントシェーダーでエフェクトを適用するのに使えます。
- * uniform 変数等は、[GpuShaderImageProcessor]を参照してください。
+ *
+ * デフォルトの uniform 変数は、[GpuShaderImageProcessor]を参照してください。
+ * また、[ShaderRender]では、以下の uniform 変数が動画編集用に用意されています。
+ *
+ * ## uniform float f_time;
+ * 素材が開始した時間から、素材が終わるまでを 0~1 でセットします。
+ * 動画の再生位置ではありません。
+ * 必要ない場合は利用しなくても大丈夫です。
  */
 class ShaderRender(
     private val shader: RenderData.CanvasItem.Shader
@@ -37,6 +44,8 @@ class ShaderRender(
             }
             // 初期化に成功すれば
             gpuShaderImageProcessor = processor
+            // f_time uniform 変数を追加する
+            processor.addCustomFloatUniformHandle(UNIFORM_NAME_F_TIME)
         } catch (e: Exception) {
             // シェーダーのミス等
             // TODO シェーダーのコンパイルが通るかの確認したい
@@ -48,6 +57,11 @@ class ShaderRender(
         val x = shader.position.x.toInt()
         val y = shader.position.y.toInt()
         val (width, height) = shader.size
+
+        // 素材の開始から終了までを 0~1 で計算する
+        val positionInRenderItem = currentPositionMs - shader.displayTime.startMs
+        val progressInRenderItem = positionInRenderItem / shader.displayTime.durationMs.toFloat()
+        gpuShaderImageProcessor?.setCustomFloatUniform(UNIFORM_NAME_F_TIME, progressInRenderItem)
 
         // Android Canvas にある Rect を使って、重なる部分（くり抜く部分）を求める
         // 自前で計算するのはめんどい。。。
@@ -85,6 +99,11 @@ class ShaderRender(
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
         return currentPositionMs in shader.displayTime
+    }
+
+    companion object {
+        /** 素材の開始から終了までを 0~1 で表す uniform 変数名 */
+        private const val UNIFORM_NAME_F_TIME = "f_time"
     }
 
 }

@@ -31,7 +31,7 @@ internal class ShaderImageRenderer(
 
     /**
      * 好きな uniform 変数を定義できるように
-     * [sTextureHandle]や[uResolutionHandle]以外
+     * [sTextureHandle]や[uResolutionHandle]以外の uniform 変数を使いたいとき用。
      */
     private val customUniformLocationDataList = arrayListOf<UniformLocationData>()
 
@@ -131,17 +131,15 @@ internal class ShaderImageRenderer(
      * 定義されている[uResolutionHandle]等以外で、CPU からフラグメントシェーダー（GPU）に値を渡したい場合は使ってください。
      * GL スレッドじゃないとダメ？
      *
-     * @param uniformName フラグメントシェーダーで定義されている uniform 変数の名前
-     * @throw uniform 変数が見つからなかった場合
+     * @param uniformName フラグメントシェーダーで定義されている uniform 変数の名前。存在しない場合は追加しません。
      */
     fun addCustomFloatUniformHandle(uniformName: String) {
         val location = GLES20.glGetUniformLocation(mProgram, uniformName)
         checkGlError("glGetUniformLocation $uniformName")
-        if (location == -1) {
-            throw RuntimeException("Could not get uniform location for $uniformName")
+        if (location != -1) {
+            // 存在すれば追加
+            customUniformLocationDataList += UniformLocationData(uniformName, location, UniformLocationData.UniformType.FLOAT)
         }
-        // 存在すれば追加
-        customUniformLocationDataList += UniformLocationData(uniformName, location, UniformLocationData.UniformType.FLOAT)
     }
 
     /**
@@ -155,7 +153,7 @@ internal class ShaderImageRenderer(
         // glError 1282 の原因とかになる
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
-        // 値を渡す
+        // uniform 変数があれば、値を渡す
         val uniformLocationData = customUniformLocationDataList.firstOrNull { it.uniformName == uniformName } ?: return
         GLES20.glUniform1f(uniformLocationData.uniformLocation, value)
         checkGlError("glUniform1f $uniformName")
