@@ -25,7 +25,7 @@ import java.nio.ByteOrder
  * @param chromakeyThreshold クロマキーのしきい値。
  * @param chromakeyColor クロマキーの色。しきい値を考慮するので、近しい色も透過するはず。
  */
-class FrameExtractorRenderer(
+internal class FrameExtractorRenderer(
     private val chromakeyThreshold: Float? = null,
     private val chromakeyColor: Int? = null
 ) : TextureRenderer() {

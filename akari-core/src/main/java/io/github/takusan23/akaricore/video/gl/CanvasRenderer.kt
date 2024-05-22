@@ -15,7 +15,7 @@ import java.nio.ByteOrder
  * @param outputVideoWidth 動画の幅
  * @param outputVideoHeight 動画の高さ
  */
-class CanvasRenderer(
+internal class CanvasRenderer(
     private val outputVideoWidth: Int,
     private val outputVideoHeight: Int
 ) : TextureRenderer() {

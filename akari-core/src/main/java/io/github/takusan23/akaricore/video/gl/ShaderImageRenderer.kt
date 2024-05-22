@@ -11,7 +11,7 @@ import java.nio.ByteOrder
  * @param width 出力する画像の幅
  * @param height 出力する画像の高さ
  */
-class ShaderImageRenderer(
+internal class ShaderImageRenderer(
     private val fragmentShaderCode: String,
     private val width: Int,
     private val height: Int
@@ -22,11 +22,18 @@ class ShaderImageRenderer(
     // 必須 Uniform 変数へのハンドル
     private var mProgram = 0
     private var maPositionHandle = 0
+
+    /** テクスチャのハンドル */
     private var sTextureHandle = 0
 
-    // これ以降は入力したフラグメントシェーダーによっては無いかも
     /** 縦横を vec2 で渡す uniform へのハンドル。例 : vec2(width, height) */
-    private var uResolutionHandleOrNull: Int? = null
+    private var uResolutionHandle = 0
+
+    /**
+     * 好きな uniform 変数を定義できるように
+     * [sTextureHandle]や[uResolutionHandle]以外
+     */
+    private val customUniformLocationDataList = arrayListOf<UniformLocationData>()
 
     // 渡された Bitmap をテクスチャとして使うので、ユニット番号
     private var textureId = -1234567
@@ -43,6 +50,7 @@ class ShaderImageRenderer(
         }
 
         // Uniform 変数へのハンドル
+        // 必須にしているはず。
         maPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_position")
         checkGlError("glGetAttribLocation maPositionHandle")
         if (maPositionHandle == -1) {
@@ -51,14 +59,12 @@ class ShaderImageRenderer(
         sTextureHandle = GLES20.glGetUniformLocation(mProgram, "s_texture")
         checkGlError("glGetUniformLocation sTextureHandle")
         if (sTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for sTextureHandle")
+            throw RuntimeException("Could not get uniform location for sTextureHandle")
         }
-
-        // 任意のハンドル
-        // 存在しない可能性もあるので例外での確認はしない
-        uResolutionHandleOrNull = GLES20.glGetUniformLocation(mProgram, "v_resolution")
-        if (uResolutionHandleOrNull == -1) {
-            uResolutionHandleOrNull = null
+        uResolutionHandle = GLES20.glGetUniformLocation(mProgram, "v_resolution")
+        checkGlError("glGetUniformLocation v_resolution")
+        if (uResolutionHandle == -1) {
+            throw RuntimeException("Could not get uniform location for v_resolution")
         }
 
         // テクスチャ ID を払い出してもらう
@@ -96,12 +102,6 @@ class ShaderImageRenderer(
         checkGlError("glEnableVertexAttribArray maPositionHandle")
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET)
 
-        // フラグメントシェーダーで使っているなら渡す
-        if (uResolutionHandleOrNull != null) {
-            GLES20.glUniform2f(uResolutionHandleOrNull!!, width.toFloat(), height.toFloat())
-            checkGlError("glUniform2fv uResolutionHandleOrNull")
-        }
-
         // Snapdragon だと glClear が無いと映像が乱れる
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
 
@@ -115,11 +115,68 @@ class ShaderImageRenderer(
         GLES20.glUniform1i(sTextureHandle, 0)
         checkGlError("glUniform1i sTextureHandle")
 
+        // 縦横サイズ
+        GLES20.glUniform2f(uResolutionHandle, width.toFloat(), height.toFloat())
+        checkGlError("glUniform2fv uResolutionHandleOrNull")
+
         // 描画する
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
         checkGlError("glFinish")
+    }
+
+    /**
+     * uniform 変数へのハンドルを取得して追加する。float 型。
+     * 定義されている[uResolutionHandle]等以外で、CPU からフラグメントシェーダー（GPU）に値を渡したい場合は使ってください。
+     * GL スレッドじゃないとダメ？
+     *
+     * @param uniformName フラグメントシェーダーで定義されている uniform 変数の名前
+     * @throw uniform 変数が見つからなかった場合
+     */
+    fun addCustomFloatUniformHandle(uniformName: String) {
+        val location = GLES20.glGetUniformLocation(mProgram, uniformName)
+        checkGlError("glGetUniformLocation $uniformName")
+        if (location == -1) {
+            throw RuntimeException("Could not get uniform location for $uniformName")
+        }
+        // 存在すれば追加
+        customUniformLocationDataList += UniformLocationData(uniformName, location, UniformLocationData.UniformType.FLOAT)
+    }
+
+    /**
+     * [addCustomFloatUniformHandle]で追加した uniform 変数へ値をセットする。float 型。
+     * GL スレッドじゃないとダメ？
+     *
+     * @param uniformName uniform 変数名
+     * @param value float 値
+     */
+    fun setCustomFloatUniform(uniformName: String, value: Float) {
+        // glError 1282 の原因とかになる
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
+        // 値を渡す
+        val uniformLocationData = customUniformLocationDataList.firstOrNull { it.uniformName == uniformName } ?: return
+        GLES20.glUniform1f(uniformLocationData.uniformLocation, value)
+        checkGlError("glUniform1f $uniformName")
+    }
+
+    /**
+     * 必須ではない、任意の uniform 変数を入れておくデータクラス
+     *
+     * @param uniformName uniform 変数名
+     * @param uniformLocation [GLES20.glGetUniformLocation]の返り値
+     * @param type 型
+     */
+    private data class UniformLocationData(
+        val uniformName: String,
+        val uniformLocation: Int,
+        val type: UniformType
+    ) {
+        /** 型。vec2 とかもあるべきだろうけど float しか使ってないので */
+        enum class UniformType {
+            FLOAT
+        }
     }
 
     companion object {

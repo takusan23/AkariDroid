@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
  * OpenGL ES バージョンは 2.0 です。in / out は 3.0 の機能なので注意です。
  * テクスチャ（画像）を表示するだけのサンプルはこちらです。[FRAGMENT_SHADER_TEXTURE_RENDER]
  * 以下の uniform 変数が利用できます。
+ * （というか必須なので、フラグメントシェーダーで使っていない場合はエラーになるかも）
  *
  * ## uniform sampler2D s_texture;
  * [drawShader]の引数[Bitmap]は、この s_texture でテクスチャとして利用できます。
@@ -83,6 +84,20 @@ class GpuShaderImageProcessor {
         withContext(openGlRendererThreadDispatcher) {
             inputSurface?.makeCurrent()
             shaderImageRenderer?.createRenderer()
+        }
+    }
+
+    /** [ShaderImageRenderer.addCustomFloatUniformHandle]を呼び出す */
+    suspend fun addCustomFloatUniformHandle(uniformName: String) {
+        withContext(openGlRendererThreadDispatcher) {
+            shaderImageRenderer?.addCustomFloatUniformHandle(uniformName)
+        }
+    }
+
+    /** [ShaderImageRenderer.setCustomFloatUniform]を呼び出す */
+    suspend fun setCustomFloatUniform(uniformName: String, value: Float) {
+        withContext(openGlRendererThreadDispatcher) {
+            shaderImageRenderer?.setCustomFloatUniform(uniformName, value)
         }
     }
 

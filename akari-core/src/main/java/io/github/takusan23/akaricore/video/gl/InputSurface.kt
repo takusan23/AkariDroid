@@ -26,7 +26,7 @@ import android.view.Surface
  *
  * @param outputSurface 出力先 [Surface]
  */
-class InputSurface(private val outputSurface: Surface) {
+internal class InputSurface(private val outputSurface: Surface) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
     private var mEGLContext = EGL14.EGL_NO_CONTEXT
     private var mEGLSurface = EGL14.EGL_NO_SURFACE

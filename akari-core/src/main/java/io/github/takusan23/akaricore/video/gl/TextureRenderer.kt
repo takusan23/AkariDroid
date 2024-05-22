@@ -3,7 +3,7 @@ package io.github.takusan23.akaricore.video.gl
 import android.opengl.GLES20
 
 /** [CanvasRenderer]とか[FrameExtractorRenderer]とかの、共通する部分。でも大して共通してる部分ない。 */
-abstract class TextureRenderer {
+internal abstract class TextureRenderer {
 
     /** シェーダーのコンパイルとかを行う */
     abstract fun createRenderer()

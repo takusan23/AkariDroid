@@ -439,6 +439,38 @@ class ExampleInstrumentedTest {
         }
     }
 
+    @Test
+    fun test_画像にGLSLでエフェクトを適用できる_独自uniform変数() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val sampleVideoFolder = appContext.getExternalFilesDir(null)!!.resolve("sample")
+
+        val shaderImageProcessor = GpuShaderImageProcessor()
+        shaderImageProcessor.prepare(
+            fragmentShaderCode = FRAGMENT_SHADER_TIME_UNIFORM,
+            width = 1280,
+            height = 720
+        )
+
+        // シェーダーのコンパイルが通ったら生成
+        val parentFolder = appContext.getExternalFilesDir(null)!!
+        val imageBitmap = BitmapFactory.decodeFile(sampleVideoFolder.resolve("image1.jpg").path)
+        val uniformName = "f_time"
+
+        // 自前 uniform 変数を追加
+        shaderImageProcessor.addCustomFloatUniformHandle(uniformName)
+
+        // uniform 変数を変えていく
+        listOf(0.2f, 0.4f, 0.6f, 0.8f, 1f).forEach { float ->
+            // 値を uniform 変数にセット
+            shaderImageProcessor.setCustomFloatUniform(uniformName, float)
+            // 描画して保存
+            val applyEffectImageBitmap = shaderImageProcessor.drawShader(imageBitmap)
+            parentFolder.resolve("test_画像にGLSLでエフェクトを適用できる_独自uniform変数_${float}_${System.currentTimeMillis()}.png").outputStream().use { outputStream ->
+                applyEffectImageBitmap?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+        }
+    }
+
     /** 一時的なファイル置き場を作る。ブロックを抜けたら削除されます。 */
     private suspend fun provideTempFolder(action: suspend (tempFolder: File) -> Unit) {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
@@ -456,5 +488,26 @@ class ExampleInstrumentedTest {
     companion object {
         /** runTest デフォルトタイムアウト */
         private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
+
+        /** f_time という uniform 変数を使う例  */
+        private const val FRAGMENT_SHADER_TIME_UNIFORM = """precision mediump float;
+
+uniform sampler2D s_texture;
+uniform vec2 v_resolution;
+uniform float f_time;
+
+void main() {
+    vec4 fragCoord = gl_FragCoord;
+    // 正規化する
+    vec2 uv = fragCoord.xy / v_resolution.xy;
+    // 反転しているので
+    uv = vec2(uv.x, 1.-uv.y);
+    // 色を出す
+    vec4 color = texture2D(s_texture, uv);
+    color.r = f_time;
+    gl_FragColor = color;
+}
+"""
+
     }
 }
