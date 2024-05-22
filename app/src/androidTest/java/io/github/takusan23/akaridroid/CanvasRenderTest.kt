@@ -367,7 +367,46 @@ class CanvasRenderTest {
                             layerIndex = 1,
                             size = RenderData.Size(1280, 720),
                             name = "フラグメントシェーダー",
-                            fragmentShader = GpuShaderImageProcessor.FRAGMENT_SHADER_TEXTURE_RENDER
+                            fragmentShader = FRAGMENT_SHADER_MOSAIC
+                        )
+                    )
+                )
+            }
+        )
+        testToomoMp4.delete()
+    }
+
+    @Test
+    fun test_各フレームにGLSLのフラグメントシェーダーを通してエフェクトを適用できる_部分的に適用() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // TODO あらかじめ app/src/androidTest/res/raw/test_toomo.mp4 ファイルを置いておく
+        // File しか受け付けないのでとりあえずコピー
+        val testToomoMp4 = createFile("test_toomo").also { testToomoMp4 ->
+            testToomoMp4.outputStream().use { outputStream ->
+                context.resources
+                    .openRawResource(io.github.takusan23.akaridroid.test.R.raw.test_toomo)
+                    .copyTo(outputStream)
+            }
+        }
+        encode(
+            testName = "test_各フレームにGLSLのフラグメントシェーダーを通してエフェクトを適用できる_部分的に適用",
+            durationMs = 10_000,
+            canvasRender = CanvasRender(targetContext).apply {
+                setRenderData(
+                    canvasRenderItem = listOf(
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(1280, 720)
+                        ),
+                        RenderData.CanvasItem.Shader(
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
+                            position = RenderData.Position(320f, 160f),
+                            layerIndex = 1,
+                            size = RenderData.Size(640, 320),
+                            name = "フラグメントシェーダー",
+                            fragmentShader = FRAGMENT_SHADER_MOSAIC
                         )
                     )
                 )
@@ -409,6 +448,32 @@ class CanvasRenderTest {
     companion object {
         /** runTest デフォルトタイムアウト */
         private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
+
+        /**
+         * 画像を表示するだけだとわからんので、モザイクしてみる
+         * https://qiita.com/edo_m18/items/d166653ac0dccbc607dc
+         *
+         * uniform 変数は[GpuShaderImageProcessor]参照。
+         */
+        const val FRAGMENT_SHADER_MOSAIC = """precision mediump float;
+
+uniform sampler2D s_texture;
+uniform vec2 v_resolution;
+
+void main() {
+    vec4 fragCoord = gl_FragCoord;
+    // 正規化する
+    vec2 uv = fragCoord.xy / v_resolution.xy;
+    // 反転しているので
+    uv = vec2(uv.x, 1.-uv.y);
+    // モザイクしてみる
+    uv = floor(uv * 15.0) / 15.0;
+    // 色を出す
+    vec4 color = texture2D(s_texture, uv);
+    gl_FragColor = color;
+}
+"""
+
     }
 
 }
