@@ -174,11 +174,18 @@ I think it\'s a good idea to draft the fragment shader in Notepad or something, 
     <string name="video_edit_bottomsheet_shader_description">OpenGL ES version is 2.0.\n
 The following uniform variables are available in the fragment shader.\n
 ・uniform sampler2D s_texture;\n
+Use of this variable is required.\n
 A texture representing video frames. Please put it in texture2D() and use it.\n
 ・uniform vec2 v_resolution;\n
+Use of this variable is required.\n
 This is a vec2 that contains the width / height of the screen. vec2(width, height).\n
-Use it to normalize coordinates.</string>
+Use it to normalize coordinates.\n
+・uniform float f_time;\n
+Use is optional.\n
+This is a variable from 0 to 1 from when the material starts playing until it ends.\n
+Please note that this is not the time for the video.</string>
     <string name="video_edit_renderitem_shader_title">Shader (Fragment Shader)</string>
     <string name="video_edit_renderitem_shader_description">You can color video frames with OpenGL ES using a fragment shader.This item is for advanced users who can write fragment shaders.</string>
     <string name="video_edit_bottomsheet_shader_name">name</string>
+    <string name="video_edit_bottomsheet_switch_animation_title">Edit transition animation</string>
 </resources>

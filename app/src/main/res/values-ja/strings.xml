@@ -175,11 +175,18 @@
     <string name="video_edit_bottomsheet_shader_description">OpenGL ES のバージョンは 2.0 です。\n
 フラグメントシェーダーでは、以下の uniform 変数が利用できます。\n
 ・uniform sampler2D s_texture;\n
+この変数を使うのは必須です。\n
 動画のフレームを表すテクスチャです。texture2D() に入れて使ってください。\n
 ・uniform vec2 v_resolution;\n
+この変数を使うのは必須です。\n
 これは画面の width / height を入れている vec2 です。vec2(width, height) です。\n
-座標の正規化に使ってください。</string>
+座標の正規化に使ってください。\n
+・uniform float f_time;\n
+使うかは任意です。\n
+これは素材が再生開始して、終了するまでを0から1で変数に入れています。\n
+動画の時間ではないので注意です。</string>
     <string name="video_edit_renderitem_shader_title">シェーダー (フラグメントシェーダー)</string>
     <string name="video_edit_renderitem_shader_description">OpenGL ES (GPU)で動画のフレームにフラグメントシェーダーで色を付けられます。フラグメントシェーダーが書ける上級者向けの項目です。</string>
     <string name="video_edit_bottomsheet_shader_name">名前</string>
+    <string name="video_edit_bottomsheet_switch_animation_title">切り替えアニメーションの編集</string>
 </resources>

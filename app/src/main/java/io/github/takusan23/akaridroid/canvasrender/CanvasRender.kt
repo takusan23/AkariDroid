@@ -10,6 +10,7 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShaderRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShapeRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.SwitchAnimationRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ class CanvasRender(private val context: Context) {
                 is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
                 is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
                 is RenderData.CanvasItem.Shader -> ShaderRender(renderItem)
+                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRender(renderItem)
             }
         }
     }

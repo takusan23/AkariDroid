@@ -137,6 +137,29 @@ data class RenderData(
             val name: String, // タイムラインの名前表示に使ってる
             val fragmentShader: String
         ) : CanvasItem
+
+        /** 切り替えアニメーション */
+        @Serializable
+        @SerialName("switch_animation")
+        data class SwitchAnimation(
+            override val id: Long = System.currentTimeMillis(),
+            override val displayTime: DisplayTime,
+            override val layerIndex: Int,
+            override val position: Position,
+            val size: Size,
+            val type: SwitchAnimationType
+        ) : CanvasItem {
+
+            /** アニメーション一覧 */
+            @Serializable
+            enum class SwitchAnimationType {
+                @SerialName("fade_in_out")
+                FADE_IN_OUT,
+
+                @SerialName("slide")
+                SLIDE,
+            }
+        }
     }
 
     /** 音声 */

@@ -115,6 +115,18 @@ fun VideoEditorBottomSheetRouter(
                         onClose()
                     }
                 )
+
+                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = {
+                        onCanvasUpdate(it)
+                        onClose()
+                    },
+                    onDelete = {
+                        onDeleteItem(it)
+                        onClose()
+                    }
+                )
             }
 
             // 動画情報編集画面

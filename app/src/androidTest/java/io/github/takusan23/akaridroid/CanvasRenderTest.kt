@@ -454,6 +454,44 @@ class CanvasRenderTest {
         testToomoMp4.delete()
     }
 
+    @Test
+    fun test_切り替えアニメーションが動く() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // TODO あらかじめ app/src/androidTest/res/raw/test_toomo.mp4 ファイルを置いておく
+        // File しか受け付けないのでとりあえずコピー
+        val testToomoMp4 = createFile("test_toomo").also { testToomoMp4 ->
+            testToomoMp4.outputStream().use { outputStream ->
+                context.resources
+                    .openRawResource(io.github.takusan23.akaridroid.test.R.raw.test_toomo)
+                    .copyTo(outputStream)
+            }
+        }
+        encode(
+            testName = "test_切り替えアニメーションが動く",
+            durationMs = 3_000,
+            canvasRender = CanvasRender(targetContext).apply {
+                setRenderData(
+                    canvasRenderItem = listOf(
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 3_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(1280, 720)
+                        ),
+                        RenderData.CanvasItem.SwitchAnimation(
+                            displayTime = RenderData.DisplayTime(startMs = 1_000, durationMs = 2_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 1,
+                            size = RenderData.Size(1280, 720),
+                            type = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT
+                        )
+                    )
+                )
+            }
+        )
+        testToomoMp4.delete()
+    }
+
 
     /** [CanvasRender]を渡したらエンコードして動画フォルダに保存してくれるやつ */
     private suspend fun encode(
