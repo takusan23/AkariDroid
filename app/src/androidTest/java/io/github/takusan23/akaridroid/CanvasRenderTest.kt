@@ -483,7 +483,7 @@ class CanvasRenderTest {
                             position = RenderData.Position(0f, 0f),
                             layerIndex = 1,
                             size = RenderData.Size(1280, 720),
-                            type = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR
+                            animationType = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR
                         )
                     )
                 )

@@ -400,6 +400,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
                 AddRenderItemMenuResult.Shader -> createShaderCanvasItem(displayTimeStartMs)
                     .also { shader -> addOrUpdateCanvasRenderItem(shader) }
+
+                AddRenderItemMenuResult.SwitchAnimation -> createSwitchAnimationCanvasItem(displayTimeStartMs)
+                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
             }
 
             // 編集画面を開く
@@ -977,6 +980,27 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /**
+     * [RenderData.CanvasItem.SwitchAnimation]を作成する
+     *
+     * @param displayTimeStartMs 開始位置
+     * @return [RenderData.CanvasItem.SwitchAnimation]
+     */
+    private fun createSwitchAnimationCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.SwitchAnimation {
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 1_000
+        )
+
+        return RenderData.CanvasItem.SwitchAnimation(
+            displayTime = displayTime,
+            position = RenderData.Position(0f, 0f),
+            layerIndex = calcInsertableLaneIndex(displayTime),
+            size = renderData.value.videoSize,
+            animationType = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT
+        )
+    }
+
+    /**
      * [RenderData.CanvasItem.Shader]を作成する
      *
      * @param displayTimeStartMs 開始位置
@@ -1038,15 +1062,23 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         return when (this) {
             is RenderData.AudioItem.Audio -> this.filePath.name()
             is RenderData.CanvasItem.Image -> this.filePath.name()
-            is RenderData.CanvasItem.Shape -> when (this.shapeType) {
-                RenderData.CanvasItem.Shape.ShapeType.Rect -> context.getString(R.string.video_edit_bottomsheet_shape_rect)
-                RenderData.CanvasItem.Shape.ShapeType.Circle -> context.getString(R.string.video_edit_bottomsheet_shape_circle)
-            }
+            is RenderData.CanvasItem.Shape -> context.getString(
+                when (this.shapeType) {
+                    RenderData.CanvasItem.Shape.ShapeType.Rect -> R.string.video_edit_bottomsheet_shape_rect
+                    RenderData.CanvasItem.Shape.ShapeType.Circle -> R.string.video_edit_bottomsheet_shape_circle
+                }
+            )
 
             is RenderData.CanvasItem.Text -> this.text
             is RenderData.CanvasItem.Video -> this.filePath.name()
             is RenderData.CanvasItem.Shader -> this.name
-            is RenderData.CanvasItem.SwitchAnimation -> this.type.name // TODO ローカライズ
+            is RenderData.CanvasItem.SwitchAnimation -> context.getString(
+                when (this.animationType) {
+                    RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out
+                    RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.SLIDE -> R.string.video_edit_bottomsheet_switch_animation_type_slide
+                    RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> R.string.video_edit_bottomsheet_switch_animation_type_blur
+                }
+            )
         }
     }
 

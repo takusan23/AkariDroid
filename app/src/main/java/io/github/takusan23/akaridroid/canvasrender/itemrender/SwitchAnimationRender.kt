@@ -14,7 +14,7 @@ class SwitchAnimationRender(
         get() = switchAnimation.layerIndex
 
     override val fragmentShader: String
-        get() = when (switchAnimation.type) {
+        get() = when (switchAnimation.animationType) {
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> FRAGMENT_SHADER_FADE_IN_OUT
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.SLIDE -> FRAGMENT_SHADER_SLIDE
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> FRAGMENT_SHADER_BLUR

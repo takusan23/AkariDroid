@@ -2,6 +2,8 @@ package io.github.takusan23.akaridroid.ui.bottomsheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,7 +26,9 @@ fun AddRenderItemBottomSheet(onAddRenderItemResult: (AddRenderItemMenuResult) ->
     val creator = rememberRenderItemCreator(onResult = onAddRenderItemResult)
 
     Column(
-        modifier = Modifier.bottomSheetPadding(),
+        modifier = Modifier
+            .bottomSheetPadding()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 

@@ -147,7 +147,7 @@ data class RenderData(
             override val layerIndex: Int,
             override val position: Position,
             val size: Size,
-            val type: SwitchAnimationType
+            val animationType: SwitchAnimationType
         ) : CanvasItem {
 
             /** アニメーション一覧 */

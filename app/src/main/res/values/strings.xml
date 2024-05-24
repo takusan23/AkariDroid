@@ -188,4 +188,10 @@ Please note that this is not the time for the video.</string>
     <string name="video_edit_renderitem_shader_description">You can color video frames with OpenGL ES using a fragment shader.This item is for advanced users who can write fragment shaders.</string>
     <string name="video_edit_bottomsheet_shader_name">name</string>
     <string name="video_edit_bottomsheet_switch_animation_title">Edit transition animation</string>
+    <string name="video_edit_bottomsheet_switch_animation_type">Choose transition animation</string>
+    <string name="video_edit_renderitem_switch_animation_title">transition animation</string>
+    <string name="video_edit_renderitem_switch_animation_description">You can add transition effects such as fade-outs and slides.</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out">fade out/fade in</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_slide">slide</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_blur">blur</string>
 </resources>

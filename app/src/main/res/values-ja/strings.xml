@@ -189,4 +189,10 @@
     <string name="video_edit_renderitem_shader_description">OpenGL ES (GPU)で動画のフレームにフラグメントシェーダーで色を付けられます。フラグメントシェーダーが書ける上級者向けの項目です。</string>
     <string name="video_edit_bottomsheet_shader_name">名前</string>
     <string name="video_edit_bottomsheet_switch_animation_title">切り替えアニメーションの編集</string>
+    <string name="video_edit_bottomsheet_switch_animation_type">切り替えアニメーションを選ぶ</string>
+    <string name="video_edit_renderitem_switch_animation_title">切り替えアニメーション</string>
+    <string name="video_edit_renderitem_switch_animation_description">フェードアウト、スライド等の切り替え効果を追加できます。</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out">フェードアウト、フェードイン</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_slide">スライド</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_blur">ぼかし</string>
 </resources>

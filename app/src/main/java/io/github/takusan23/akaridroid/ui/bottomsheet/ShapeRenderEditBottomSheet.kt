@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
@@ -31,6 +32,7 @@ fun ShapeRenderEditBottomSheet(
     onUpdate: (RenderData.CanvasItem.Shape) -> Unit,
     onDelete: (RenderData.CanvasItem.Shape) -> Unit
 ) {
+    val context = LocalContext.current
     val shapeItem = remember { mutableStateOf(renderItem) }
 
     fun update(copy: (RenderData.CanvasItem.Shape) -> RenderData.CanvasItem.Shape) {
@@ -52,10 +54,14 @@ fun ShapeRenderEditBottomSheet(
             label = stringResource(id = R.string.video_edit_bottomsheet_shape_select),
             modifier = Modifier.fillMaxWidth(),
             currentSelectIndex = RenderData.CanvasItem.Shape.ShapeType.entries.indexOf(shapeItem.value.shapeType),
-            menuList = listOf(
-                stringResource(id = R.string.video_edit_bottomsheet_shape_rect),
-                stringResource(id = R.string.video_edit_bottomsheet_shape_circle)
-            ),
+            menuList = RenderData.CanvasItem.Shape.ShapeType.entries.map {
+                context.getString(
+                    when (it) {
+                        RenderData.CanvasItem.Shape.ShapeType.Rect -> R.string.video_edit_bottomsheet_shape_rect
+                        RenderData.CanvasItem.Shape.ShapeType.Circle -> R.string.video_edit_bottomsheet_shape_circle
+                    }
+                )
+            },
             onSelect = { index -> update { it.copy(shapeType = RenderData.CanvasItem.Shape.ShapeType.entries[index]) } }
         )
 
