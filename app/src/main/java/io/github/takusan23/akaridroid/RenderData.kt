@@ -158,6 +158,9 @@ data class RenderData(
 
                 @SerialName("slide")
                 SLIDE,
+
+                @SerialName("blur")
+                BLUR
             }
         }
     }
