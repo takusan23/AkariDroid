@@ -38,10 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -89,18 +91,37 @@ private value class TimeLineMillisecondsWidthPx(val msWidthPx: Int) {
 /** タイムラインの拡大、縮小を CompositionLocal で提供する、バケツリレーを回避する */
 private val LocalTimeLineMillisecondsWidthPx = compositionLocalOf { TimeLineMillisecondsWidthPx(msWidthPx = 20) }
 
+/**
+ * タイムラインのアイテム移動中に、隣接するアイテムの隣に置きたい場合に、磁石のように勝手にくっつく機能がある。
+ * 磁石モード。これのしきい値
+ */
+private const val MAGNET_THRESHOLD = 50
+
+/**
+ * 磁石モードのくっつく位置と ID
+ *
+ * @param id [TimeLineData.Item.id]と同じ
+ * @param positionMs くっつける位置
+ */
+private data class MagnetPosition(
+    val id: Long,
+    val positionMs: Long
+)
 
 /**
  * タイムラインのアイテムが移動したときに貰えるデータ
+ * [startRect]、[stopRect]はレーンの判定だけに使ってください。時間をこの[IntRect]から出すと多分正確じゃない（丸められる）
  *
  * @param id [TimeLineData.Item.id]と同じ
  * @param startRect 移動前の位置
  * @param stopRect 移動後の位置
+ * @param positionMs 移動後の再生開始位置
  */
 private data class TimeLineItemComponentDragAndDropData(
     val id: Long,
     val startRect: IntRect,
-    val stopRect: IntRect
+    val stopRect: IntRect,
+    val positionMs: Long
 )
 
 /**
@@ -195,7 +216,7 @@ private fun OverlayTimeLineComponents(
     durationMs: Long,
     currentPositionMs: Long
 ) {
-    val barModifier = Modifier.height(with(LocalDensity.current) { timeLineScrollableAreaCoordinates.size.height.toDp() })
+    val barModifier = modifier.height(with(LocalDensity.current) { timeLineScrollableAreaCoordinates.size.height.toDp() })
 
     // 動画の長さ
     TimeLinePositionBar(
@@ -250,6 +271,13 @@ private fun RequiredSizeTimeLine(
     val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
     // レーンとレーンのアイテムの Map
     val laneItemMap = remember(timeLineData) { timeLineData.groupByLane() }
+    // 磁石モード用に、くっつく位置。最初と最後
+    // +1 は、例えば2秒で終わった後に2秒に始めると、重なってしまうため
+    val magnetPositionList = remember(timeLineData) {
+        timeLineData.itemList
+            .map { item -> listOf(MagnetPosition(item.id, item.startMs), MagnetPosition(item.id, item.stopMs + 1)) }
+            .flatten()
+    }
 
     Column(
         modifier = modifier
@@ -300,19 +328,18 @@ private fun RequiredSizeTimeLine(
                     onDuplicate = onDuplicate,
                     onDurationChange = onDurationChange,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
-                    onDragAndDropRequest = {
-                        val (id, start, stop) = it
+                    magnetPositionList = magnetPositionList,
+                    onDragAndDropRequest = { dragAndDropData ->
+                        val (id, start, stop, positionMs) = dragAndDropData
                         // ドラッグアンドドロップで移動先に移動してよいか
                         // 移動元、移動先のレーン番号を取得
                         val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@TimeLineLane false
                         val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@TimeLineLane false
 
-                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
-                        val stopMsInDroppedPos = with(msWidthPx) { stop.left.widthToMs }
                         // 移動先の TimeLineItemData を作る
                         val request = TimeLineData.DragAndDropRequest(
                             id = id,
-                            dragAndDroppedStartMs = stopMsInDroppedPos,
+                            dragAndDroppedStartMs = positionMs,
                             dragAndDroppedLaneIndex = toLaneIndex
                         )
 
@@ -351,6 +378,7 @@ private fun TimeLineLane(
     laneIndex: Int,
     currentPositionMs: Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
+    magnetPositionList: List<MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
@@ -376,6 +404,7 @@ private fun TimeLineLane(
                 currentPositionMs = currentPositionMs,
                 onDragAndDropRequest = onDragAndDropRequest,
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
+                magnetPositionList = magnetPositionList,
                 onEdit = { onEdit(timeLineItemData) },
                 onCut = { onCut(timeLineItemData) },
                 onDelete = { onDelete(timeLineItemData) },
@@ -393,6 +422,7 @@ private fun TimeLineLane(
  * @param timeLineItemData タイムラインのデータ[TimeLineData.Item]
  * @param currentPositionMs 現在の再生位置（赤いバーがある位置）
  * @param timeLineScrollableAreaCoordinates 横に長いタイムラインを表示しているコンポーネントの[LayoutCoordinates]
+ * @param magnetPositionList [MagnetPosition]の配列。
  * @param onDragAndDropRequest ドラッグアンドドロップで指を離したら呼ばれます。引数は[TimeLineItemComponentDragAndDropData]参照。返り値はドラッグアンドドロップが成功したかです。移動先が空いていない等は false
  * @param onEdit メニューで値の編集を押した
  * @param onCut メニューで分割を押した
@@ -406,6 +436,7 @@ private fun TimeLineItem(
     timeLineItemData: TimeLineData.Item,
     currentPositionMs: Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
+    magnetPositionList: List<MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: () -> Unit,
     onCut: () -> Unit,
@@ -413,6 +444,8 @@ private fun TimeLineItem(
     onDuplicate: () -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
+    // 移動開始、磁石モード発動時にフィードバックを
+    val haptic = LocalHapticFeedback.current
     // 拡大縮小
     val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
     // アイテムが移動中かどうか
@@ -420,7 +453,7 @@ private fun TimeLineItem(
     // アイテムの位置
     val latestGlobalRect = remember { mutableStateOf<IntRect?>(null) }
     // アイテムの移動中位置。アイテムが変化したら作り直す
-    val draggingOffset = remember(timeLineItemData) {
+    val draggingOffset = remember(timeLineItemData, msWidthPx) {
         mutableStateOf(IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0))
     }
     // メニューを表示するか
@@ -447,13 +480,23 @@ private fun TimeLineItem(
                     .localBoundingBoxOf(it)
                     .roundToIntRect()
             }
-            .pointerInput(timeLineItemData, currentPositionMs, msWidthPx) {
+            .pointerInput(timeLineItemData, currentPositionMs, msWidthPx, magnetPositionList) {
                 // アイテム移動のシステム
                 // データが変化したら pointerInput も再起動するようにキーに入れる
                 var startRect: IntRect? = null
+                // 磁石モード用に、くっつける位置。自分自身は除く必要あり。あと再生位置も欲しい
+                val magnetPositionMsList = magnetPositionList
+                    .filter { it.id != timeLineItemData.id }
+                    .map { it.positionMs } + currentPositionMs
+                // LocalTimeLineMillisecondsWidthPx を経由すると、おそらく時間の細かい部分が丸められてしまう
+                // これがドラッグアンドドロップなら問題ないが、磁石モードの場合、細かい部分が丸められた結果、ギリギリ重ならないのに移動が却下される可能性がある
+                // それを回避するため、onDrag = { } の段階で変数に格納する
+                var latestMagnetPositionMs: Long? = null
+
                 detectDragGestures(
                     onDragStart = {
                         // ドラッグアンドドロップ開始時。フラグを立てて開始位置を入れておく
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         isDragging.value = true
                         startRect = latestGlobalRect.value
                     },
@@ -462,22 +505,35 @@ private fun TimeLineItem(
                         change.consume()
                         val x = (draggingOffset.value.x + dragAmount.x).toInt()
                         val y = (draggingOffset.value.y + dragAmount.y).toInt()
-                        // もし現在の位置のすぐ近くに移動させる場合は、吸い付かせる
-                        draggingOffset.value = if (abs(currentPositionMs - with(msWidthPx) { x.widthToMs }) < 100) {
-                            IntOffset(with(msWidthPx) { currentPositionMs.msToWidth }, y)
+
+                        // 磁石モード発動するか
+                        val magnetPositionMsOrNull = magnetPositionMsList.firstOrNull { magnetPositionMs -> abs(magnetPositionMs - with(msWidthPx) { x.widthToMs }) < MAGNET_THRESHOLD }
+                        if (magnetPositionMsOrNull != null) {
+                            // 差があるときだけにして連続対策
+                            if (latestMagnetPositionMs != magnetPositionMsOrNull) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            draggingOffset.value = IntOffset(with(msWidthPx) { magnetPositionMsOrNull.msToWidth }, y)
+                            latestMagnetPositionMs = magnetPositionMsOrNull
                         } else {
-                            IntOffset(x, y)
+                            draggingOffset.value = IntOffset(x, y)
+                            latestMagnetPositionMs = null
                         }
                     },
                     onDragEnd = {
                         // 移動終了
                         isDragging.value = false
+                        // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                        // 磁石モードでくっついた場合は latestMagnetPositionMs が Null 以外
+                        val nonnullLatestGlobalRect = latestGlobalRect.value ?: return@detectDragGestures
+                        val stopMsInDroppedPos = latestMagnetPositionMs ?: with(msWidthPx) { nonnullLatestGlobalRect.left.widthToMs }
                         // 移動できるか判定を上のコンポーネントでやる
                         val isAccept = onDragAndDropRequest(
                             TimeLineItemComponentDragAndDropData(
                                 id = timeLineItemData.id,
                                 startRect = startRect ?: return@detectDragGestures,
-                                stopRect = latestGlobalRect.value ?: return@detectDragGestures
+                                stopRect = nonnullLatestGlobalRect,
+                                positionMs = stopMsInDroppedPos
                             )
                         )
                         // 出来ない場合は戻す
