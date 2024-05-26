@@ -3,6 +3,7 @@ package io.github.takusan23.akaridroid.viewmodel
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
@@ -458,10 +459,14 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
     /** タイムラインへ投げられた、ファイルのドラッグアンドドロップをさばく */
     fun resolveDragAndDropReceiveUri(mimeType: String, uri: Uri, dropPermission: DragAndDropPermissionsCompat) {
-        viewModelScope.launch {
+        // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
+        // TODO ので、悲しいけどアプリ固有のフォルダへコピーする
+        // TODO やっぱり、アプリ固有にコピーすると、スマホの容量が2倍必要になるから考え直すわ。
+        Toast.makeText(context, "将来的に実装", Toast.LENGTH_SHORT).show()
+        dropPermission.release()
+        return
 
-            // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
-            // TODO ので、悲しいけどローカルのフォルダへコピーする
+        viewModelScope.launch {
             val localFolder = projectFolder.resolve("drag_and_drop_files").apply { mkdir() }
             val fileName = MediaStoreTool.getFileName(context, uri) ?: "${System.currentTimeMillis()}"
             val copyToFile = localFolder.resolve(fileName)
