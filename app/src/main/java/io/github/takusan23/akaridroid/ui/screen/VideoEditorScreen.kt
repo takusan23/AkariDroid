@@ -30,6 +30,7 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
+import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
@@ -171,30 +172,37 @@ fun VideoEditorScreen(
                 // 線
                 HorizontalDivider()
 
-                // タイムライン
-                TimeLine(
-                    modifier = Modifier,
-                    timeLineData = timeLineData.value,
-                    currentPositionMs = previewPlayerStatus.value.currentPositionMs,
-                    durationMs = renderData.value.durationMs,
-                    msWidthPx = timeLineMsWidthPx.intValue,
-                    onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                    onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
-                    onEdit = { timeLineItem ->
-                        viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                            viewModel.openBottomSheet(
-                                VideoEditorBottomSheetRouteRequestData.OpenEditor(
-                                    renderItem = renderItem,
-                                    previewPositionMs = previewPlayerStatus.value.currentPositionMs
+                // ドラッグアンドドロップが受け入れできるように
+                FileDragAndDropReceiveContainer(
+                    onReceive = { mimeType, uri, dropPermission ->
+                        viewModel.resolveDragAndDropReceiveUri(mimeType, uri, dropPermission)
+                    }
+                ) {
+                    // タイムライン
+                    TimeLine(
+                        modifier = Modifier,
+                        timeLineData = timeLineData.value,
+                        currentPositionMs = previewPlayerStatus.value.currentPositionMs,
+                        durationMs = renderData.value.durationMs,
+                        msWidthPx = timeLineMsWidthPx.intValue,
+                        onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
+                        onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
+                        onEdit = { timeLineItem ->
+                            viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                                viewModel.openBottomSheet(
+                                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                                        renderItem = renderItem,
+                                        previewPositionMs = previewPlayerStatus.value.currentPositionMs
+                                    )
                                 )
-                            )
-                        }
-                    },
-                    onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
-                    onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
-                    onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
-                    onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
-                )
+                            }
+                        },
+                        onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
+                        onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
+                        onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
+                        onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
+                    )
+                }
             }
 
             // フローティングしているバー

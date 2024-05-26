@@ -24,11 +24,8 @@ class FontManager(private val context: Context) {
 
         // 保存する
         withContext(Dispatchers.IO) {
-            fontFolder.resolve(fileName).outputStream().use { outputStream ->
-                context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
+            val fontFile = fontFolder.resolve(fileName)
+            MediaStoreTool.fileCopy(context, uri, fontFile)
         }
     }
 

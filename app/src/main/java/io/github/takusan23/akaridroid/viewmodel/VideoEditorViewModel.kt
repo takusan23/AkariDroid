@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.net.Uri
 import androidx.core.net.toUri
+import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
@@ -14,6 +15,7 @@ import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.tool.AvAnalyze
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.MultiArmedBanditManager
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
@@ -451,6 +453,55 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     )
                 )
             }
+        }
+    }
+
+    /** タイムラインへ投げられた、ファイルのドラッグアンドドロップをさばく */
+    fun resolveDragAndDropReceiveUri(mimeType: String, uri: Uri, dropPermission: DragAndDropPermissionsCompat) {
+        viewModelScope.launch {
+
+            // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
+            // TODO ので、悲しいけどローカルのフォルダへコピーする
+            val localFolder = projectFolder.resolve("drag_and_drop_files").apply { mkdir() }
+            val fileName = MediaStoreTool.getFileName(context, uri) ?: "${System.currentTimeMillis()}"
+            val copyToFile = localFolder.resolve(fileName)
+            MediaStoreTool.fileCopy(context, uri, copyToFile)
+
+            // 素材の挿入位置。現在の位置
+            val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+
+            // あかりんくの結果から RenderItem を作る
+            val openEditItem = when {
+                mimeType.startsWith("image/") -> createImageCanvasItem(displayTimeStartMs, copyToFile.toIoType())
+                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+
+                mimeType.startsWith("audio/") -> createAudioItem(displayTimeStartMs, copyToFile.toIoType())
+                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+                mimeType.startsWith("video/") -> createVideoItem(displayTimeStartMs, copyToFile.toIoType())
+                    .onEach { renderItem ->
+                        when (renderItem) {
+                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                        }
+                    }
+                    .firstOrNull()
+
+                else -> return@launch
+            }
+
+            // 編集画面を開く
+            if (openEditItem != null) {
+                openBottomSheet(
+                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
+                        renderItem = openEditItem,
+                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+                    )
+                )
+            }
+
+            // 終わったら
+            dropPermission.release()
         }
     }
 
@@ -1056,7 +1107,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
         // FilePath or Uri で名前を取り出す
         suspend fun RenderData.FilePath.name(): String = when (this) {
             is RenderData.FilePath.File -> File(this.filePath).name
-            is RenderData.FilePath.Uri -> UriTool.getFileName(context, this.uriPath.toUri())!!
+            is RenderData.FilePath.Uri -> UriTool.getFileName(context, this.uriPath.toUri()) ?: "null" // TODO 真面目にやる。というか期限切れ Uri はここに来ないようにする
         }
 
         return when (this) {
