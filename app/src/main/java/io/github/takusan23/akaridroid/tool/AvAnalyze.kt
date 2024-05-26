@@ -26,25 +26,38 @@ object AvAnalyze {
         context: Context,
         ioType: IoType
     ): AvAnalyzeResult.Image? = withContext(Dispatchers.IO) {
-        when (ioType) {
-            is IoType.AndroidUri -> {
-                val column = arrayOf(
-                    MediaStore.Images.Media.WIDTH,
-                    MediaStore.Images.Media.HEIGHT
-                )
-                context.contentResolver.query(ioType.uri, column, null, null, null)?.use { cursor ->
-                    cursor.moveToFirst()
-                    val width = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.WIDTH))
-                    val height = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT))
-                    AvAnalyzeResult.Image(size = AvAnalyzeResult.Size(width, height))
-                }
+
+        // Uri の場合は、MediaStore に問い合わせてみる
+        // 早期 return
+        if (ioType is IoType.AndroidUri) {
+            val column = arrayOf(
+                MediaStore.Images.Media.WIDTH,
+                MediaStore.Images.Media.HEIGHT
+            )
+            val resultSize = context.contentResolver.query(ioType.uri, column, null, null, null)?.use { cursor ->
+                cursor.moveToFirst()
+                val width = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.WIDTH))
+                val height = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT))
+                AvAnalyzeResult.Size(width, height)
             }
 
-            is IoType.JavaFile -> {
-                val bitmap = BitmapFactory.decodeFile(ioType.file.path)
-                AvAnalyzeResult.Image(size = AvAnalyzeResult.Size(bitmap.width, bitmap.height))
+            // 0 とかが帰ってきた場合はおかしいので、Bitmap の解析へ進む
+            // null も Bitmap 解析へ進む
+            if (resultSize != null && 0 < resultSize.width && 0 < resultSize.height) {
+                return@withContext AvAnalyzeResult.Image(size = AvAnalyzeResult.Size(resultSize.width, resultSize.height))
             }
         }
+
+        // Bitmap 解析
+        val bitmap = when (ioType) {
+            is IoType.AndroidUri -> context.contentResolver.openInputStream(ioType.uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream)
+            }
+
+            is IoType.JavaFile -> BitmapFactory.decodeFile(ioType.file.path)
+        } ?: return@withContext null // これでもダメなら null
+
+        return@withContext AvAnalyzeResult.Image(size = AvAnalyzeResult.Size(bitmap.width, bitmap.height))
     }
 
     /**
