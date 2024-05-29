@@ -12,7 +12,7 @@ android {
         applicationId = "io.github.takusan23.akaridroid"
         minSdk = 21
         targetSdk = 34
-        versionCode = 2
+        versionCode = 3
         versionName = "2.1.0"
 
         // アプリのビルド時間をアプリ側で取得できるように
