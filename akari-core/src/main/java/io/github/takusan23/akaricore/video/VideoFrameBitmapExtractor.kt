@@ -77,25 +77,9 @@ class VideoFrameBitmapExtractor {
         videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
         videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
 
-        // Surface 経由で Bitmap が取れる ImageReader つくる 。本来は、元動画の縦横サイズを入れるべきである。
-        // しかし、一部の縦動画（画面録画）を入れるとどうしても乱れてしまう。
-        // Google Pixel の場合は、縦と横にを 16 で割り切れる数字にすることで修正できたが、Snapdragon は直らなかった。
-        // ・・・・
-        // Snapdragon がどうやっても直んないので、別の方法を取る。
-        // 色々いじってみた結果、Snapdragon も 320 / 480 / 720 / 1280 / 1920 / 2560 / 3840 とかのキリがいい数字は何故か動くので、もうこの値を縦と横に適用する。
-        // その後元あった Bitmap のサイズに戻す。もう何もわからない。なんだよこれ・・
-        val maxSize = maxOf(videoWidth, videoHeight)
-        val imageReaderSize = when {
-            maxSize < 320 -> 320
-            maxSize < 480 -> 480
-            maxSize < 720 -> 720
-            maxSize < 1280 -> 1280
-            maxSize < 1920 -> 1920
-            maxSize < 2560 -> 2560
-            maxSize < 3840 -> 3840
-            else -> 1920 // 何もなければ適当に Full HD
-        }
-        imageReader = ImageReader.newInstance(imageReaderSize, imageReaderSize, PixelFormat.RGBA_8888, 2)
+        // 詳しくは nearestImageReaderAvailableSize 参照
+        val nearestSize = nearestImageReaderAvailableSize(videoWidth, videoHeight)
+        imageReader = ImageReader.newInstance(nearestSize, nearestSize, PixelFormat.RGBA_8888, 2)
 
         // OpenGL ES の用意
         // MediaCodec と ImageReader の間に OpenGL を経由させる

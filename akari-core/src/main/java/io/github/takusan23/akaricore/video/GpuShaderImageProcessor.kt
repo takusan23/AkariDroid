@@ -47,6 +47,12 @@ class GpuShaderImageProcessor {
     /** フラグメントシェーダーを受け取って、OpenGL ES で描画するやつ */
     private var shaderImageRenderer: ShaderImageRenderer? = null
 
+    // ImageReader は、1280x720 とかのきれいな数字の場合は動くが、半端な数字を入れた途端、出力された映像がぐちゃぐちゃになる。
+    // それを回避するため、半端な数字が来た場合は、一番近い数字に丸める。
+    // ただ、近い数字に丸めてしまうと画像サイズが変わってしまうため、元々のサイズに戻せるようここに持っておく。
+    private var originWidth: Int? = null // 元のはば
+    private var originHeight: Int? = null // 元のたかさ
+
     /**
      * 初期設定を行う
      *
@@ -58,26 +64,20 @@ class GpuShaderImageProcessor {
         width: Int,
         height: Int
     ) {
-        // TODO VideoFrameBitmapExtractor と同じハックが必要か確認
-        // val maxSize = maxOf(width, height)
-        // val imageReaderSize = when {
-        //     maxSize < 320 -> 320
-        //     maxSize < 480 -> 480
-        //     maxSize < 720 -> 720
-        //     maxSize < 1280 -> 1280
-        //     maxSize < 1920 -> 1920
-        //     maxSize < 2560 -> 2560
-        //     maxSize < 3840 -> 3840
-        //     else -> 1920 // 何もなければ適当に Full HD
-        // }
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+        // VideoFrameBitmapExtractor と同じハックが必要。中途半端なサイズだと ImageReader はぶっ壊れる。
+        originWidth = width
+        originHeight = height
+        val nearestSize = nearestImageReaderAvailableSize(width, height)
+
+        // 縦横同じだが、後で戻す
+        imageReader = ImageReader.newInstance(nearestSize, nearestSize, PixelFormat.RGBA_8888, 2)
         inputSurface = InputSurface(outputSurface = imageReader!!.surface)
 
         // 画像にエフェクトをかけるための TextureRenderer
         shaderImageRenderer = ShaderImageRenderer(
             fragmentShaderCode = fragmentShaderCode,
-            width = width,
-            height = height
+            width = nearestSize,
+            height = nearestSize
         )
 
         // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから
@@ -110,17 +110,21 @@ class GpuShaderImageProcessor {
     suspend fun drawShader(
         bitmap: Bitmap
     ): Bitmap? {
+        val originWidth = originWidth!!
+        val originHeight = originHeight!!
+
         // 描画する
         // GL スレッドで
         withContext(openGlRendererThreadDispatcher) {
             shaderImageRenderer?.draw(bitmap)
             inputSurface?.swapBuffers()
         }
+
         // ImageReader で受け取る
         // Bitmap に
         return imageReader?.getImageReaderBitmap(
-            fixWidth = bitmap.width,
-            fixHeight = bitmap.height
+            fixWidth = originWidth,
+            fixHeight = originHeight
         )
     }
 
@@ -131,6 +135,12 @@ class GpuShaderImageProcessor {
         inputSurface?.destroy()
         shaderImageRenderer?.destroy()
     }
+
+    /** width / height を持っておくデータクラス */
+    private data class Size(
+        val width: Int,
+        val height: Int
+    )
 
     companion object {
 
