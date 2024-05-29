@@ -176,18 +176,26 @@ data class RenderData(
 
     /**
      * 素材の表示時間を表す
-     * [_stopMs]は使われなくなります。
-     * 開始と終了を決めてしまうと、開始時間をずらすのが面倒だったり、再生速度の変更がかなり面倒になるので。。。
+     *
+     * アスキーアート
+     * 以下がタイムラインだとして
+     * 0----------10----------20----------30
+     *
+     * startMs=10 / durationMs=20 を追加したらこう
+     * 0----------10----------20----------30
+     * <----10--->[<----------20---------->]
+     *
+     * startMs=10 / durationMs=30 ならこうです
+     * 0----------10----------20----------30
+     * <----10--->[<----------------30-------------->]
      *
      * @param startMs 開始時間、ミリ秒
-     * @param _stopMs 後方互換のために残しているだけで、使われていません。将来的に消します。後継パラメーターは[stopMs]です。そのため[copy]の際も適当な値で埋めて OK です。
-     * @param durationMs この時間から、何ミリ秒再生するか。[stopMs]の計算にも利用されます。再生速度は考慮しない値になります。
+     * @param durationMs この時間から、何ミリ秒再生するか。[stopMs]の計算にも利用されます。再生速度は考慮しない値になります。**間違っても終了時間を入れるわけではありません。**
      * @param playbackSpeed 再生速度。動画と音声ではこれが利用されます
      */
     @Serializable
     data class DisplayTime(
         val startMs: Long,
-        @SerialName("stopMs") @Deprecated("コメント通り") private val _stopMs: Long = 0,
         val durationMs: Long,
         val playbackSpeed: Float = DEFAULT_PLAYBACK_SPEED
     ) : ClosedRange<Long> {
@@ -197,13 +205,13 @@ data class RenderData(
         override val endInclusive: Long
             get() = stopMs
 
-        /** 再生速度を考慮した、終了時間を出す */
+        /** **再生速度を考慮した**、終了時間を出す */
         val stopMs: Long
-            get() = ((startMs + durationMs) / playbackSpeed).toLong()
+            get() = startMs + playbackSpeedDurationMs
 
         /** 再生速度を考慮した[durationMs] */
-        val speedDurationMs: Long
-            get() = stopMs - startMs
+        val playbackSpeedDurationMs: Long
+            get() = (durationMs / playbackSpeed).toLong()
 
         /**
          * 時間を足した（もしくは引いた）[DisplayTime]を作る。
@@ -215,23 +223,39 @@ data class RenderData(
 
         /**
          * 指定した時間で[DisplayTime]を2つに分割する。
+         * タイムライン上から呼び出される想定。
+         *
+         * 例：
+         * startMs=10 / durationMs=40 をタイムライン 20ms の位置で分割する
+         * 0----------10----------20----------30
+         * <----10--->[<---------------------40------------------->]
+         *
+         * こんな感じ
+         * 0----------10----------20----------30
+         * <----10--->[<----10--->][<--------------30------------->]
          *
          * @param cutMs 分割する時間。再生速度は考慮しないで（例：10秒で前後期に切りたいけど、2倍速だから5秒を渡す。とかにはしないで良い）
          * @return Pair。first が前。second が後ろ
          */
         fun splitTime(cutMs: Long): Pair<DisplayTime, DisplayTime> {
-            // 再生速度を変更している場合は以下の手順で
-            // RenderData.durationMs は再生速度を適用していないので、再生速度は等倍速（1倍速）に戻して考える必要がある
-            val x1SpeedPositionMs = (cutMs * playbackSpeed).toLong()
+            // RenderData.durationMs / startMs は再生速度を適用していません。
+            // cutMs に再生速度を掛け算したり、しなかったりしています。この差は何かというと、
+            // タイムライン上に表示されているアイテムはすでに再生速度に応じてタイムライン上のアイテムの長さが調整されている。（stopMs が再生速度を適用した値を返す）
+            // 長さが調整されている状態でタイムラインを操作し、cutMs の位置で分割したい場合、startMs / durationMs は再生速度を適用していない値のため、cutMs（ユーザーが見ている再生速度を適用した位置）を操作する必要がある。
+            // 詳しくはテスト見て。
+
             // 1つ目
-            val displayTimeA = copy(
-                startMs = startMs,
-                durationMs = x1SpeedPositionMs
+            val displayTimeA = DisplayTime(
+                startMs = this.startMs,// 分割した前側はそのまま
+                durationMs = (cutMs * playbackSpeed).toLong() - this.startMs,
+                playbackSpeed = this.playbackSpeed
             )
-            // ２つ目
-            val displayTimeB = copy(
-                startMs = displayTimeA.stopMs,
-                durationMs = durationMs - x1SpeedPositionMs
+            // 2つ目
+            // 引き続き、startMs / durationMs は再生速度を適用しない値をいれる必要があります
+            val displayTimeB = DisplayTime(
+                startMs = cutMs, // 切り出す位置
+                durationMs = this.durationMs - displayTimeA.durationMs, // 残りの時間
+                playbackSpeed = this.playbackSpeed
             )
             return displayTimeA to displayTimeB
         }
