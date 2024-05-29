@@ -61,28 +61,33 @@ class RenderDataTest {
         // 速度調整対応しているか
         // 60s から 300s 再生する DisplayTime。うどんタイマー。終了地点は 60s+300s=360s になる。
         // ただし 2 倍速なので 60s から 150s です。
+        // 0----------60----------120----------180
+        // <----60---->[<------150------>]
         val displayTimeA = RenderData.DisplayTime(startMs = 60_000, durationMs = 300_000, playbackSpeed = 2f)
         assertEquals(displayTimeA.startMs, 60_000, "displayTimeA.startMs")
         assertEquals(displayTimeA.durationMs, 300_000, "displayTimeA.durationMs")
         assertEquals(displayTimeA.playbackSpeedDurationMs, 150_000, "displayTimeA.playbackDurationMs")
         assertEquals(displayTimeA.stopMs, 60_000 + 150_000, "displayTimeA.stopMs") // 開始時間を足してかつ、durationMs の速度考慮を
 
-        // 60s から 150s の間で適当に分割。今回は半分にしてみる
-        val (displayTimeB, displayTimeC) = displayTimeA.splitTime(60_000 + 45_000)
+        // 60s から 150s の間で適当に分割
+        // 120s で
+        val (displayTimeB, displayTimeC) = displayTimeA.splitTime(120_000)
 
         // 再生時間は再生速度が考慮されない
-        assertEquals(displayTimeB.durationMs, 150_000, "displayTimeB.durationMs")
-        assertEquals(displayTimeC.durationMs, 150_000, "displayTimeC.durationMs")
+        // 120s で切れば 120s になる。残りも元の速度（300s）から引いた値になる
+        // 違和感がありますか？実際のアプリのプレビューだと再生速度が反映されているので。。。
+        assertEquals(displayTimeB.durationMs, 120_000, "displayTimeB.durationMs")
+        assertEquals(displayTimeC.durationMs, 180_000, "displayTimeC.durationMs")
         // 再生速度対応版もある
-        assertEquals(displayTimeB.playbackSpeedDurationMs, 75_000, "displayTimeB.playbackSpeedDurationMs")
-        assertEquals(displayTimeC.playbackSpeedDurationMs, 75_000, "displayTimeC.playbackSpeedDurationMs")
+        assertEquals(displayTimeB.playbackSpeedDurationMs, 60_000, "displayTimeB.playbackSpeedDurationMs")
+        assertEquals(displayTimeC.playbackSpeedDurationMs, 90_000, "displayTimeC.playbackSpeedDurationMs")
         // startMs は再生速度を考慮されない。
         assertEquals(displayTimeB.startMs, 60_000, "displayTimeB.startMs")
-        assertEquals(displayTimeC.startMs, 105_000, "displayTimeC.startMs")
+        assertEquals(displayTimeC.startMs, 120_000, "displayTimeC.startMs")
         // 一方 stopMs は再生速度を考慮する
         // 開始時間を足してかつ、durationMs の速度考慮を
-        assertEquals(displayTimeB.stopMs, 60_000 + 75_000, "displayTimeB.stopMs")
-        assertEquals(displayTimeC.stopMs, 105_000 + 75_000, "displayTimeC.stopMs")
+        assertEquals(displayTimeB.stopMs, 60_000 + 60_000, "displayTimeB.stopMs")
+        assertEquals(displayTimeC.stopMs, 120_000 + 90_000, "displayTimeC.stopMs")
     }
 
     @Test
@@ -99,9 +104,19 @@ class RenderDataTest {
         // 分割する
         // 今回は 3 分（180s）のところで。やっぱカップラーメンにする
         val (displayTimeB, displayTimeC) = displayTimeA.splitTime(60_000 + 180_000)
-        // 時間が合っていること
-        assertEquals(displayTimeB.playbackSpeedDurationMs, 120_000, "displayTimeB.playbackSpeedDurationMs")
-        assertEquals(displayTimeC.playbackSpeedDurationMs, 180_000, "displayTimeC.playbackSpeedDurationMs")
+        // 再生時間は再生速度が考慮されない。ので 0.5 倍速
+        assertEquals(displayTimeB.durationMs, 90_000, "displayTimeB.durationMs")
+        assertEquals(displayTimeC.durationMs, 60_000, "displayTimeC.durationMs")
+        // 再生速度対応版
+        assertEquals(displayTimeB.playbackSpeedDurationMs, 180_000, "displayTimeB.playbackSpeedDurationMs")
+        assertEquals(displayTimeC.playbackSpeedDurationMs, 120_000, "displayTimeC.playbackSpeedDurationMs")
+        // startMs は再生速度を考慮されない。
+        assertEquals(displayTimeB.startMs, 60_000, "displayTimeB.startMs")
+        assertEquals(displayTimeC.startMs, 60_000 + 180_000, "displayTimeC.startMs")
+        // 一方 stopMs は再生速度を考慮する
+        // 開始時間を足してかつ、durationMs の速度考慮を
+        assertEquals(displayTimeB.stopMs, (60_000) + 180_000, "displayTimeB.stopMs")
+        assertEquals(displayTimeC.stopMs, (60_000 + 180_000) + 120_000, "displayTimeC.stopMs")
     }
 
 }

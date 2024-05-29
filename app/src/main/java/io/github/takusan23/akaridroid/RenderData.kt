@@ -247,7 +247,7 @@ data class RenderData(
             // 1つ目
             val displayTimeA = DisplayTime(
                 startMs = this.startMs,// 分割した前側はそのまま
-                durationMs = (cutMs * playbackSpeed).toLong() - this.startMs,
+                durationMs = ((cutMs - this.startMs) * playbackSpeed).toLong(), // 開始位置から分割位置まで
                 playbackSpeed = this.playbackSpeed
             )
             // 2つ目
