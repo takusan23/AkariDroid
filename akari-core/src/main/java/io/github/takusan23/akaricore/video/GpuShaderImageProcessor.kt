@@ -136,12 +136,6 @@ class GpuShaderImageProcessor {
         shaderImageRenderer?.destroy()
     }
 
-    /** width / height を持っておくデータクラス */
-    private data class Size(
-        val width: Int,
-        val height: Int
-    )
-
     companion object {
 
         /** 画像を表示するだけの、最低限のシェーダー */
