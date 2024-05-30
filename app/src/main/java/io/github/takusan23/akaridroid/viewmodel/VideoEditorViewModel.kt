@@ -407,6 +407,9 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
                 AddRenderItemMenuResult.SwitchAnimation -> createSwitchAnimationCanvasItem(displayTimeStartMs)
                     .also { shader -> addOrUpdateCanvasRenderItem(shader) }
+
+                AddRenderItemMenuResult.Effect -> createEffectCanvasItem(displayTimeStartMs)
+                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
             }
 
             // 編集画面を開く
@@ -1071,6 +1074,27 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     }
 
     /**
+     * [RenderData.CanvasItem.Effect]を作成する
+     *
+     * @param displayTimeStartMs 開始位置
+     * @return [RenderData.CanvasItem.Effect]
+     */
+    private fun createEffectCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Effect {
+        val displayTime = RenderData.DisplayTime(
+            startMs = displayTimeStartMs,
+            durationMs = 1_000
+        )
+
+        return RenderData.CanvasItem.Effect(
+            displayTime = displayTime,
+            position = RenderData.Position(0f, 0f),
+            layerIndex = calcInsertableLaneIndex(displayTime),
+            size = renderData.value.videoSize,
+            effectType = RenderData.CanvasItem.Effect.EffectType.MOSAIC
+        )
+    }
+
+    /**
      * [RenderData.CanvasItem.Shader]を作成する
      *
      * @param displayTimeStartMs 開始位置
@@ -1150,7 +1174,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 }
             )
 
-            is RenderData.CanvasItem.Effect -> "エフェクト" // TODO ローカライズ
+            is RenderData.CanvasItem.Effect -> context.getString(
+                when (this.effectType) {
+                    RenderData.CanvasItem.Effect.EffectType.MOSAIC -> R.string.video_edit_bottomsheet_effect_type_mosaic
+                    RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> R.string.video_edit_bottomsheet_effect_type_monochrome
+                    RenderData.CanvasItem.Effect.EffectType.THRESHOLD -> R.string.video_edit_bottomsheet_effect_type_threshold
+                }
+            )
         }
     }
 

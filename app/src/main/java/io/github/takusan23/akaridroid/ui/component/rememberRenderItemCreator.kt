@@ -21,6 +21,7 @@ fun AddRenderItemMenuResult.toMenu() = when (this) {
     is AddRenderItemMenuResult.Video -> AddRenderItemMenu.Video
     AddRenderItemMenuResult.Shader -> AddRenderItemMenu.Shader
     AddRenderItemMenuResult.SwitchAnimation -> AddRenderItemMenu.SwitchAnimation
+    AddRenderItemMenuResult.Effect -> AddRenderItemMenu.Effect
 }
 
 /**
@@ -70,6 +71,13 @@ enum class AddRenderItemMenu(
         R.drawable.ic_outline_category_24
     ),
 
+    /** エフェクト */
+    Effect(
+        R.string.video_edit_renderitem_effect_title,
+        R.string.video_edit_renderitem_effect_description,
+        R.drawable.imagesearch_roller_24px
+    ),
+
     /** 切り替えアニメーション */
     SwitchAnimation(
         R.string.video_edit_renderitem_switch_animation_title,
@@ -116,6 +124,9 @@ sealed interface AddRenderItemMenuResult {
 
     /** 切り替えアニメーションの追加 */
     data object SwitchAnimation : AddRenderItemMenuResult, Addable
+
+    /** エフェクトの追加 */
+    data object Effect : AddRenderItemMenuResult, Addable
 
     /** フォトピッカーで選んだ画像の追加 */
     data class Image(val uri: Uri) : AddRenderItemMenuResult, Addable
@@ -199,7 +210,7 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             AddRenderItemMenu.Image -> AddRenderItemMenuResult.Image(uri)
             AddRenderItemMenu.Video -> AddRenderItemMenuResult.Video(uri)
             AddRenderItemMenu.Audio -> AddRenderItemMenuResult.Audio(uri)
-            AddRenderItemMenu.Text, AddRenderItemMenu.Shape, AddRenderItemMenu.AkaLink, AddRenderItemMenu.Shader, AddRenderItemMenu.SwitchAnimation -> null
+            AddRenderItemMenu.Text, AddRenderItemMenu.Shape, AddRenderItemMenu.AkaLink, AddRenderItemMenu.Shader, AddRenderItemMenu.SwitchAnimation, AddRenderItemMenu.Effect -> null
             null -> null
         } ?: return
         onResult(result)
@@ -220,6 +231,7 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             AddRenderItemMenu.AkaLink -> onResult(AddRenderItemMenuResult.AkaLink)
             AddRenderItemMenu.Shader -> onResult(AddRenderItemMenuResult.Shader)
             AddRenderItemMenu.SwitchAnimation -> onResult(AddRenderItemMenuResult.SwitchAnimation)
+            AddRenderItemMenu.Effect -> onResult(AddRenderItemMenuResult.Effect)
         }
     }
 

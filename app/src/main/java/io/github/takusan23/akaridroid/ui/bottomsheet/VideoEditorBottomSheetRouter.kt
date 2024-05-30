@@ -128,7 +128,17 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Effect -> TODO() // TODO 編集画面を用意する
+                is RenderData.CanvasItem.Effect -> EffectRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                    onUpdate = {
+                        onCanvasUpdate(it)
+                        onClose()
+                    },
+                    onDelete = {
+                        onDeleteItem(it)
+                        onClose()
+                    }
+                )
             }
 
             // 動画情報編集画面

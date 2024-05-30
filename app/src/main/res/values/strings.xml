@@ -194,4 +194,11 @@ Please note that this is not the time for the video.</string>
     <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out">fade out/fade in</string>
     <string name="video_edit_bottomsheet_switch_animation_type_slide">slide</string>
     <string name="video_edit_bottomsheet_switch_animation_type_blur">blur</string>
+    <string name="video_edit_bottomsheet_effect_type_mosaic">mosaic</string>
+    <string name="video_edit_bottomsheet_effect_type_monochrome">Monochrome</string>
+    <string name="video_edit_bottomsheet_effect_type_threshold">threshold</string>
+    <string name="video_edit_bottomsheet_effect_title">Edit effects</string>
+    <string name="video_edit_bottomsheet_effect_type">Selecting Effects</string>
+    <string name="video_edit_renderitem_effect_title">effect</string>
+    <string name="video_edit_renderitem_effect_description">You can layer effects, like mosaic.</string>
 </resources>
