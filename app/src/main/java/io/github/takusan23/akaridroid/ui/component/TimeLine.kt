@@ -95,7 +95,10 @@ private val LocalTimeLineMillisecondsWidthPx = compositionLocalOf { TimeLineMill
  * タイムラインのアイテム移動中に、隣接するアイテムの隣に置きたい場合に、磁石のように勝手にくっつく機能がある。
  * 磁石モード。これのしきい値
  */
-private const val MAGNET_THRESHOLD = 50
+private const val MAGNET_THRESHOLD_MOVE = 50
+
+/** 磁石モード。長さ調整版。[MAGNET_THRESHOLD_MOVE]よりも大きくしないとズレて使いにくかった */
+private const val MAGNET_THRESHOLD_DURATION_CHANGE = 200
 
 /**
  * 磁石モードのくっつく位置と ID
@@ -460,6 +463,13 @@ private fun TimeLineItem(
     val isVisibleMenu = remember { mutableStateOf(false) }
     // タイムラインのアイテムの表示時間。長さ調整出来るように State で持っている。
     val durationMs = remember(timeLineItemData) { mutableLongStateOf(timeLineItemData.durationMs) }
+    // 磁石モード用に、くっつける位置。
+    // 自分自身は除く必要あり。あと再生位置も欲しい
+    val magnetPositionMsList = remember(magnetPositionList, currentPositionMs) {
+        magnetPositionList
+            .filter { it.id != timeLineItemData.id }
+            .map { it.positionMs } + currentPositionMs
+    }
 
     Surface(
         modifier = modifier
@@ -480,14 +490,10 @@ private fun TimeLineItem(
                     .localBoundingBoxOf(it)
                     .roundToIntRect()
             }
-            .pointerInput(timeLineItemData, currentPositionMs, msWidthPx, magnetPositionList) {
+            .pointerInput(timeLineItemData, msWidthPx, magnetPositionMsList) {
                 // アイテム移動のシステム
                 // データが変化したら pointerInput も再起動するようにキーに入れる
                 var startRect: IntRect? = null
-                // 磁石モード用に、くっつける位置。自分自身は除く必要あり。あと再生位置も欲しい
-                val magnetPositionMsList = magnetPositionList
-                    .filter { it.id != timeLineItemData.id }
-                    .map { it.positionMs } + currentPositionMs
                 // LocalTimeLineMillisecondsWidthPx を経由すると、おそらく時間の細かい部分が丸められてしまう
                 // これがドラッグアンドドロップなら問題ないが、磁石モードの場合、細かい部分が丸められた結果、ギリギリ重ならないのに移動が却下される可能性がある
                 // それを回避するため、onDrag = { } の段階で変数に格納する
@@ -507,7 +513,7 @@ private fun TimeLineItem(
                         val y = (draggingOffset.value.y + dragAmount.y).toInt()
 
                         // 磁石モード発動するか
-                        val magnetPositionMsOrNull = magnetPositionMsList.firstOrNull { magnetPositionMs -> abs(magnetPositionMs - with(msWidthPx) { x.widthToMs }) < MAGNET_THRESHOLD }
+                        val magnetPositionMsOrNull = magnetPositionMsList.firstOrNull { magnetPositionMs -> abs(magnetPositionMs - with(msWidthPx) { x.widthToMs }) < MAGNET_THRESHOLD_MOVE }
                         if (magnetPositionMsOrNull != null) {
                             // 差があるときだけにして連続対策
                             if (latestMagnetPositionMs != magnetPositionMsOrNull) {
@@ -570,19 +576,37 @@ private fun TimeLineItem(
                     modifier = Modifier
                         .padding(horizontal = 10.dp)
                         .align(Alignment.CenterEnd)
-                        .fillMaxHeight(),
-                    resetKeys = arrayOf(timeLineItemData, msWidthPx),
-                    onDrag = { dragAmountX ->
-                        durationMs.longValue += with(msWidthPx) { dragAmountX.widthToMs }
-                    },
-                    onDragEnd = {
-                        onDurationChange(
-                            TimeLineData.DurationChangeRequest(
-                                id = timeLineItemData.id,
-                                newDurationMs = durationMs.longValue
+                        .fillMaxHeight()
+                        .pointerInput(timeLineItemData, msWidthPx, magnetPositionMsList) {
+                            detectDragGestures(
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    // 動かした位置に対応した時間を出す
+                                    val widthToMs = durationMs.longValue + with(msWidthPx) { dragAmount.x.widthToMs }
+                                    // 磁石モード。開始位置を加味して探す必要がある
+                                    // startMs を引くことで、durationMs として使えるように
+                                    val magnetPositionMsOrNull = magnetPositionMsList
+                                        .firstOrNull { magnetPositionMs -> abs(magnetPositionMs - (timeLineItemData.startMs + widthToMs)) < MAGNET_THRESHOLD_DURATION_CHANGE }
+                                        ?.let { nonnullLong -> nonnullLong - timeLineItemData.startMs }
+
+                                    // 前回と違うときのみ Haptic
+                                    if (magnetPositionMsOrNull != null && durationMs.longValue != magnetPositionMsOrNull) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        durationMs.longValue = magnetPositionMsOrNull
+                                    } else {
+                                        durationMs.longValue = widthToMs
+                                    }
+                                },
+                                onDragEnd = {
+                                    onDurationChange(
+                                        TimeLineData.DurationChangeRequest(
+                                            id = timeLineItemData.id,
+                                            newDurationMs = durationMs.longValue
+                                        )
+                                    )
+                                }
                             )
-                        )
-                    }
+                        }
                 )
             }
         }
@@ -718,29 +742,14 @@ private fun TimeLinePositionBar(
 
 /**
  * 長さ調整用のつまみ
+ * Modifier に pointerInput いれて使ってね
  *
  * @param modifier [Modifier]
- * @param resetKeys [Modifier.pointerInput]のリセット用
- * @param onDrag つまみ移動中に呼ばれる
- * @param onDragEnd つまみ移動が終わったら（指を離したら）呼ばれる
  */
 @Composable
-private fun DurationChangeHandle(
-    modifier: Modifier = Modifier,
-    resetKeys: Array<Any>,
-    onDrag: (dragAmountX: Float) -> Unit,
-    onDragEnd: () -> Unit
-) {
+private fun DurationChangeHandle(modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.pointerInput(*resetKeys) {
-            detectDragGestures(
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    onDrag(dragAmount.x)
-                },
-                onDragEnd = onDragEnd
-            )
-        },
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         repeat(2) {
