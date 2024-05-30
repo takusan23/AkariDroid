@@ -145,7 +145,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                         is RenderData.AudioItem.Audio -> it.filePath.existsFilePath()
                         is RenderData.CanvasItem.Image -> it.filePath.existsFilePath()
                         is RenderData.CanvasItem.Video -> it.filePath.existsFilePath()
-                        is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> true
+                        is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> true
                     }
                 }
 
@@ -223,7 +223,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                             is RenderData.AudioItem.Audio -> renderItem.filePath
                             is RenderData.CanvasItem.Image -> renderItem.filePath
                             is RenderData.CanvasItem.Video -> renderItem.filePath
-                            is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> null
+                            is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> null
                         }
                     }
                 }
@@ -302,10 +302,11 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                                     is RenderData.CanvasItem.Shape -> R.drawable.ic_outline_category_24
                                     is RenderData.CanvasItem.Shader -> R.drawable.android_akari_droid_shader_icon
                                     is RenderData.CanvasItem.SwitchAnimation -> R.drawable.transition_fade_24px
+                                    is RenderData.CanvasItem.Effect -> R.drawable.imagesearch_roller_24px
                                 },
                                 // 動画以外は表示時間変更がタイムラインできるよう（動画と音声は面倒そう）
                                 isChangeDuration = when (renderItem) {
-                                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> true
+                                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> true
                                     is RenderData.CanvasItem.Video -> false
                                 }
                             )
@@ -633,6 +634,13 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     layerIndex = layerIndex
                 )
             )
+
+            is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(
+                renderItem.copy(
+                    displayTime = dragAndDroppedDisplayTime,
+                    layerIndex = layerIndex
+                )
+            )
         }
 
         return true
@@ -652,6 +660,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             is RenderData.CanvasItem.SwitchAnimation -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
             // テキストは特別で（Android Canvas 都合）、文字の大きさの分がないので足す
             is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position.copy(y = request.position.y + renderItem.textSize)))
             is RenderData.AudioItem.Audio -> {
@@ -686,6 +695,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     is RenderData.CanvasItem.Shape -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
                     is RenderData.CanvasItem.Shader -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
                     is RenderData.CanvasItem.SwitchAnimation -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
+                    is RenderData.CanvasItem.Effect -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime)
                     is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> null
                 }
             }
@@ -696,7 +706,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             val haveOffsetFirstMs = when (targetItem) {
                 is RenderData.AudioItem.Audio -> targetItem.displayOffset
                 is RenderData.CanvasItem.Video -> targetItem.displayOffset
-                is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> null
+                is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> null
             }?.offsetFirstMs!!
             // 動画の再生位置ではなく、アイテムの再生位置を出して、カットする地点とする
             // 再生速度が設定された場合でも、再生速度を加味して位置合わせをするのは Audio/Video Render 側なので、ここでは等倍速の値で考える
@@ -707,7 +717,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                 displayTimeB to displayOffsetB
             ).mapNotNull { (displayTime, displayOffset) ->
                 when (targetItem) {
-                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> null
+                    is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> null
                     is RenderData.AudioItem.Audio -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                     is RenderData.CanvasItem.Video -> targetItem.copy(id = Random.nextLong(), displayTime = displayTime, displayOffset = displayOffset)
                 }
@@ -716,7 +726,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
 
         // テキストと画像。音声と映像ではやるべきことが違うので
         val cutItemList = when (targetItem) {
-            is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation -> processTextOrImageOrShapeOrShader()
+            is RenderData.CanvasItem.Image, is RenderData.CanvasItem.Text, is RenderData.CanvasItem.Shape, is RenderData.CanvasItem.Shader, is RenderData.CanvasItem.SwitchAnimation, is RenderData.CanvasItem.Effect -> processTextOrImageOrShapeOrShader()
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> processAudioOrVideo()
         }
         // 分割前のアイテムは消す
@@ -759,6 +769,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Video -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
             is RenderData.CanvasItem.Shader -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
             is RenderData.CanvasItem.SwitchAnimation -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
+            is RenderData.CanvasItem.Effect -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
         }
         when (copyItem) {
             is RenderData.AudioItem -> addOrUpdateAudioRenderItem(copyItem)
@@ -780,6 +791,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Shape -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
             is RenderData.CanvasItem.Shader -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
             is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
+            is RenderData.CanvasItem.Effect -> renderItem.copy(displayTime = renderItem.displayTime.copy(durationMs = request.newDurationMs))
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> return
         }
         // 上記の通り来ないので...
@@ -801,6 +813,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Shape -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.Shader -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(size = request.size)
+            is RenderData.CanvasItem.Effect -> renderItem.copy(size = request.size)
         }
         // 上記の通り来ないので...
         addOrUpdateCanvasRenderItem(newSizeRenderItem)
@@ -899,6 +912,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             is RenderData.CanvasItem.Text -> TextRender.analyzeDrawSize(this) // テキストには Size が生えていないので計算する
             is RenderData.CanvasItem.Shader -> this.size
             is RenderData.CanvasItem.SwitchAnimation -> this.size
+            is RenderData.CanvasItem.Effect -> this.size
         }
     }
 
@@ -1135,6 +1149,8 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> R.string.video_edit_bottomsheet_switch_animation_type_blur
                 }
             )
+
+            is RenderData.CanvasItem.Effect -> "エフェクト" // TODO ローカライズ
         }
     }
 

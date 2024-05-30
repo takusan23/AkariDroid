@@ -10,8 +10,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
-import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender.Companion.FRAGMENT_SHADER_MOSAIC
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -367,7 +368,7 @@ class CanvasRenderTest {
                             layerIndex = 1,
                             size = RenderData.Size(1280, 720),
                             name = "フラグメントシェーダー",
-                            fragmentShader = FRAGMENT_SHADER_MOSAIC
+                            fragmentShader = EffectRender.FRAGMENT_SHADER_MOSAIC // EffectRender から借りてくる
                         )
                     )
                 )
@@ -492,6 +493,44 @@ class CanvasRenderTest {
         testToomoMp4.delete()
     }
 
+    @Test
+    fun test_エフェクトが適用できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // TODO あらかじめ app/src/androidTest/res/raw/test_toomo.mp4 ファイルを置いておく
+        // File しか受け付けないのでとりあえずコピー
+        val testToomoMp4 = createFile("test_toomo").also { testToomoMp4 ->
+            testToomoMp4.outputStream().use { outputStream ->
+                context.resources
+                    .openRawResource(io.github.takusan23.akaridroid.test.R.raw.test_toomo)
+                    .copyTo(outputStream)
+            }
+        }
+        encode(
+            testName = "test_エフェクトが適用できる",
+            durationMs = 3_000,
+            canvasRender = CanvasRender(targetContext).apply {
+                setRenderData(
+                    canvasRenderItem = listOf(
+                        RenderData.CanvasItem.Video(
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 3_000),
+                            position = RenderData.Position(0f, 0f),
+                            layerIndex = 0,
+                            filePath = RenderData.FilePath.File(testToomoMp4.path),
+                            size = RenderData.Size(1280, 720)
+                        ),
+                        RenderData.CanvasItem.Effect(
+                            displayTime = RenderData.DisplayTime(startMs = 1_000, durationMs = 2_000),
+                            position = RenderData.Position(640f, 0f),
+                            layerIndex = 1,
+                            size = RenderData.Size(640, 720),
+                            effectType = RenderData.CanvasItem.Effect.EffectType.THRESHOLD
+                        )
+                    )
+                )
+            }
+        )
+        testToomoMp4.delete()
+    }
+
 
     /** [CanvasRender]を渡したらエンコードして動画フォルダに保存してくれるやつ */
     private suspend fun encode(
@@ -525,31 +564,6 @@ class CanvasRenderTest {
     companion object {
         /** runTest デフォルトタイムアウト */
         private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
-
-        /**
-         * 画像を表示するだけだとわからんので、モザイクしてみる
-         * https://qiita.com/edo_m18/items/d166653ac0dccbc607dc
-         *
-         * uniform 変数は[GpuShaderImageProcessor]参照。
-         */
-        private const val FRAGMENT_SHADER_MOSAIC = """precision mediump float;
-
-uniform sampler2D s_texture;
-uniform vec2 v_resolution;
-
-void main() {
-    vec4 fragCoord = gl_FragCoord;
-    // 正規化する
-    vec2 uv = fragCoord.xy / v_resolution.xy;
-    // 反転しているので
-    uv = vec2(uv.x, 1.-uv.y);
-    // モザイクしてみる
-    uv = floor(uv * 15.0) / 15.0;
-    // 色を出す
-    vec4 color = texture2D(s_texture, uv);
-    gl_FragColor = color;
-}
-"""
 
         /** f_time uniform 変数を使ったフラグメントシェーダー */
         private const val FRAGMENT_SHADER_FADE = """precision mediump float;

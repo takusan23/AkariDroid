@@ -163,6 +163,34 @@ data class RenderData(
                 BLUR
             }
         }
+
+        /** エフェクト */
+        @Serializable
+        @SerialName("effect")
+        data class Effect(
+            override val id: Long = System.currentTimeMillis(),
+            override val displayTime: DisplayTime,
+            override val layerIndex: Int,
+            override val position: Position,
+            val size: Size,
+            val effectType: EffectType
+        ) : CanvasItem {
+
+            /** エフェクト一覧 */
+            @Serializable
+            enum class EffectType {
+
+                @SerialName("mosaic")
+                MOSAIC,
+
+                @SerialName("monochrome")
+                MONOCHROME,
+
+                @SerialName("threshold")
+                THRESHOLD
+            }
+        }
+
     }
 
     /** 音声 */

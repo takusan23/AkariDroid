@@ -127,6 +127,8 @@ fun VideoEditorBottomSheetRouter(
                         onClose()
                     }
                 )
+
+                is RenderData.CanvasItem.Effect -> TODO() // TODO 編集画面を用意する
             }
 
             // 動画情報編集画面

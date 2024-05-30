@@ -21,11 +21,12 @@ import kotlinx.coroutines.withContext
  * 動画の再生位置ではありません。
  * 必要ない場合は利用しなくても大丈夫です。
  *
- * abstract class なのは、以下2つで共通しているため。
+ * abstract class なのは、以下はすべてフラグメントシェーダーでフレームを処理する。共通しているため。
  * 両方とも GLSL を使って、動画のフレームにエフェクトを適用している。
  *
  * - [ShaderRender]
  * - [SwitchAnimationRender]
+ * - [EffectRender]
  */
 abstract class BaseShaderRender : BaseItemRender() {
 

@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShaderRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ShapeRender
@@ -52,6 +53,7 @@ class CanvasRender(private val context: Context) {
                 is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
                 is RenderData.CanvasItem.Shader -> ShaderRender(renderItem)
                 is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRender(renderItem)
+                is RenderData.CanvasItem.Effect -> EffectRender(renderItem)
             }
         }
     }
