@@ -77,9 +77,13 @@ class VideoFrameBitmapExtractor {
         videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
         videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
 
-        // 詳しくは nearestImageReaderAvailableSize 参照
-        val nearestSize = nearestImageReaderAvailableSize(videoWidth, videoHeight)
-        imageReader = ImageReader.newInstance(nearestSize, nearestSize, PixelFormat.RGBA_8888, 2)
+        // 16 で割り切れる数字にする
+        // Snapdragon も Google Tensor も 16 の倍数じゃないと動画のフレームが乱れてしまう
+        // TODO nearestImageReaderAvailableSize が必要な場合の判定
+        val fixWidth = videoWidth.toFixImageReaderSupportValue()
+        val fixHeight = videoHeight.toFixImageReaderSupportValue()
+
+        imageReader = ImageReader.newInstance(fixWidth, fixHeight, PixelFormat.RGBA_8888, 2)
 
         // OpenGL ES の用意
         // MediaCodec と ImageReader の間に OpenGL を経由させる

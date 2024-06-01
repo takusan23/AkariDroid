@@ -64,20 +64,23 @@ class GpuShaderImageProcessor {
         width: Int,
         height: Int
     ) {
-        // VideoFrameBitmapExtractor と同じハックが必要。中途半端なサイズだと ImageReader はぶっ壊れる。
+        // VideoFrameBitmapExtractor と同じハックが必要。
+        // 16 で割り切れるサイズでないと ImageReader はぶっ壊れる。
+        // TODO nearestImageReaderAvailableSize が必要な場合の判定
         originWidth = width
         originHeight = height
-        val nearestSize = nearestImageReaderAvailableSize(width, height)
+        val fixWidth = originWidth!!.toFixImageReaderSupportValue()
+        val fixHeight = originHeight!!.toFixImageReaderSupportValue()
 
         // 縦横同じだが、後で戻す
-        imageReader = ImageReader.newInstance(nearestSize, nearestSize, PixelFormat.RGBA_8888, 2)
+        imageReader = ImageReader.newInstance(fixWidth, fixHeight, PixelFormat.RGBA_8888, 2)
         inputSurface = InputSurface(outputSurface = imageReader!!.surface)
 
         // 画像にエフェクトをかけるための TextureRenderer
         shaderImageRenderer = ShaderImageRenderer(
             fragmentShaderCode = fragmentShaderCode,
-            width = nearestSize,
-            height = nearestSize
+            width = fixWidth,
+            height = fixHeight
         )
 
         // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから

@@ -12,7 +12,6 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
-import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender.Companion.FRAGMENT_SHADER_MOSAIC
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -407,7 +406,7 @@ class CanvasRenderTest {
                             layerIndex = 1,
                             size = RenderData.Size(640, 320),
                             name = "フラグメントシェーダー",
-                            fragmentShader = FRAGMENT_SHADER_MOSAIC
+                            fragmentShader = EffectRender.FRAGMENT_SHADER_MOSAIC
                         )
                     )
                 )
