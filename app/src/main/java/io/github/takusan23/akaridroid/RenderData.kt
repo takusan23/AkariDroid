@@ -183,6 +183,9 @@ data class RenderData(
                 @SerialName("mosaic")
                 MOSAIC,
 
+                @SerialName("blur")
+                BLUR,
+
                 @SerialName("monochrome")
                 MONOCHROME,
 

@@ -1179,6 +1179,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
                     RenderData.CanvasItem.Effect.EffectType.MOSAIC -> R.string.video_edit_bottomsheet_effect_type_mosaic
                     RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> R.string.video_edit_bottomsheet_effect_type_monochrome
                     RenderData.CanvasItem.Effect.EffectType.THRESHOLD -> R.string.video_edit_bottomsheet_effect_type_threshold
+                    RenderData.CanvasItem.Effect.EffectType.BLUR -> R.string.video_edit_bottomsheet_effect_type_blur
                 }
             )
         }

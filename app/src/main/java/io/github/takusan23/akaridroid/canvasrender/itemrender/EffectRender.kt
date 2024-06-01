@@ -18,6 +18,7 @@ class EffectRender(
             RenderData.CanvasItem.Effect.EffectType.MOSAIC -> FRAGMENT_SHADER_MOSAIC
             RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> FRAGMENT_SHADER_MONOCHROME
             RenderData.CanvasItem.Effect.EffectType.THRESHOLD -> FRAGMENT_SHADER_THRESHOLD
+            RenderData.CanvasItem.Effect.EffectType.BLUR -> FRAGMENT_SHADER_BLUR
         }
 
     override val size: RenderData.Size
@@ -110,6 +111,41 @@ void main() {
     } else {
         gl_FragColor = vec4(vec3(0.0), 1.0);
     }
+}
+"""
+
+        /**
+         * ぼかし
+         * thx!!!!!!!!
+         * https://github.com/GameMakerDiscord/blur-shaders
+         */
+        private const val FRAGMENT_SHADER_BLUR = """precision mediump float;
+
+uniform sampler2D s_texture;
+uniform vec2 v_resolution;
+
+const int Quality = 8;
+const int Directions = 16;
+const float Pi = 6.28318530718; //pi * 2
+const float Radius = 32.0; // ぼかし具合
+
+void main()
+{
+    vec2 v_vTexcoord = gl_FragCoord.xy / v_resolution.xy;
+    v_vTexcoord = vec2(v_vTexcoord.x, 1.-v_vTexcoord.y);
+    
+    vec2 radius = Radius / v_resolution.xy;
+    vec4 Color = texture2D( s_texture, v_vTexcoord);
+    
+    for( float d=0.0;d<Pi;d+=Pi/float(Directions) )
+    {
+        for( float i=1.0/float(Quality);i<=1.0;i+=1.0/float(Quality) )
+        {
+            Color += texture2D( s_texture, v_vTexcoord+vec2(cos(d),sin(d))*radius*i);
+        }
+    }
+    Color /= float(Quality)*float(Directions)+1.0;
+    gl_FragColor = Color;
 }
 """
 

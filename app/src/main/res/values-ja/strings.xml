@@ -202,4 +202,5 @@
     <string name="video_edit_bottomsheet_effect_type">エフェクトの選択</string>
     <string name="video_edit_renderitem_effect_title">エフェクト</string>
     <string name="video_edit_renderitem_effect_description">エフェクトを重ねることが出来ます。モザイクとか。</string>
+    <string name="video_edit_bottomsheet_effect_type_blur">ブラー</string>
 </resources>
