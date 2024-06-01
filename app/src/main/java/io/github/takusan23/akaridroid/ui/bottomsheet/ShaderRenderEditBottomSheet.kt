@@ -139,6 +139,13 @@ fun ShaderRenderEditBottomSheet(
     }
 }
 
+/**
+ * 貼り付けボタンと、コンパイル確認ボタン
+ *
+ * @param modifier [Modifier]
+ * @param onPasteClick 貼り付け押した時
+ * @param onCheckPassCompileClick コンパイル確認押した時
+ */
 @Composable
 private fun CodeBlockActionButtons(
     modifier: Modifier = Modifier,
