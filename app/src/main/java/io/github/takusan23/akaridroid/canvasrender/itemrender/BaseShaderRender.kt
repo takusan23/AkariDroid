@@ -60,7 +60,6 @@ abstract class BaseShaderRender : BaseItemRender() {
             processor.addCustomFloatUniformHandle(UNIFORM_NAME_F_TIME)
         } catch (e: Exception) {
             // シェーダーのミス等
-            // TODO シェーダーのコンパイルが通るかの確認したい
             e.printStackTrace()
         }
     }
