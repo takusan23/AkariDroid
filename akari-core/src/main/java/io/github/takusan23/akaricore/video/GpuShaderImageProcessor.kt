@@ -56,6 +56,7 @@ class GpuShaderImageProcessor {
     /**
      * 初期設定を行う
      *
+     * @param fragmentShaderCode フラグメントシェーダー。コンパイルに失敗すると例外が投げられます
      * @param width [ImageReader]の幅。[drawShader]で渡す[Bitmap]と同じでいいはず。
      * @param height [ImageReader]の高さ。[drawShader]で渡す[Bitmap]と同じでいいはず。
      */

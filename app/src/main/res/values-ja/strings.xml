@@ -203,4 +203,6 @@
     <string name="video_edit_renderitem_effect_title">エフェクト</string>
     <string name="video_edit_renderitem_effect_description">エフェクトを重ねることが出来ます。モザイクとか。</string>
     <string name="video_edit_bottomsheet_effect_type_blur">ブラー</string>
+    <string name="video_edit_bottomsheet_shader_compile_check_ok">コンパイルに成功しました。利用できます。</string>
+    <string name="video_edit_bottomsheet_shader_compile_check_fail">コンパイルに失敗しました。文法間違いがないか探してみてください。</string>
 </resources>
