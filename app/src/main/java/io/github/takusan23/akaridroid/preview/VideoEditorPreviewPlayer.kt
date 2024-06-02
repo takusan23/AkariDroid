@@ -10,8 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +20,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -33,8 +33,11 @@ class VideoEditorPreviewPlayer(
     /** プレイヤー再生用コルーチンスコープ。キャンセル用 */
     private val playerScope = CoroutineScope(Dispatchers.Default + Job())
 
-    /** [drawVideoFrame]キャンセル用 Job。複数スレッドからデコーダーにアクセスしてほしくない */
-    private var drawVideoFrameJob: Job? = null
+    /**
+     * [CanvasRender]に複数スレッドから同時アクセスされないように
+     * 直列にしないと、例えば描画途中に素材が破棄される→MediaCodec も破棄→破棄された MediaCodec に対して操作をする→落ちてしまう。
+     */
+    private val canvasRenderMutex = Mutex()
 
     private val canvasRender = CanvasRender(context)
     private val audioRender = AudioRender(
@@ -170,7 +173,9 @@ class VideoEditorPreviewPlayer(
     ) = withContext(Dispatchers.Default) {
         // 準備とプレビュー再生が反映されるまで prepare に
         setProgress(ProgressType.CANVAS) {
-            canvasRender.setRenderData(canvasItemList)
+            canvasRenderMutex.withLock {
+                canvasRender.setRenderData(canvasItemList)
+            }
             drawVideoFrame()
         }
     }
@@ -236,9 +241,8 @@ class VideoEditorPreviewPlayer(
     private suspend fun drawVideoFrame(
         durationMs: Long = playerStatus.value.durationMs,
         currentPositionMs: Long = playerStatus.value.currentPositionMs
-    ) = coroutineScope {
-        drawVideoFrameJob?.cancelAndJoin()
-        drawVideoFrameJob = launch {
+    ) {
+        canvasRenderMutex.withLock {
             bitmapCanvasController.update { canvas ->
                 canvasRender.draw(canvas, durationMs, currentPositionMs)
             }
