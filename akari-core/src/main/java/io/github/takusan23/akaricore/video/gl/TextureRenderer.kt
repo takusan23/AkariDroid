@@ -54,6 +54,7 @@ internal abstract class TextureRenderer {
         val linkStatus = IntArray(1)
         GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0)
         if (linkStatus[0] != GLES20.GL_TRUE) {
+            // TODO glGetShaderInfoLog を仕込みたい
             GLES20.glDeleteProgram(program)
             program = 0
         }

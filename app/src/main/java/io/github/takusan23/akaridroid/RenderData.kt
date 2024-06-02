@@ -347,6 +347,9 @@ data class RenderData(
      * [DisplayTime]で2秒表示するけど、表示する動画は5秒から始めたい。とかの時に使います。
      * なので、[DisplayTime.durationMs]分は存在している必要があります。それ以上[DisplayOffset.offsetFirstMs]等で削ってはいけない。
      *
+     * また、[DisplayTime.playbackSpeed]は適用済みだと考えて。
+     * タイムラインで分割したあとに速度を変更しても、開始位置がズレないように。
+     *
      * @param offsetFirstMs 最初からどれだけカットして利用するか
      */
     @Serializable

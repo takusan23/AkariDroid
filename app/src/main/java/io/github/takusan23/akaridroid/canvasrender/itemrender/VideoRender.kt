@@ -52,12 +52,16 @@ class VideoRender(
         // 動画のフレーム取得は時間がかかるので、preDraw で取得する
         val videoFrameBitmapExtractor = videoFrameBitmapExtractor ?: return@withContext
 
-        // 速度調整を適用する
-        val applyPlaybackSpeedPositionMs = (currentPositionMs * video.displayTime.playbackSpeed).toLong()
-        // カットする場合は考慮した時間を
-        val framePositionFromCurrentPositionMs = applyPlaybackSpeedPositionMs - video.displayTime.startMs
-        val includeOffsetFramePositionMs = framePositionFromCurrentPositionMs + video.displayOffset.offsetFirstMs
-        preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(includeOffsetFramePositionMs)?.let { origin ->
+        // 素材の開始位置から見た positionMs にする
+        val currentPositionMsInItem = currentPositionMs - video.displayTime.startMs
+        // 再生速度を考慮した positionMsInItem にする
+        val currentPositionMsInPlaybackSpeed = (currentPositionMsInItem * video.displayTime.playbackSpeed).toLong()
+        // オフセット、読み飛ばす分を考慮
+        // offset は再生速度考慮している
+        val framePositionMs = currentPositionMsInPlaybackSpeed + video.displayOffset.offsetFirstMs
+
+        // 取り出す
+        preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = framePositionMs)?.let { origin ->
             // リサイズする場合
             val (width, height) = video.size
             origin.scale(width, height)

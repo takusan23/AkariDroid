@@ -193,6 +193,9 @@ class VideoFrameBitmapExtractor {
             // デコーダーから映像を受け取る部分
             var isDecoderOutputAvailable = true
             while (isDecoderOutputAvailable) {
+                // キャンセル時
+                if (!isActive) break
+
                 // デコード結果が来ているか
                 val outputBufferIndex = decodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 when {

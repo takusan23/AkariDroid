@@ -324,7 +324,7 @@ class CanvasRenderTest {
                             size = RenderData.Size(640, 360)
                         ),
                         RenderData.CanvasItem.Video(
-                            displayTime = RenderData.DisplayTime(startMs = 5_000, durationMs = 10_000, playbackSpeed = 0.5f),
+                            displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000, playbackSpeed = 0.5f),
                             position = RenderData.Position(640f, 0f),
                             layerIndex = 0,
                             filePath = RenderData.FilePath.File(testToomoMp4.path),

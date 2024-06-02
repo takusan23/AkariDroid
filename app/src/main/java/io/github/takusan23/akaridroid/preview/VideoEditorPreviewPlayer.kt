@@ -10,6 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +32,9 @@ class VideoEditorPreviewPlayer(
 ) {
     /** プレイヤー再生用コルーチンスコープ。キャンセル用 */
     private val playerScope = CoroutineScope(Dispatchers.Default + Job())
+
+    /** [drawVideoFrame]キャンセル用 Job。複数スレッドからデコーダーにアクセスしてほしくない */
+    private var drawVideoFrameJob: Job? = null
 
     private val canvasRender = CanvasRender(context)
     private val audioRender = AudioRender(
@@ -76,10 +81,7 @@ class VideoEditorPreviewPlayer(
                 .map { status -> status.currentPositionMs to status.durationMs }
                 .distinctUntilChanged()
                 .collectLatest { (currentPositionMs, durationMs) ->
-                    // update {} するので distinctUntilChanged 必須です
-                    setProgress(ProgressType.CANVAS) {
-                        drawVideoFrame(durationMs, currentPositionMs)
-                    }
+                    drawVideoFrame(durationMs, currentPositionMs)
                 }
         }
 
@@ -234,9 +236,12 @@ class VideoEditorPreviewPlayer(
     private suspend fun drawVideoFrame(
         durationMs: Long = playerStatus.value.durationMs,
         currentPositionMs: Long = playerStatus.value.currentPositionMs
-    ) {
-        bitmapCanvasController.update { canvas ->
-            canvasRender.draw(canvas, durationMs, currentPositionMs)
+    ) = coroutineScope {
+        drawVideoFrameJob?.cancelAndJoin()
+        drawVideoFrameJob = launch {
+            bitmapCanvasController.update { canvas ->
+                canvasRender.draw(canvas, durationMs, currentPositionMs)
+            }
         }
     }
 
