@@ -79,7 +79,7 @@ class VideoEditorPreviewPlayer(
             // 再生位置か動画の長さが変化したら
             // collectLatest で新しい値が来たら既存のブロックをキャンセルするよう
             playerStatus
-                .filterPrepareCompleted()
+                .filter { it.isPrepareCompleteCanvas }
                 .filter { !it.isPlaying }
                 .map { status -> status.currentPositionMs to status.durationMs }
                 .distinctUntilChanged()

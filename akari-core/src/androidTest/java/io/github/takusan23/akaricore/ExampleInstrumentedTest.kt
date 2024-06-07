@@ -20,8 +20,10 @@ import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
+import io.github.takusan23.akaricore.video.MediaParserKeyFrameTimeDetector
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -468,6 +470,60 @@ class ExampleInstrumentedTest {
             parentFolder.resolve("test_画像にGLSLでエフェクトを適用できる_独自uniform変数_${float}_${System.currentTimeMillis()}.png").outputStream().use { outputStream ->
                 applyEffectImageBitmap?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
             }
+        }
+    }
+
+    @Test
+    fun test_キーフレームの位置がMediaParser経由で取り出せる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val TEMP_VIDEO_LENGTH_MS = 10_0000
+        val BACKGROUND_COLOR = Color.MAGENTA
+        provideTempFolder { tempFolder ->
+            val demoVideoFile = tempFolder.resolve("demo_video.mp4")
+            val textPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 80f
+            }
+            CanvasVideoProcessor.start(
+                output = demoVideoFile.toAkariCoreInputOutputData(),
+                codecName = MediaFormat.MIMETYPE_VIDEO_AVC,
+                containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+                bitRate = 1_000_000,
+                frameRate = 30,
+                outputVideoWidth = 1280,
+                outputVideoHeight = 720,
+                keyframeInterval = 1
+            ) { positionMs ->
+                drawColor(BACKGROUND_COLOR)
+                // 枠取り文字
+                val text = "動画の時間 = ${"%.2f".format(positionMs / 1000f)}"
+                textPaint.strokeWidth = 30f
+                textPaint.color = Color.BLACK
+                textPaint.style = Paint.Style.STROKE
+                // 枠取り文字
+                drawText(text, 80f, 80f, textPaint)
+                textPaint.strokeWidth = 30f
+                textPaint.style = Paint.Style.FILL
+                textPaint.color = Color.WHITE
+                // 枠無し文字
+                drawText(text, 80f, 80f, textPaint)
+                // true を返している間は動画を作成する
+                positionMs <= TEMP_VIDEO_LENGTH_MS
+            }
+
+            // パースする
+            val keyFrameTimeDetector = MediaParserKeyFrameTimeDetector(
+                onCreateInputStream = { demoVideoFile.inputStream() }
+            ).apply { startParse() }
+
+            // 1秒間隔であるはず
+            // 10 個キーフレームがあるはず
+            // が、キーフレーム間隔はデコーダーの気分次第でずれるので、最低 10 あればいいこととする
+            // 500 us 事に問いただす
+            val keyFrameTimeList = (0 until 10_000_000L step 500)
+                .mapNotNull { positionUs -> keyFrameTimeDetector.getPrevKeyFrameTime(positionUs) }
+                .distinct()
+
+            Assert.assertTrue(10 <= keyFrameTimeList.size)
         }
     }
 
