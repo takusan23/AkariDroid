@@ -88,3 +88,14 @@ dependencies {
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 }
+
+// Strong Skipping Mode を有効
+// React のメモ化を自動でやってくれるやつみたいな
+// タイムラインの操作がちょっとだけ軽くなるかも
+// https://medium.com/androiddevelopers/jetpack-compose-strong-skipping-mode-explained-cbdb2aa4b900
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>() {
+    compilerOptions.freeCompilerArgs.addAll(
+        "-P",
+        "plugin:androidx.compose.compiler.plugins.kotlin:experimentalStrongSkipping=true",
+    )
+}
