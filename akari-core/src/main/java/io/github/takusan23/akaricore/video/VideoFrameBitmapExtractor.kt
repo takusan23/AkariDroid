@@ -184,6 +184,28 @@ class VideoFrameBitmapExtractor {
             return@withContext false
         }
 
+        // Android 11 以降は MediaParser クラスが使えるので分岐
+        // Android 11 以降、コンテナフォーマットを解析するクラスが登場し、これのお陰で、キーフレームの位置を取得できるように
+        // このため、欲しいフレームが数フレーム先なのでシークせずに待つか、はたまたずっと先の場合はここでシークしてしまう
+        // Android 10 以前は使えないので、次のキーフレームが来るまではシークしない
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val seekToUs = seekToMs * 1_000
+            val sampleTime = mediaExtractor.sampleTime
+            val currentPositionPrevKeyFramePositionUs = mediaParserKeyFrameTimeDetector?.getPrevKeyFrameTime(sampleTime)
+            val seekToPositionPrevKeyFramePositionUs = mediaParserKeyFrameTimeDetector?.getPrevKeyFrameTime(seekToUs)
+
+            // null なら何もしない
+            if (currentPositionPrevKeyFramePositionUs != null && seekToPositionPrevKeyFramePositionUs != null) {
+                // 次のキーフレームよりも前に欲しいフレームがあればシークしない
+                // 現在位置に近いキーフレームよりも先に、欲しいフレームに近いキーフレームがある場合のみシーク
+                // 次のキーフレームまでに欲しいフレームがあれば while で来るまで待つ
+                if (currentPositionPrevKeyFramePositionUs < seekToPositionPrevKeyFramePositionUs) {
+                    mediaExtractor.seekTo(seekToUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                    decodeMediaCodec.flush()
+                }
+            }
+        }
+
         var returnValue = true
         var isRunning = isActive
         val bufferInfo = MediaCodec.BufferInfo()
@@ -247,38 +269,21 @@ class VideoFrameBitmapExtractor {
                 break
             }
 
-            // 欲しいフレームが前回の呼び出しと連続していないときの処理
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Android 11 以降はキーフレームの位置が検索できるので分岐
-                // Android 10 以前はキーフレームにぶつかるまではシークしなかったのに対し、シークすべきキーフレームの位置が分かるので早くなるはず。
-                val seekToUs = seekToMs * 1_000
-                val sampleTime = mediaExtractor.sampleTime
-                val currentPositionPrevKeyFramePositionUs = mediaParserKeyFrameTimeDetector?.getPrevKeyFrameTime(sampleTime)
-                val seekToPositionPrevKeyFramePositionUs = mediaParserKeyFrameTimeDetector?.getPrevKeyFrameTime(seekToUs)
-
-                // null なら何もしない
-                if (currentPositionPrevKeyFramePositionUs != null && seekToPositionPrevKeyFramePositionUs != null) {
-                    // 次のキーフレームよりも前に欲しいフレームがあればシークしない（現在位置に近いキーフレーム、ほしいキーフレームに近いキーフレーム、両方の時間が同じ場合はシークしない）
-                    if (currentPositionPrevKeyFramePositionUs != seekToPositionPrevKeyFramePositionUs) {
-                        mediaExtractor.seekTo(seekToUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                        decodeMediaCodec.flush()
-                    }
-                }
-            } else {
-                // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
-                // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
-                // この場合は一気にシーク位置に一番近いキーフレームまで進める
-                // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
-                // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
-                val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
-                val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
-//                println("loop bufferInfo.presentationTimeUs = ${bufferInfo.presentationTimeUs / 1000} / sampleTime = ${mediaExtractor.sampleTime / 1000} / isKeyFrame = ${isKeyFrame} / seekToMs = $seekToMs")
-                if (isKeyFrame && currentSampleTimeMs < seekToMs) {
-//                    println("mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)")
-                    mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-//                    println("seekTo sampleTime = ${mediaExtractor.sampleTime / 1000}")
-                    decodeMediaCodec.flush()
-                }
+            // 欲しいフレームが前回の呼び出しと連続していないときの処理。
+            // Android 10 以前はここでシークの判断をします。Android 11 以降は MediaParserKeyFrameTimeDetector でシークの判断をします。
+            // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
+            // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
+            // この場合は一気にシーク位置に一番近いキーフレームまで進める
+            // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
+            // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
+            val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
+            val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
+//            println("loop bufferInfo.presentationTimeUs = ${bufferInfo.presentationTimeUs / 1000} / sampleTime = ${mediaExtractor.sampleTime / 1000} / isKeyFrame = ${isKeyFrame} / seekToMs = $seekToMs")
+            if (isKeyFrame && currentSampleTimeMs < seekToMs) {
+//                println("mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)")
+                mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+//                println("seekTo sampleTime = ${mediaExtractor.sampleTime / 1000}")
+                decodeMediaCodec.flush()
             }
         }
 
