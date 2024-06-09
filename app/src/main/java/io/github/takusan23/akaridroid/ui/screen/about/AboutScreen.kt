@@ -32,9 +32,6 @@ import io.github.takusan23.akaridroid.ui.component.AdvRouteSelect
 import io.github.takusan23.akaridroid.ui.component.AdvTextArea
 import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
 
-/** アップデート時に毎回直す */
-private val CurrentVersionCodeName = CodeNames.VERSION_2X
-
 private const val GitHubUrl = "https://github.com/takusan23/AkariDroid"
 private const val AkariCoreUrl = "https://github.com/takusan23/AkariDroid/tree/master/akari-core"
 
@@ -162,7 +159,7 @@ private fun RouteSelectScreen(onRouteSelect: (AboutScreenUiState.AdvScenario) ->
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally),
             text = stringResource(id = R.string.setting_about_message),
-            versionText = CurrentVersionCodeName.codeName
+            versionText = CodeNames.latestVersionCodeName.codeName
         )
 
         AdvMenuBar(
