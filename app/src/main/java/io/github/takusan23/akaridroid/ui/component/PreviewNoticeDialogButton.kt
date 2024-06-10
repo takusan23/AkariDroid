@@ -1,10 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,15 +18,10 @@ fun PreviewNoticeDialogButton(modifier: Modifier = Modifier) {
 
     // プレビューがとても遅いけど仕様だからごめん。
     if (isShow.value) {
-        AlertDialog(
-            onDismissRequest = { isShow.value = false },
-            title = { Text(text = stringResource(id = R.string.video_preview_dialog_title)) },
-            text = { Text(text = stringResource(id = R.string.video_preview_dialog_description)) },
-            confirmButton = {
-                Button(onClick = { isShow.value = false }) {
-                    Text(text = stringResource(id = R.string.video_preview_dialog_close))
-                }
-            }
+        CommonDialog(
+            title = stringResource(id = R.string.video_preview_dialog_title),
+            message = stringResource(id = R.string.video_preview_dialog_description),
+            onClose = { isShow.value = false }
         )
     }
 

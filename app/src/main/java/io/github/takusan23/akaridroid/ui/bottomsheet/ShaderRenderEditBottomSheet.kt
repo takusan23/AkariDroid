@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,19 +21,32 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
+import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
+import io.github.takusan23.akaridroid.ui.component.CommonDialog
 import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
 import kotlinx.coroutines.launch
+
+/** コンパイル結果 */
+private sealed interface CompileResult {
+    /** コンパイル成功 */
+    data object Success : CompileResult
+
+    /** 構文エラー */
+    data class SyntaxError(val syntaxErrorMessage: String) : CompileResult
+
+    /** それ以外 */
+    data object Error : CompileResult
+}
 
 /**
  * [RenderData.CanvasItem.Shader]の編集ボトムシート
@@ -49,13 +61,36 @@ fun ShaderRenderEditBottomSheet(
     onUpdate: (RenderData.CanvasItem.Shader) -> Unit,
     onDelete: (RenderData.CanvasItem.Shader) -> Unit
 ) {
-    val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val shaderItem = remember { mutableStateOf(renderItem) }
 
     fun update(copy: (RenderData.CanvasItem.Shader) -> RenderData.CanvasItem.Shader) {
         shaderItem.value = copy(shaderItem.value)
+    }
+
+    // コンパイルエラーならエラー。エラー無いなら null
+    val compileResult = remember { mutableStateOf<CompileResult?>(null) }
+    when (val result = compileResult.value) {
+        CompileResult.Success -> CommonDialog(
+            title = stringResource(id = R.string.video_edit_bottomsheet_shader_compile_check_ok),
+            onClose = { compileResult.value = null }
+        )
+
+        CompileResult.Error -> CommonDialog(
+            title = stringResource(id = R.string.video_edit_bottomsheet_shader_compile_check_fail),
+            onClose = { compileResult.value = null }
+        )
+
+        is CompileResult.SyntaxError -> CommonDialog(
+            title = stringResource(id = R.string.video_edit_bottomsheet_shader_compile_check_fail_syntax_error),
+            message = result.syntaxErrorMessage,
+            onClose = { compileResult.value = null }
+        )
+
+        null -> {
+            // do nothing
+        }
     }
 
     Column(
@@ -100,20 +135,20 @@ fun ShaderRenderEditBottomSheet(
                 // フラグメントシェーダーのコンパイルって GL スレッド必須？
                 scope.launch {
                     val processor = GpuShaderImageProcessor()
-                    val isSuccess = try {
+                    compileResult.value = try {
                         processor.prepare(
                             fragmentShaderCode = shaderItem.value.fragmentShader,
                             width = shaderItem.value.size.width,
                             height = shaderItem.value.size.height
                         )
-                        true
+                        CompileResult.Success
+                    } catch (e: GlslSyntaxErrorException) {
+                        CompileResult.SyntaxError(e.syntaxErrorMessage)
                     } catch (e: Exception) {
-                        false
+                        CompileResult.Error
                     } finally {
                         processor.destroy()
                     }
-                    // 成功 or 失敗
-                    Toast.makeText(context, if (isSuccess) R.string.video_edit_bottomsheet_shader_compile_check_ok else R.string.video_edit_bottomsheet_shader_compile_check_fail, Toast.LENGTH_SHORT).show()
                 }
             }
         )

@@ -203,5 +203,6 @@ Please note that this is not the time for the video.</string>
     <string name="video_edit_renderitem_effect_description">You can layer effects, like mosaic.</string>
     <string name="video_edit_bottomsheet_effect_type_blur">blur</string>
     <string name="video_edit_bottomsheet_shader_compile_check_ok">Compilation was successful and it is ready to use.</string>
+    <string name="video_edit_bottomsheet_shader_compile_check_fail_syntax_error">Compilation failed. Please check for syntax errors.</string>
     <string name="video_edit_bottomsheet_shader_compile_check_fail">Compilation failed. Please check for syntax errors.</string>
 </resources>
