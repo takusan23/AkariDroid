@@ -22,6 +22,7 @@ import io.github.takusan23.akaricore.video.CanvasVideoProcessor
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaricore.video.MediaParserKeyFrameTimeDetector
 import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
 import org.junit.Test
@@ -524,6 +525,39 @@ class ExampleInstrumentedTest {
                 .distinct()
 
             Assert.assertTrue(10 <= keyFrameTimeList.size)
+        }
+    }
+
+    @Test
+    fun test_GLSLのコンパイルに失敗したらGlslSyntaxErrorException例外を投げる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val glsl = """precision mediump float;
+
+            uniform sampler2D s_texture;
+            uniform vec2 v_resolution;
+            uniform float f_time;
+
+            void main() {
+                vec4 fragCoord = gl_FragCoord;
+                // 正規化する
+                vec2 uv = fragCoord.xy / v_resolution.xy;
+                // 反転しているので
+                uv = vec2(uv.x, 1.-uv.y);
+                // 色を出す
+                vec4 color = texture2D(s_texture, uv);
+                color.r = f_time;
+                gl_FragColor = color // セミコロン抜けエラー
+            }
+        """.trimIndent()
+        val gpuShaderImageProcessor = GpuShaderImageProcessor()
+        try {
+            gpuShaderImageProcessor.prepare(glsl, 1280, 720)
+            Assert.fail() // 仮に通ったらおかしいので fail
+        } catch (e: GlslSyntaxErrorException) {
+            // エラーが入っていること、ただし SoC （Qualcomm Snapdragon / Google Tensor）によって微妙にエラーが違うっぽいので空文字じゃなければ良しと、、、
+            Assert.assertTrue(e.syntaxErrorMessage.isNotEmpty())
+            Assert.assertTrue(e.syntaxErrorMessage.isNotBlank())
+        } catch (e: Exception) {
+            Assert.fail()
         }
     }
 
