@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.itemrender.calcVideoFramePositionMs
 import io.github.takusan23.akaridroid.tool.ColorTool
 import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
@@ -80,7 +81,7 @@ fun VideoRenderEditBottomSheet(
 
         RenderItemChromaKeyEditComponent(
             filePath = videoItem.value.filePath,
-            previewPositionMs = previewPositionMs,
+            previewPositionMs = videoItem.value.calcVideoFramePositionMs(previewPositionMs),
             chromaKeyColorOrNull = videoItem.value.chromaKeyColor,
             onUpdate = { chromaKeyColor -> update { it.copy(chromaKeyColor = chromaKeyColor) } }
         )

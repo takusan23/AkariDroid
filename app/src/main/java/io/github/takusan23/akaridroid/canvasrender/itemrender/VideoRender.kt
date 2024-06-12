@@ -13,6 +13,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+/**
+ * とりあえずここに置かせて；；
+ * 再生位置を渡して、素材の再生位置を出す。再生速度、オフセットが考慮される。
+ *
+ * @param currentPositionMs 動画全体の再生位置
+ * @return 動画素材の取り出すフレームの時間
+ */
+fun RenderData.CanvasItem.Video.calcVideoFramePositionMs(currentPositionMs: Long): Long {
+    // 素材の開始位置から見た positionMs にする
+    val currentPositionMsInItem = currentPositionMs - displayTime.startMs
+    // 再生速度を考慮した positionMsInItem にする
+    val currentPositionMsInPlaybackSpeed = (currentPositionMsInItem * displayTime.playbackSpeed).toLong()
+    // オフセット、読み飛ばす分を考慮
+    // offset は再生速度考慮している
+    return currentPositionMsInPlaybackSpeed + displayOffset.offsetFirstMs
+}
+
 /** 動画を描画する */
 class VideoRender(
     private val context: Context,
@@ -52,13 +69,8 @@ class VideoRender(
         // 動画のフレーム取得は時間がかかるので、preDraw で取得する
         val videoFrameBitmapExtractor = videoFrameBitmapExtractor ?: return@withContext
 
-        // 素材の開始位置から見た positionMs にする
-        val currentPositionMsInItem = currentPositionMs - video.displayTime.startMs
-        // 再生速度を考慮した positionMsInItem にする
-        val currentPositionMsInPlaybackSpeed = (currentPositionMsInItem * video.displayTime.playbackSpeed).toLong()
-        // オフセット、読み飛ばす分を考慮
-        // offset は再生速度考慮している
-        val framePositionMs = currentPositionMsInPlaybackSpeed + video.displayOffset.offsetFirstMs
+        // 再生速度、オフセットを考慮した、動画のフレーム取得時間を出す
+        val framePositionMs = video.calcVideoFramePositionMs(currentPositionMs = currentPositionMs)
 
         // 取り出す
         preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = framePositionMs)?.let { origin ->
