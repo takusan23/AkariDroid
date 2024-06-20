@@ -61,8 +61,8 @@ internal class MediaParserKeyFrameTimeDetector(private val onCreateInputStream: 
         // InputStream を MediaParser.InputReader で使う
         val input = InputStreamSeekableInputReader(onCreateInputStream)
 
-        // MP4 と WebM のコンテナを解析する
-        val mediaParser = MediaParser.create(output, MediaParser.PARSER_NAME_MP4, MediaParser.PARSER_NAME_MATROSKA)
+        // MP4 と WebM と MPEG2-TS のコンテナを解析する
+        val mediaParser = MediaParser.create(output, MediaParser.PARSER_NAME_MP4, MediaParser.PARSER_NAME_MATROSKA, MediaParser.PARSER_NAME_TS)
         while (isActive && !isFoundSeekMap && mediaParser.advance(input)) {
             // SeekMap が取れるまで while 回す
         }

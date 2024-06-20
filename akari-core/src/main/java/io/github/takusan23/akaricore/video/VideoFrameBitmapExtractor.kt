@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * [android.media.MediaMetadataRetriever.getFrameAtTime]が遅いので、[MediaCodec]あたりを使って高速に[Bitmap]を返すやつを作る。
@@ -113,9 +114,17 @@ class VideoFrameBitmapExtractor {
 
         // パースする
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            mediaParserKeyFrameTimeDetector = MediaParserKeyFrameTimeDetector(
-                onCreateInputStream = { input.inputStream() }
-            ).apply { startParse() }
+            // 変なコンテナフォーマット来たら落ちる
+            // 落ちないようにする
+            mediaParserKeyFrameTimeDetector = try {
+                MediaParserKeyFrameTimeDetector(
+                    onCreateInputStream = { input.inputStream() }
+                ).apply { startParse() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 
