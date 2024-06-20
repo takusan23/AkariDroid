@@ -24,6 +24,7 @@ internal suspend fun ImageReader.getImageReaderBitmap(
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     bitmap.copyPixelsFromBuffer(buffer)
     // 修正が必要な場合（例えば：アスペクト比を戻す）
+    // TODO scale() 重たい。30ms くらいかかる時ある。避けたい
     val resultBitmap = if (fixWidth != null && fixHeight != null) {
         bitmap.scale(fixWidth, fixHeight)
     } else {
