@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.takusan23.akaridroid"
         minSdk = 21
         targetSdk = 34
-        versionCode = 4
-        versionName = "3.0.0"
+        versionCode = 5
+        versionName = "3.1.0"
 
         // アプリのビルド時間をアプリ側で取得できるように
         resValue("string", "build_date", System.currentTimeMillis().toString())
