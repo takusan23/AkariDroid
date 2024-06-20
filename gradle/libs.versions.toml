@@ -1,12 +1,12 @@
 [versions]
-kotlin = "1.9.23"
-androidGradlePlugin = "8.4.0"
+kotlin = "1.9.24"
+androidGradlePlugin = "8.4.2"
 
 kotlinCoroutine = "1.7.3"
 kotlinSerialization = "1.6.2"
-kotlinComposeCompiler = "1.5.13"
+kotlinComposeCompiler = "1.5.14"
 
-androidxComposeBom = "2024.05.00"
+androidxComposeBom = "2024.06.00"
 androidxCore = "1.13.1"
 androidxAppCompat = "1.6.1"
 androidxLifecycle = "2.7.0"
