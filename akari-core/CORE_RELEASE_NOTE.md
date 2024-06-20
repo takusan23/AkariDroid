@@ -4,6 +4,17 @@
 ## 4.0.0 時代
 あかりどろいど 3.x に対応します
 
+### akaricore:4.1.0
+破壊的変更は無いですが、変更点があります。
+
+- GpuShaderImageProcessor 
+  - シェーダーが GLSL の文法ミスでコンパイルできなかった場合、以下の例外を投げます
+    - GlslSyntaxErrorException
+- VideoFrameBitmapExtractor
+  - 内部で使っている MediaParserKeyFrameTimeDetector で解析に失敗した際、例外を投げましたが、このクラスがなくてもシークが遅くなる程度なので、このクラス起因の例外（MediaParser）は投げられないようになりました。
+    - 今のところ MP4 / Matroska (WebM も) / MPEG2-TS が対象
+  - MPEG2-TS コンテナを MediaParserKeyFrameTimeDetector で受け付ける設定をしました。忘れてた
+
 ### akaricore:4.0.0
 破壊的変更はないはず。
 
