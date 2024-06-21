@@ -159,6 +159,12 @@ CORE_RELEASE_NORE.md を書く
 
 ローカルでも公開できます。
 
+### OSSRH ユーザートークンを取得する
+https://central.sonatype.org/publish/generate-token/
+
+↑を元に、ユーザートークンを発行してください。  
+私はすでにやってるのでやらなくて良いはず。
+
 ### local.properties に必要な値を書く
 
 ```properties
@@ -168,10 +174,10 @@ signing.keyId={鍵IDの最後8桁}
 signing.password={秘密鍵のパスワード}
 # Private key Base64
 signing.key={Base64にした秘密鍵}
-# Sonatype OSSRH UserName
-ossrhUsername={Sonatype OSSRH のユーザー名}
-# Sonatype OSSRH Password
-ossrhPassword={Sonatype OSSRH のパスワード}
+# Sonatype OSSRH UserToken UserName
+ossrhUsername={OSSRH UserToken ユーザー名}
+# Sonatype OSSRH UserToken Password
+ossrhPassword={OSSRH UserToken パスワード}
 # Sonatype Staging Profile Id
 sonatypeStagingProfileId={SonatypeステージングプロファイルID}
 ```
