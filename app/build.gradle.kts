@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.compose.compiler)
     kotlin("plugin.serialization").version(libs.versions.kotlin.get())
 }
 
@@ -40,8 +41,11 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.kotlinComposeCompiler.get()
+    // Strong Skipping Mode を有効
+    // React のメモ化を自動でやってくれるやつみたいな
+    // タイムラインの操作がちょっとだけ軽くなるかも
+    composeCompiler {
+        enableStrongSkippingMode = true
     }
     packagingOptions {
         resources {
@@ -87,15 +91,4 @@ dependencies {
     testImplementation(libs.kotlin.test)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
-}
-
-// Strong Skipping Mode を有効
-// React のメモ化を自動でやってくれるやつみたいな
-// タイムラインの操作がちょっとだけ軽くなるかも
-// https://medium.com/androiddevelopers/jetpack-compose-strong-skipping-mode-explained-cbdb2aa4b900
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>() {
-    compilerOptions.freeCompilerArgs.addAll(
-        "-P",
-        "plugin:androidx.compose.compiler.plugins.kotlin:experimentalStrongSkipping=true",
-    )
 }
