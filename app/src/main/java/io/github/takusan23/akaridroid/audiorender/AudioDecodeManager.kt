@@ -18,6 +18,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.random.Random
@@ -42,6 +44,9 @@ class AudioDecodeManager(
     /** PCM デコード用コルーチンスコープ */
     private val decodeScope = CoroutineScope(Dispatchers.Default + Job())
 
+    /** デコーダーが枯渇しないように、並列実行数を制限するセマフォ */
+    private val semaphore = Semaphore(permits = MAX_DECODE_CONCURRENCY)
+
     /** デコード中、デコード済みのファイルの配列[AudioDecodeItem] */
     private var decodeItemList = listOf<AudioDecodeItem>()
 
@@ -64,7 +69,12 @@ class AudioDecodeManager(
     fun addDecode(filePath: RenderData.FilePath, outputFileName: String) {
         val outputDecodePcmFile = outputDecodePcmFolder.resolve(outputFileName)
         // 非同期でデコードさせる
-        val decodeJob = decodeScope.launch { decode(filePath, outputDecodePcmFile) }
+        val decodeJob = decodeScope.launch {
+            // 並列数を制限する
+            semaphore.withPermit {
+                decode(filePath, outputDecodePcmFile)
+            }
+        }
         // 追加する
         decodeItemList = decodeItemList + AudioDecodeItem(filePath, outputDecodePcmFile, decodeJob)
     }
@@ -217,5 +227,8 @@ class AudioDecodeManager(
         private const val AUDIO_DECODE_FILE = "audio_decode_file"
         private const val AUDIO_FIX_SAMPLING = "audio_fix_sampling"
         private const val AUDIO_FIX_MONO_TO_STEREO = "audio_fix_mono_to_stereo"
+
+        /** 音声デコードの並列上限。大きすぎるとデコーダーが枯渇してクラッシュする。少なすぎるとなかなか終わらない。 */
+        private const val MAX_DECODE_CONCURRENCY = 4 // TODO 適当すぎる、ちゃんと調べる
     }
 }
