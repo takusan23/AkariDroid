@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -29,11 +28,12 @@ import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
+import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
 import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
-import io.github.takusan23.akaridroid.ui.component.PreviewContainer
+import io.github.takusan23.akaridroid.ui.component.PreviewEditorOverlay
 import io.github.takusan23.akaridroid.ui.component.TimeLine
 import io.github.takusan23.akaridroid.ui.component.TimeLineZoomButtons
 import io.github.takusan23.akaridroid.ui.component.UndoRedoButtons
@@ -64,8 +64,6 @@ fun VideoEditorScreen(
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
     // プレビューのプレイヤー状態
     val previewPlayerStatus = viewModel.videoEditorPreviewPlayer.playerStatus.collectAsStateWithLifecycle()
-    // プレビューのBitmap
-    val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsStateWithLifecycle()
     // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
     // タイムライン
@@ -140,19 +138,36 @@ fun VideoEditorScreen(
         ) {
             Column {
                 // タッチ編集・プレビュー
-                PreviewContainer(
+                Box(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .fillMaxWidth()
-                        .fillMaxHeight(0.5f),
-                    previewBitmap = previewBitmap.value?.asImageBitmap(),
-                    touchEditorData = touchEditorData.value,
-                    onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
-                    onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
-                    playerStatus = previewPlayerStatus.value,
-                    onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                    onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
-                )
+                        .fillMaxHeight(0.5f)
+                ) {
+
+                    // プレビューを出す
+                    ComposeSurfaceView(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .align(Alignment.Center),
+                        onCreateSurface = { holder -> viewModel.videoEditorPreviewPlayer.setSurfaceHolder(holder) },
+                        onChangeSurface = { _, _, _, _ -> },
+                        onDestroySurface = { _ -> viewModel.videoEditorPreviewPlayer.setSurfaceHolder(null) }
+                    )
+
+                    // タッチ編集
+                    PreviewEditorOverlay(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .align(Alignment.Center),
+                        touchEditorData = touchEditorData.value,
+                        onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
+                        onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
+                        playerStatus = previewPlayerStatus.value,
+                        onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
+                    )
+                }
 
                 // 戻るボタンとか
                 Row(modifier = Modifier.align(Alignment.End)) {

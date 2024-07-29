@@ -1,10 +1,8 @@
-package io.github.takusan23.akaridroid.canvasrender
+package io.github.takusan23.akaridroid.framerender
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
+import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
@@ -15,21 +13,27 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.SwitchAnimationRen
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** [Canvas] に [RenderData.CanvasItem]の内容を描画するやつ */
-class CanvasRender(private val context: Context) {
+/**
+ * [AkariGraphicsProcessor]へ動画フレームを描画する。
+ * 描画すると[AkariGraphicsProcessor]で指定した Surface （SurfaceView / MediaCodec）に動画フレームが送信されます。
+ *
+ * [AkariGraphicsProcessor]は OpenGL ES の上に構築された動画フレーム描画システムなので、ちょっとややこしい。
+ */
+class AkariCoreFrameRender(
+    private val context: Context,
+    private val genTextureId: suspend () -> Int
+) {
 
     /** 描画する [BaseItemRender] の配列 */
     private var itemRenderList = emptyList<BaseItemRender>()
 
-    /** [Bitmap] 転写で使う [Paint] */
-    private val paint = Paint()
-
     /**
-     * [RenderData]をセット、更新する
+     * [RenderData]をセット、更新する。
      *
      * @param canvasRenderItem 描画する
      */
@@ -44,36 +48,23 @@ class CanvasRender(private val context: Context) {
 
         itemRenderList = canvasRenderItem.map { renderItem ->
             // データが変化していない場合は使い回す
-            itemRenderList.firstOrNull {
-                it.isEquals(renderItem)
-            } ?: when (renderItem) { // 無ければ作る
-                is RenderData.CanvasItem.Text -> TextRender(context, renderItem)
-                is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
-                is RenderData.CanvasItem.Video -> VideoRender(-1, context, renderItem)
-                is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
-                is RenderData.CanvasItem.Shader -> ShaderRender(renderItem)
-                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRender(renderItem)
-                is RenderData.CanvasItem.Effect -> EffectRender(renderItem)
-            }
+            // 無ければ作る
+            itemRenderList.firstOrNull { it.isEquals(renderItem) } ?: renderItem.createRender()
         }
     }
 
     /**
-     * 描画する
+     * 描画する。
+     * GL スレッドから呼び出されます。
      *
-     * @param outCanvas [Canvas]
      * @param durationMs 動画の合計時間
      * @param currentPositionMs 再生位置
      */
-    suspend fun draw(outCanvas: Canvas, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
-
-        // 黒埋めする
-        outCanvas.drawColor(Color.BLACK)
-
-        // Canvas に直接書くのではなく、一旦別の Canvas に書いて、全部描き終わったら Bitmap を引数の outCanvas へ転写する
-        // これをすることで、描いている途中のフレームにエフェクトをかけられるようになる。
-        val tempBitmap = Bitmap.createBitmap(outCanvas.width, outCanvas.height, Bitmap.Config.ARGB_8888)
-        val tempCanvas = Canvas(tempBitmap)
+    suspend fun draw(
+        textureRenderer: AkariGraphicsTextureRenderer,
+        durationMs: Long,
+        currentPositionMs: Long
+    ) = coroutineScope { // 親のスコープを引き継ぐため
 
         // 時間的にもう使われない場合は DESTROY にする
         itemRenderList
@@ -93,6 +84,7 @@ class CanvasRender(private val context: Context) {
             .joinAll()
 
         // preDraw を並列で呼び出す
+        // TODO OpenGL ES で書き直したら多分 preDraw いらんかも
         displayPositionItemList.map { itemRender ->
             launch {
                 itemRender.preDraw(
@@ -108,15 +100,11 @@ class CanvasRender(private val context: Context) {
             .sortedBy { it.layerIndex }
             .forEach { itemRender ->
                 itemRender.draw(
-                    canvas = tempCanvas,
-                    drawFrame = tempBitmap,
+                    textureRenderer = textureRenderer,
                     durationMs = durationMs,
                     currentPositionMs = currentPositionMs
                 )
             }
-
-        // outCanvas へ転写する
-        outCanvas.drawBitmap(tempBitmap, 0f, 0f, paint)
     }
 
     /** 破棄する */
@@ -124,6 +112,17 @@ class CanvasRender(private val context: Context) {
         itemRenderList.forEach { itemRender ->
             itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
         }
+    }
+
+    /** [RenderData.CanvasItem]から対応した ItemRender を作る */
+    private suspend fun RenderData.CanvasItem.createRender(): BaseItemRender = when (this) {
+        is RenderData.CanvasItem.Text -> TextRender(context, this)
+        is RenderData.CanvasItem.Image -> ImageRender(context, this)
+        is RenderData.CanvasItem.Video -> VideoRender(genTextureId(), context, this)
+        is RenderData.CanvasItem.Shape -> ShapeRender(this)
+        is RenderData.CanvasItem.Shader -> ShaderRender(this)
+        is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRender(this)
+        is RenderData.CanvasItem.Effect -> EffectRender(this)
     }
 
 }

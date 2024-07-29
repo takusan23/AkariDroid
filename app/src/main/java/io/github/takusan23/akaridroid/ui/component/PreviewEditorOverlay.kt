@@ -1,27 +1,21 @@
 package io.github.takusan23.akaridroid.ui.component
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 
 /**
- * プレビュー部分のコンテナ
+ * プレビュー部分に重ねているコントローラー、
  * タッチ編集機能と、プレビュー再生機能の切り替えがある
  *
  * @param modifier [Modifier]
- * @param previewBitmap プレビューBitmap。[io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer.previewBitmap]
  * @param touchEditorData 現在表示されているキャンバス要素を[TouchEditorData]で
  * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
  * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
@@ -30,9 +24,8 @@ import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
  * @param onSeek シークしたとき
  */
 @Composable
-fun PreviewContainer(
+fun PreviewEditorOverlay(
     modifier: Modifier = Modifier,
-    previewBitmap: ImageBitmap?,
     touchEditorData: TouchEditorData,
     onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
     onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit,
@@ -44,19 +37,6 @@ fun PreviewContainer(
     val currentMode = remember { mutableStateOf(PreviewOrTouchEditMode.TouchEdit) }
 
     Box(modifier = modifier) {
-
-        // プレビューを出す
-        if (previewBitmap != null) {
-            Image(
-                modifier = Modifier
-                    .matchParentSize()
-                    .align(Alignment.Center),
-                bitmap = previewBitmap,
-                contentDescription = null
-            )
-        } else {
-            Text(text = stringResource(id = R.string.video_preview_generating))
-        }
 
         // プレビュー再生のコントローラーか、タッチ編集モードか
         when (currentMode.value) {

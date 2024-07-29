@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import com.bumptech.glide.Glide
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,6 +45,15 @@ class ImageRender(
         val bitmap = bitmap ?: return@withContext
         val (x, y) = image.position
         canvas.drawBitmap(bitmap, x, y, paint)
+    }
+
+    override suspend fun draw(textureRenderer: AkariGraphicsTextureRenderer, durationMs: Long, currentPositionMs: Long) {
+        val bitmap = bitmap ?: return
+        val (x, y) = image.position
+
+        textureRenderer.drawCanvas {
+            drawBitmap(bitmap, x, y, paint)
+        }
     }
 
     override fun destroy() {

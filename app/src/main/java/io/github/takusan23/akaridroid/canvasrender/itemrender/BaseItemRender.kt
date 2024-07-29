@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaridroid.RenderData
 
 /**
@@ -59,6 +60,19 @@ abstract class BaseItemRender {
     abstract suspend fun draw(
         canvas: Canvas,
         drawFrame: Bitmap,
+        durationMs: Long,
+        currentPositionMs: Long
+    )
+
+    /**
+     * [io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]（OpenGL ES）へ描画する。
+     * サスペンド関数ですが、レイヤー順に直列で呼び出されるため、あんまり時間をかけないでください。
+     *
+     * @param durationMs 動画の合計時間
+     * @param currentPositionMs 描画したい時間
+     */
+    abstract suspend fun draw(
+        textureRenderer: AkariGraphicsTextureRenderer,
         durationMs: Long,
         currentPositionMs: Long
     )

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.tool.FontManager
 
@@ -58,6 +59,31 @@ class TextRender(
 
             if (isDrawStroke) {
                 canvas.drawText(text, x, y + (fillPaint.textSize * index), strokePaint)
+            }
+        }
+    }
+
+    override suspend fun draw(textureRenderer: AkariGraphicsTextureRenderer, durationMs: Long, currentPositionMs: Long) {
+        fillPaint.color = Color.parseColor(text.fontColor)
+        fillPaint.textSize = text.textSize
+
+        // 枠取りにするなら
+        val isDrawStroke = text.strokeColor != null
+        if (isDrawStroke) {
+            strokePaint.color = Color.parseColor(text.strokeColor)
+            strokePaint.textSize = text.textSize
+        }
+
+        val (x, y) = text.position
+
+        textureRenderer.drawCanvas {
+            // 複数行サポート
+            text.text.lines().forEachIndexed { index, text ->
+                drawText(text, x, y + (fillPaint.textSize * index), fillPaint)
+
+                if (isDrawStroke) {
+                    drawText(text, x, y + (fillPaint.textSize * index), strokePaint)
+                }
             }
         }
     }

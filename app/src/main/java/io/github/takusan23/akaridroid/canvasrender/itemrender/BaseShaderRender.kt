@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +99,10 @@ abstract class BaseShaderRender : BaseItemRender() {
         val effectBitmap = gpuShaderImageProcessor?.drawShader(cropBitmap) ?: return@withContext
         // Canvas に描く
         canvas.drawBitmap(effectBitmap, resultRect.left.toFloat(), resultRect.top.toFloat(), paint)
+    }
+
+    override suspend fun draw(textureRenderer: AkariGraphicsTextureRenderer, durationMs: Long, currentPositionMs: Long) {
+        // TODO 実装する
     }
 
     override fun destroy() {
