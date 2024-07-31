@@ -85,14 +85,14 @@ class AkariCoreFrameRender(
 
         // preDraw を並列で呼び出す
         // TODO OpenGL ES で書き直したら多分 preDraw いらんかも
-        displayPositionItemList.map { itemRender ->
-            launch {
-                itemRender.preDraw(
-                    durationMs = durationMs,
-                    currentPositionMs = currentPositionMs
-                )
-            }
-        }.joinAll()
+        // displayPositionItemList.map { itemRender ->
+        //     launch {
+        //         itemRender.preDraw(
+        //             durationMs = durationMs,
+        //             currentPositionMs = currentPositionMs
+        //         )
+        //     }
+        // }.joinAll()
 
         // 描画する
         // レイヤー順に

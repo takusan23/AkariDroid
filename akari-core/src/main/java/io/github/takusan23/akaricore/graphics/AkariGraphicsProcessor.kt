@@ -2,6 +2,7 @@ package io.github.takusan23.akaricore.graphics
 
 import android.opengl.GLES20
 import android.view.Surface
+import io.github.takusan23.akaricore.common.printTime
 import io.github.takusan23.akaricore.video.gl.InputSurface
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi

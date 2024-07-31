@@ -2,12 +2,18 @@ package io.github.takusan23.akaridroid.preview
 
 import android.content.Context
 import android.graphics.Color
+import android.opengl.Matrix
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.AkariGraphicsVideoTexture
+import io.github.takusan23.akaricore.graphics.AkariGraphicsVideoTexture2
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
 import io.github.takusan23.akaridroid.framerender.AkariCoreFrameRender
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +41,7 @@ import java.io.File
 
 /** [RenderData.CanvasItem]をプレビューする */
 class VideoEditorPreviewPlayer(
-    context: Context,
+    private val context: Context,
     projectFolder: File
 ) {
     /** プレイヤー再生用コルーチンスコープ。キャンセル用 */
@@ -99,12 +105,7 @@ class VideoEditorPreviewPlayer(
                 // タイムラインの素材を AkariGraphicsProcessor で描画するやつ
                 val frameRender = AkariCoreFrameRender(
                     context = context,
-                    genTextureId = {
-                        // TODO この世の終わりみたいなコード。別に関数にしなくてよかったわこれ
-                        var texId: Int = -1
-                        previewAkariGraphicsProcessor.genTextureId { texId = it }
-                        texId
-                    }
+                    genTextureId = { previewAkariGraphicsProcessor.genTextureId { it } }
                 )
 
                 try {
@@ -275,6 +276,38 @@ class VideoEditorPreviewPlayer(
                 // 再生を開始
                 pcmPlayer.play()
 
+                val videoFile = context.getExternalFilesDir(null)?.resolve("demo")?.resolve("dc5.mp4")!!
+
+                // val videoRender = processor.genTextureId {
+                //     VideoRender(
+                //         initTexId = it,
+                //         context = context,
+                //         video = RenderData.CanvasItem.Video(
+                //             displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
+                //             position = RenderData.Position(0f, 0f),
+                //             layerIndex = 0,
+                //             filePath = RenderData.FilePath.File(videoFile.path),
+                //             size = RenderData.Size(640, 360)
+                //         )
+                //     )
+                // }.apply { setLifecycle(BaseItemRender.RenderLifecycleState.PREPARED) }
+
+                // val mediaPlayerTexture = processor.genTextureId { AkariGraphicsSurfaceTexture(it) }
+                // MediaPlayer.create(context, videoFile.path.toUri()).apply {
+                //     setSurface(mediaPlayerTexture.surface)
+                //     start()
+                // }
+
+                val akariVideoFrameTexture = processor.genTextureId { texId -> AkariGraphicsVideoTexture2(texId) }
+                akariVideoFrameTexture.prepareDecoder(videoFile.path)
+                akariVideoFrameTexture.play()
+
+                val videoTexture = processor.genTextureId { AkariGraphicsVideoTexture(it) }.apply {
+                    prepareDecoder(videoFile.toAkariCoreInputOutputData())
+                    launch { drawLoop() }
+                }
+
+
                 try {
                     // 終わるかするまで
                     processor.drawLoop {
@@ -283,19 +316,51 @@ class VideoEditorPreviewPlayer(
 
                         // フレームを生成する
                         // OpenGL ES で書く
-                        canvasRenderMutex.withLock {
-                            drawCanvas { drawColor(Color.BLACK) } // なんか知らないけどこれがないとエラーになる
-                            frameRender.draw(
-                                textureRenderer = this,
-                                durationMs = durationMs,
-                                currentPositionMs = currentPositionMs
-                            )
-                        }
+                        drawCanvas { drawColor(Color.BLACK) } // なんか知らないけどこれがないとエラーになる
+
+                        // videoRender.draw(
+                        //     textureRenderer = this,
+                        //     durationMs = durationMs,
+                        //     currentPositionMs = currentPositionMs
+                        // )
+
+                        // drawSurfaceTexture(videoRender.akariGraphicsVideoTexture.akariSurfaceTexture) { mvpMatrix ->
+                        //     Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                        //     Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                        // }
+
+                        // frameRender.draw(
+                        //     textureRenderer = this,
+                        //     durationMs = durationMs,
+                        //     currentPositionMs = currentPositionMs
+                        // )
+
+                        // drawSurfaceTexture(videoTexture.akariSurfaceTexture, false) { mvpMatrix ->
+                        //     Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                        //     Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                        //     Matrix.translateM(mvpMatrix, 0, 0f, 3f, 0f)
+                        // }
 
                         // 動画の1フレーム分の音声を取り出して再生する
                         // audioRender.seek(currentPositionMs)
                         // audioRender.readPcmByteArray(pcmByteArrayFromOneVideoFrame)
                         // pcmPlayer.writePcmData(pcmByteArrayFromOneVideoFrame)
+
+                        // drawSurfaceTexture(mediaPlayerTexture) { mvpMatrix ->
+                        //     Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                        //     Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                        // }
+
+                         drawSurfaceTexture(akariVideoFrameTexture.akariSurfaceTexture) { mvpMatrix ->
+                             Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                             Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                         }
+
+                         drawSurfaceTexture(videoTexture.akariSurfaceTexture) { mvpMatrix ->
+                             Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                             Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                             Matrix.translateM(mvpMatrix, 0, 0f, 2f, 0f)
+                         }
 
                         // 次のフレームのために時間を進める
                         if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {

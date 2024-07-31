@@ -10,7 +10,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.github.takusan23.akaridroid"
+        applicationId = "io.github.takusan23.akaridroid2"
         minSdk = 21
         targetSdk = 34
         versionCode = 5
