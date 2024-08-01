@@ -12,9 +12,8 @@ import io.github.takusan23.akaricore.graphics.AkariGraphicsVideoTexture2
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
-import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
-import io.github.takusan23.akaridroid.canvasrender.itemrender.VideoRender
 import io.github.takusan23.akaridroid.framerender.AkariCoreFrameRender
+import io.github.takusan23.akaridroid.tool.printTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -298,13 +297,14 @@ class VideoEditorPreviewPlayer(
                 //     start()
                 // }
 
-                val akariVideoFrameTexture = processor.genTextureId { texId -> AkariGraphicsVideoTexture2(texId) }
-                akariVideoFrameTexture.prepareDecoder(videoFile.path)
-                akariVideoFrameTexture.play()
+                val akariVideoFrameTexture = processor.genTextureId { texId -> AkariGraphicsVideoTexture2(texId) }.apply {
+                    prepareDecoder(videoFile.toAkariCoreInputOutputData())
+                    // play()
+                }
 
                 val videoTexture = processor.genTextureId { AkariGraphicsVideoTexture(it) }.apply {
                     prepareDecoder(videoFile.toAkariCoreInputOutputData())
-                    launch { drawLoop() }
+                    // launch { drawLoop() }
                 }
 
 
@@ -351,16 +351,22 @@ class VideoEditorPreviewPlayer(
                         //     Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
                         // }
 
-                         drawSurfaceTexture(akariVideoFrameTexture.akariSurfaceTexture) { mvpMatrix ->
-                             Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
-                             Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
-                         }
+                        printTime("akariVideoFrameTexture.seekToNext"){
+                            akariVideoFrameTexture.seekToNext(currentPositionMs)
+                            drawSurfaceTexture(akariVideoFrameTexture.akariSurfaceTexture) { mvpMatrix ->
+                                Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                                Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                            }
+                        }
 
-                         drawSurfaceTexture(videoTexture.akariSurfaceTexture) { mvpMatrix ->
-                             Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
-                             Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
-                             Matrix.translateM(mvpMatrix, 0, 0f, 2f, 0f)
-                         }
+                        printTime("videoTexture.awaitSeekToNextDecode"){
+                            videoTexture.awaitSeekToNextDecode(currentPositionMs)
+                            drawSurfaceTexture(videoTexture.akariSurfaceTexture) { mvpMatrix ->
+                                Matrix.scaleM(mvpMatrix, 0, 1.7f, 1f, 1f)
+                                Matrix.scaleM(mvpMatrix, 0, 0.3f, 0.3f, 0.3f)
+                                Matrix.translateM(mvpMatrix, 0, 0f, 2f, 0f)
+                            }
+                        }
 
                         // 次のフレームのために時間を進める
                         if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {

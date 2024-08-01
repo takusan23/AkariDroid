@@ -6,16 +6,13 @@ import android.media.MediaFormat
 import android.os.Build
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
-import io.github.takusan23.akaricore.common.printTime
 import io.github.takusan23.akaricore.video.MediaParserKeyFrameTimeDetector
 import io.github.takusan23.akaricore.video.getImageReaderBitmap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 
 class AkariGraphicsVideoTexture(initTexName: Int) {
 
@@ -63,7 +60,7 @@ class AkariGraphicsVideoTexture(initTexName: Int) {
         videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
 
         // TODO 不要なら消す
-        akariSurfaceTexture.setTextureSize(videoWidth, videoHeight)
+        // akariSurfaceTexture.setTextureSize(videoWidth, videoHeight)
 
         // 映像デコーダー起動
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
@@ -162,7 +159,7 @@ class AkariGraphicsVideoTexture(initTexName: Int) {
     }
 
     /** 前か後ろ、もしくはシーク不要なら何もしない。 */
-    private suspend fun seekDecoderPosition(seekToMs: Long) {
+    suspend fun seekDecoderPosition(seekToMs: Long) {
         when {
             // 現在の再生位置よりも戻る方向に（巻き戻し）した場合
             seekToMs < prevSeekToMs -> {
@@ -196,7 +193,7 @@ class AkariGraphicsVideoTexture(initTexName: Int) {
      * @param seekToMs シーク位置
      * @return もうデータがない場合は false。データが有り[getImageReaderBitmap]が呼び出せる場合は true。
      */
-    private suspend fun awaitSeekToNextDecode(
+    suspend fun awaitSeekToNextDecode(
         seekToMs: Long
     ): Boolean = coroutineScope {
         val decodeMediaCodec = decodeMediaCodec!!
@@ -236,45 +233,41 @@ class AkariGraphicsVideoTexture(initTexName: Int) {
             // キャンセル時
             if (!isActive) break
 
-            printTime("INPUT") {
-                // コンテナフォーマットからサンプルを取り出し、デコーダーに渡す
-                // シークしないことで、連続してフレームを取得する場合にキーフレームまで戻る必要がなくなり、早くなる
-                val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
-                if (inputBufferIndex >= 0) {
-                    // デコーダーへ流す
-                    val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
-                    val size = mediaExtractor.readSampleData(inputBuffer, 0)
-                    decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
-                }
+            // コンテナフォーマットからサンプルを取り出し、デコーダーに渡す
+            // シークしないことで、連続してフレームを取得する場合にキーフレームまで戻る必要がなくなり、早くなる
+            val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
+            if (inputBufferIndex >= 0) {
+                // デコーダーへ流す
+                val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
+                val size = mediaExtractor.readSampleData(inputBuffer, 0)
+                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
             }
 
             // デコーダーから映像を受け取る部分
             var isDecoderOutputAvailable = true
-            printTime("OUTPUT") {
-                while (isDecoderOutputAvailable) {
-                    // キャンセル時
-                    if (!isActive) break
+            while (isDecoderOutputAvailable) {
+                // キャンセル時
+                if (!isActive) break
 
-                    // デコード結果が来ているか
-                    val outputBufferIndex = decodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
-                    when {
-                        outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> {
-                            // もう無い時
-                            isDecoderOutputAvailable = false
-                        }
+                // デコード結果が来ているか
+                val outputBufferIndex = decodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
+                when {
+                    outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> {
+                        // もう無い時
+                        isDecoderOutputAvailable = false
+                    }
 
-                        outputBufferIndex >= 0 -> {
-                            // SurfaceTexture に描画して、ループを抜ける
-                            val doRender = bufferInfo.size != 0
-                            decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
-                            if (doRender) {
-                                // 欲しいフレームの時間に到達した場合、ループを抜ける
-                                // doRender == true じゃないと ImageReader から取り出せないので
-                                val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
-                                if (seekToMs <= presentationTimeMs) {
-                                    isRunning = false
-                                    latestDecodePositionMs = presentationTimeMs
-                                }
+                    outputBufferIndex >= 0 -> {
+                        // SurfaceTexture に描画して、ループを抜ける
+                        val doRender = bufferInfo.size != 0
+                        decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
+                        if (doRender) {
+                            // 欲しいフレームの時間に到達した場合、ループを抜ける
+                            // doRender == true じゃないと ImageReader から取り出せないので
+                            val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
+                            if (seekToMs <= presentationTimeMs) {
+                                isRunning = false
+                                latestDecodePositionMs = presentationTimeMs
                             }
                         }
                     }
@@ -375,9 +368,9 @@ class AkariGraphicsVideoTexture(initTexName: Int) {
 
     companion object {
         /** MediaCodec タイムアウト */
-        // TODO 非同期モードのがデコードが早い理由は、このタイムアウトが長すぎるせい、が、短くすると映像が乱れるっぽくて、わんちゃん非同期モードのがいい説がある
-        // 極端に短い時間（1 us）とかにすると、非同期よりも早くなるけど、なんか映像が乱れてる？
-        private const val TIMEOUT_US = 1L
+        // TODO 非同期モードのがデコードが早い理由は、このタイムアウトが長すぎるせい、10_000 じゃなくて極端に 1_000 とかにすれば非同期と同じくらいの速度が出る
+        // TODO ただ、SurfaceTexture に転送と、OpenGL ES が描画を同じスレッドと言うか、転送後にすぐ OpenGL で描画しない場合（スレッドが別とかで）、同期モードでタイムアウトが速すぎると乱れてしまった。非同期だとなぜか起きない。
+        private const val TIMEOUT_US = 1_000L
     }
 
 }

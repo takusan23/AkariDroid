@@ -5,16 +5,20 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Handler
 import android.os.HandlerThread
+import io.github.takusan23.akaricore.common.AkariCoreInputOutput
+import io.github.takusan23.akaricore.common.MediaExtractorTool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /** [AkariGraphicsProcessor]で動画を描画する */
 class AkariGraphicsVideoTexture2(initTexName: Int) : MediaCodec.Callback() {
@@ -22,37 +26,38 @@ class AkariGraphicsVideoTexture2(initTexName: Int) : MediaCodec.Callback() {
     private var mediaCodec: MediaCodec? = null
     private var mediaExtractor: MediaExtractor? = null
 
-    /** 映像をテクスチャとして利用できるやつ */
-    val akariSurfaceTexture = AkariGraphicsSurfaceTexture(initTexName)
-
     // MediaCodec の非同期コールバックが呼び出されるスレッド（Handler）
-    private val handlerThread = HandlerThread("MediaCodecHandlerThread")
+    private val handlerThread = HandlerThread("MediaCodecHandlerThread").apply { start() }
+    private val handlerThreadDispatcher = Handler(handlerThread.looper).asCoroutineDispatcher()
+
     private val scope = CoroutineScope(Job() + Dispatchers.Default)
     private var currentJob: Job? = null
     private val mediaCodecCallbackChannel = Channel<MediaCodecAsyncState>()
 
-    fun prepareDecoder(filePath: String) {
-        // 動画トラックを探す
-        val mediaExtractor = MediaExtractor().apply {
-            setDataSource(filePath)
-        }
-        this.mediaExtractor = mediaExtractor
+    /** 映像をテクスチャとして利用できるやつ */
+    val akariSurfaceTexture = AkariGraphicsSurfaceTexture(initTexName)
 
-        val videoTrackIndex = (0 until mediaExtractor.trackCount)
-            .map { mediaExtractor.getTrackFormat(it) }
-            .withIndex()
-            .first { it.value.getString(MediaFormat.KEY_MIME)?.startsWith("video/") == true }
-            .index
+    suspend fun prepareDecoder(
+        input: AkariCoreInputOutput.Input,
+        // TODO クロマキー
+        chromakeyThreshold: Float? = null,
+        chromakeyColor: Int? = null
+    ) {
+        val (mediaExtractor, videoTrackIndex, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
+        this@AkariGraphicsVideoTexture2.mediaExtractor = mediaExtractor
+        mediaExtractor.selectTrack(videoTrackIndex)
 
         mediaExtractor.selectTrack(videoTrackIndex)
-        val mediaFormat = mediaExtractor.getTrackFormat(videoTrackIndex)
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
 
-        handlerThread.start()
-        mediaCodec = MediaCodec.createDecoderByType(codecName).apply {
-            setCallback(this@AkariGraphicsVideoTexture2, Handler(handlerThread.looper))
-            configure(mediaFormat, akariSurfaceTexture.surface, null, 0)
-            start()
+        // Callback に Handler を渡せるのが Android 6 以降
+        // Android 5 では MediaCodec のインスタンス作成時に Looper.myLooper() したものが Callback の Handler になる
+        mediaCodec = withContext(handlerThreadDispatcher) {
+            MediaCodec.createDecoderByType(codecName).apply {
+                setCallback(this@AkariGraphicsVideoTexture2)
+                configure(mediaFormat, akariSurfaceTexture.surface, null, 0)
+                start()
+            }
         }
     }
 
@@ -142,6 +147,43 @@ class AkariGraphicsVideoTexture2(initTexName: Int) : MediaCodec.Callback() {
                             // デコーダーでは使われないはず
                         }
                     }
+                }
+            }
+        }
+    }
+
+    suspend fun seekToNext(positionMs: Long) = coroutineScope {
+        val mediaExtractor = mediaExtractor ?: return@coroutineScope
+        val mediaCodec = mediaCodec ?: return@coroutineScope
+
+        // 無限ループでコールバックを待つ
+        while (isActive) {
+            when (val receiveAsyncState = mediaCodecCallbackChannel.receive()) {
+                is MediaCodecAsyncState.InputBuffer -> {
+                    val inputIndex = receiveAsyncState.index
+                    val inputBuffer = mediaCodec.getInputBuffer(inputIndex) ?: break
+                    val size = mediaExtractor.readSampleData(inputBuffer, 0)
+                    if (size > 0) {
+                        // デコーダーへ流す
+                        mediaCodec.queueInputBuffer(inputIndex, 0, size, mediaExtractor.sampleTime, 0)
+                        mediaExtractor.advance()
+                    }
+                }
+
+                is MediaCodecAsyncState.OutputBuffer -> {
+                    val outputIndex = receiveAsyncState.index
+                    val info = receiveAsyncState.info
+                    if (positionMs * 1_000 <= info.presentationTimeUs) {
+                        // 指定時間なら、Surface に送信して break
+                        mediaCodec.releaseOutputBuffer(outputIndex, true)
+                        break
+                    } else {
+                        mediaCodec.releaseOutputBuffer(outputIndex, false)
+                    }
+                }
+
+                is MediaCodecAsyncState.OutputFormat -> {
+                    // デコーダーでは使われないはず
                 }
             }
         }
