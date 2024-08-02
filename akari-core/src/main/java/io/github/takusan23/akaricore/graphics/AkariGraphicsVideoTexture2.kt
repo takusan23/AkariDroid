@@ -37,6 +37,10 @@ class AkariGraphicsVideoTexture2(initTexName: Int) : MediaCodec.Callback() {
     /** 映像をテクスチャとして利用できるやつ */
     val akariSurfaceTexture = AkariGraphicsSurfaceTexture(initTexName)
 
+    /** 縦横サイズ。[prepareDecoder]の後に利用できます。 */
+    var videoSize: Pair<Int, Int>? = null
+        private set
+
     suspend fun prepareDecoder(
         input: AkariCoreInputOutput.Input,
         // TODO クロマキー
@@ -49,6 +53,8 @@ class AkariGraphicsVideoTexture2(initTexName: Int) : MediaCodec.Callback() {
 
         mediaExtractor.selectTrack(videoTrackIndex)
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
+
+        videoSize = Pair(mediaFormat.getInteger(MediaFormat.KEY_WIDTH), mediaFormat.getInteger(MediaFormat.KEY_HEIGHT))
 
         // Callback に Handler を渡せるのが Android 6 以降
         // Android 5 では MediaCodec のインスタンス作成時に Looper.myLooper() したものが Callback の Handler になる

@@ -7,7 +7,7 @@ import android.opengl.Matrix
 import androidx.core.net.toUri
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
-import io.github.takusan23.akaricore.graphics.AkariGraphicsVideoTexture
+import io.github.takusan23.akaricore.graphics.AkariGraphicsVideoTexture2
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -38,7 +38,7 @@ class VideoRender(
 ) : BaseItemRender() {
 
     /** 動画をデコードして、フレームを[AkariGraphicsTextureRenderer]へ描画するやつ */
-    private val akariGraphicsVideoTexture = AkariGraphicsVideoTexture(initTexId)
+    private val akariGraphicsVideoTexture = AkariGraphicsVideoTexture2(initTexId)
 
     override val layerIndex: Int
         get() = video.layerIndex
@@ -61,21 +61,28 @@ class VideoRender(
     }
 
     override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
+        // サポート終了
     }
 
     override suspend fun draw(textureRenderer: AkariGraphicsTextureRenderer, durationMs: Long, currentPositionMs: Long) {
-        akariGraphicsVideoTexture.draw(
-            akariGraphicsTextureRenderer = textureRenderer,
-            seekToMs = currentPositionMs,
-            onTransform = { mvpMatrix ->
-                // リサイズする場合
-                val (width, height) = video.size
-                Matrix.scaleM(mvpMatrix, 0, width / akariGraphicsVideoTexture.videoWidth.toFloat(), height / akariGraphicsVideoTexture.videoHeight.toFloat(), 1f)
-                // 位置調整
-                val (x, y) = video.position
-                Matrix.translateM(mvpMatrix, 0, x / textureRenderer.width.toFloat(), y / textureRenderer.height.toFloat(), 1f)
-            }
-        )
+        akariGraphicsVideoTexture.seekToNext(currentPositionMs)
+        textureRenderer.drawSurfaceTexture(akariGraphicsVideoTexture.akariSurfaceTexture) { mvpMatrix ->
+            val (x, y) = video.position
+            val (width, height) = video.size
+            // 位置調整
+            // OpenGL は 0, 0 が真ん中になる？ので、-1 から 1 の範囲にする。
+            // 原点が左上じゃなくて真ん中なので、x と y も調整する。
+            // 2倍して -1 すると、0 から 2 の範囲が -1 から 1 の範囲になる。
+            val xPos = (x + (width / 2)) / textureRenderer.width.toFloat()
+            val yPos = (y + (height / 2)) / textureRenderer.height.toFloat()
+            val openGlXPos = (xPos * 2) - 1
+            val openGlYPos = (yPos * 2) - 1
+            // y はテクスチャ座標が反転しているため意図的にマイナスの値
+            Matrix.translateM(mvpMatrix, 0, openGlXPos, -openGlYPos, 0f)
+            // リサイズする場合
+            val (videoWidth, videoHeight) = akariGraphicsVideoTexture.videoSize!!
+            Matrix.scaleM(mvpMatrix, 0, width / videoWidth.toFloat(), height / videoHeight.toFloat(), 1f)
+        }
     }
 
     override fun destroy() {

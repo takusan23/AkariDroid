@@ -148,6 +148,7 @@ fun VideoEditorScreen(
                     // プレビューを出す
                     ComposeSurfaceView(
                         modifier = Modifier
+                            .aspectRatio(renderData.value.videoSize.let { it.width / it.height.toFloat() })
                             .matchParentSize()
                             .align(Alignment.Center),
                         onCreateSurface = { holder -> viewModel.videoEditorPreviewPlayer.setSurfaceHolder(holder) },
