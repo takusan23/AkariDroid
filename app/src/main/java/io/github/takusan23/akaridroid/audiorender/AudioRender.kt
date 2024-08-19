@@ -32,8 +32,11 @@ class AudioRender(
         outputDecodePcmFolder = outputDecodePcmFolder
     )
 
+    /** 前回の[setRenderData]で渡された音声ファイル一覧、変更時に削除されたらデコード済みデータも消す */
+    private var prevSetRenderDataFilePathList = emptyList<RenderData.FilePath>()
+
     /** デコード済みで使える素材一覧 */
-    private var audioItemRenderList: List<AudioItemRender> = emptyList()
+    private var audioItemRenderList = emptyList<AudioItemRender>()
 
     /** PCM をファイルから取り出すための[InputStream] */
     private var inputStream: InputStream? = null
@@ -51,15 +54,12 @@ class AudioRender(
         val filePathList = audioList.map { it.filePath }
 
         // 前回から削除された素材はデコード中ならキャンセルさせ、PCM ファイルも消す
-        // TODO 再実装
-        // audioDecodeManager
-        //     .addedDecoderFilePathList
-        //     .forEach { oldItem ->
-        //         // 前回から削除された素材を消す
-        //         if (oldItem !in filePathList) {
-        //             audioDecodeManager.cancelDecodeAndDeleteFile(oldItem)
-        //         }
-        //     }
+        prevSetRenderDataFilePathList.forEach { oldItem ->
+            if (oldItem !in filePathList) {
+                audioDecodeManager.cancelDecodeAndDeleteFile(oldItem)
+            }
+        }
+        prevSetRenderDataFilePathList = filePathList
 
         // デコーダーに入れてデコードさせる
         audioRenderItem
