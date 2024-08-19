@@ -51,24 +51,24 @@ class AudioRender(
         val filePathList = audioList.map { it.filePath }
 
         // 前回から削除された素材はデコード中ならキャンセルさせ、PCM ファイルも消す
-        audioDecodeManager
-            .addedDecoderFilePathList
-            .forEach { oldItem ->
-                // 前回から削除された素材を消す
-                if (oldItem !in filePathList) {
-                    audioDecodeManager.cancelDecodeAndDeleteFile(oldItem)
-                }
-            }
+        // TODO 再実装
+        // audioDecodeManager
+        //     .addedDecoderFilePathList
+        //     .forEach { oldItem ->
+        //         // 前回から削除された素材を消す
+        //         if (oldItem !in filePathList) {
+        //             audioDecodeManager.cancelDecodeAndDeleteFile(oldItem)
+        //         }
+        //     }
 
         // デコーダーに入れてデコードさせる
         audioRenderItem
             .filterIsInstance<RenderData.AudioItem.Audio>()
             .forEach { audioItem ->
-                val id = audioItem.id
                 val filePath = audioItem.filePath
                 // 前回からの追加分の場合は追加
-                if (!audioDecodeManager.hasDecode(filePath)) {
-                    audioDecodeManager.addDecode(filePath, "$DECODE_PCM_FILE_PREFIX$id")
+                if (!audioDecodeManager.hasDecodedOrProgressDecoding(filePath)) {
+                    audioDecodeManager.addDecode(filePath)
                 }
             }
 
@@ -148,10 +148,6 @@ class AudioRender(
         outPcmFile.delete()
         outputDecodePcmFolder.deleteRecursively()
         tempFolder.deleteRecursively()
-    }
-
-    companion object {
-        private const val DECODE_PCM_FILE_PREFIX = "pcm_file_"
     }
 
 }

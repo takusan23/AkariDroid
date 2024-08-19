@@ -9,7 +9,7 @@ import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
 import io.github.takusan23.akaricore.audio.AudioSonicProcessor
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.RenderData
-import kotlinx.coroutines.CancellationException
+import io.github.takusan23.akaridroid.tool.FileHashTool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,12 +22,12 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
-import kotlin.random.Random
 
 /**
  * [AudioRender]から PCM デコード関連のコードがここにある。
  * デコード開始、終了、デコード済み一覧等。
  * 複数の音声ファイルをそれぞれ PCM にデコードするやつ。
+ * できる限り音声ファイルのデコードを避けるため、ファイルのハッシュ値を PDM のファイル名にして、デコード前にデコード済みか判断します。
  *
  * [RenderData.AudioItem]ではなく、[RenderData.FilePath]をキーにしているのは同じファイルの[RenderData.AudioItem]ならスキップさせるため
  *
@@ -47,16 +47,23 @@ class AudioDecodeManager(
     /** デコーダーが枯渇しないように、並列実行数を制限するセマフォ */
     private val semaphore = Semaphore(permits = MAX_DECODE_CONCURRENCY)
 
-    /** デコード中、デコード済みのファイルの配列[AudioDecodeItem] */
-    private var decodeItemList = listOf<AudioDecodeItem>()
+    /** デコード中の[AudioDecodeItem]配列。キャンセルで使う */
+    private var progressDecodeItemList = listOf<AudioDecodeItem>()
 
-    /** 追加済みの[RenderData.FilePath] */
-    val addedDecoderFilePathList: List<RenderData.FilePath>
-        get() = decodeItemList.map { it.filePath }
+    /** [createTempFile]で重複しないように */
+    private var uniqueCount = 0
 
-    /** [addDecode]で追加済みかどうかを返す */
-    fun hasDecode(filePath: RenderData.FilePath): Boolean {
-        return filePath in addedDecoderFilePathList
+    /**
+     * 既にデコードが完了しているか、[addDecode]でデコードが進行中の場合は true
+     *
+     * @param filePath Uri か File
+     */
+    suspend fun hasDecodedOrProgressDecoding(filePath: RenderData.FilePath): Boolean {
+        return when {
+            createPcmFile(filePath).exists() -> true // 既にあれば
+            getProgressDecodeItemOrNull(filePath)?.decodeJob?.isActive == true -> true // 進行中であれば
+            else -> false
+        }
     }
 
     /**
@@ -64,33 +71,42 @@ class AudioDecodeManager(
      * コルーチンをキャンセルしても、デコード処理は別のコルーチンスコープなのでキャンセルされません。
      *
      * @param filePath 音声ファイル
-     * @param outputFileName デコードした音声ファイル PCM の名前
      */
-    fun addDecode(filePath: RenderData.FilePath, outputFileName: String) {
-        val outputDecodePcmFile = outputDecodePcmFolder.resolve(outputFileName)
+    fun addDecode(filePath: RenderData.FilePath) {
         // 非同期でデコードさせる
         val decodeJob = decodeScope.launch {
             // 並列数を制限する
             semaphore.withPermit {
-                decode(filePath, outputDecodePcmFile)
+                try {
+                    // デコード
+                    decode(filePath)
+                } finally {
+                    // デコード中から削除する
+                    val currentItem = getProgressDecodeItemOrNull(filePath)
+                    if (currentItem != null) {
+                        progressDecodeItemList = progressDecodeItemList - currentItem
+                    }
+                }
             }
         }
         // 追加する
-        decodeItemList = decodeItemList + AudioDecodeItem(filePath, outputDecodePcmFile, decodeJob)
+        progressDecodeItemList = progressDecodeItemList + AudioDecodeItem(filePath, decodeJob)
     }
 
     /**
-     * デコード中ならキャンセルして、ファイルも消す
+     * デコード済みならファイルを消す。
+     * デコード中ならキャンセルして、ファイルも消す。
      *
      * @param filePath 音声ファイル
      */
     suspend fun cancelDecodeAndDeleteFile(filePath: RenderData.FilePath) {
-        // なければ return
-        val exitsItem = getDecodeItemOrNull(filePath) ?: return
+        // デコードしたファイルを消す
+        createPcmFile(filePath).delete()
+        // デコード中ならキャンセル
+        val exitsItem = getProgressDecodeItemOrNull(filePath) ?: return
         // キャンセルしてデコードしたファイルも消す
         exitsItem.decodeJob.cancelAndJoin()
-        exitsItem.outputDecodePcmFile.delete()
-        decodeItemList = decodeItemList - exitsItem
+        progressDecodeItemList = progressDecodeItemList - exitsItem
     }
 
     /**
@@ -98,22 +114,18 @@ class AudioDecodeManager(
      * [addDecode]を呼び出した後にこれで待つ
      */
     suspend fun awaitAllDecode() {
-        decodeItemList.map { it.decodeJob }.joinAll()
+        progressDecodeItemList.map { it.decodeJob }.joinAll()
     }
 
     /**
-     * デコード済みのファイルを取得する
+     * デコード済みのファイルを取得する。デコード済みならすぐ返す。
      *
      * @param filePath 音声ファイル
      * @return デコード済みならファイル、ない場合、デコード終わってない場合は null
      */
-    fun getDecodedPcmFile(filePath: RenderData.FilePath): File? {
-        val decodeItem = getDecodeItemOrNull(filePath) ?: return null
-        return if (decodeItem.decodeJob.isCompleted) {
-            decodeItem.outputDecodePcmFile
-        } else {
-            null
-        }
+    suspend fun getDecodedPcmFile(filePath: RenderData.FilePath): File? {
+        // デコードが完了するまで createNewFile しないため
+        return createPcmFile(filePath).takeIf { it.exists() }
     }
 
     /**
@@ -126,19 +138,32 @@ class AudioDecodeManager(
         // outputDecodePcmFolder.delete()
     }
 
-    /** [filePath]から[AudioDecodeItem]を探す */
-    private fun getDecodeItemOrNull(filePath: RenderData.FilePath) = decodeItemList.firstOrNull { it.filePath == filePath }
+    /**
+     * デコード結果を保存する[File]を返す。ファイル名がハッシュになります。
+     * [File.createNewFile]はデコードが終わるまで作らないでください。[File.exists]でデコード済み判定をするので。
+     *
+     * @param filePath Uri か File
+     * @return ファイル
+     */
+    private suspend fun createPcmFile(filePath: RenderData.FilePath): File = withContext(Dispatchers.IO) {
+        val fileHash = FileHashTool.calcMd5(context, filePath)
+        outputDecodePcmFolder.resolve("$PREFIX_DECODE_PCM_FILE$fileHash")
+    }
+
+    /**
+     * [filePath]からデコード中の[AudioDecodeItem]を探す
+     *
+     * @param filePath デコード中ファイルの[RenderData.FilePath]
+     * @return デコード中の[AudioDecodeItem]
+     */
+    private fun getProgressDecodeItemOrNull(filePath: RenderData.FilePath): AudioDecodeItem? = progressDecodeItemList.firstOrNull { it.filePath == filePath }
 
     /**
      * デコードする
      *
      * @param filePath ファイルパス
-     * @param outputDecodePcmFile デコードした PCM ファイル
      */
-    private suspend fun decode(
-        filePath: RenderData.FilePath,
-        outputDecodePcmFile: File
-    ) {
+    private suspend fun decode(filePath: RenderData.FilePath) {
         val decodeFile = createTempFile(AUDIO_DECODE_FILE)
         val reSamplingFile = createTempFile(AUDIO_FIX_SAMPLING)
         val monoToStereoFile = createTempFile(AUDIO_FIX_MONO_TO_STEREO)
@@ -193,10 +218,10 @@ class AudioDecodeManager(
                 }
 
             // ファイル名直して終了
-            fixFile.renameTo(outputDecodePcmFile)
-        } catch (e: CancellationException) {
-            // キャンセル時
-            // delete で削除してしまう
+            val outputDecodeFile = createPcmFile(filePath).apply { createNewFile() }
+            fixFile.renameTo(outputDecodeFile)
+        } finally {
+            // デコードが終わったら消す
             withContext(NonCancellable) {
                 decodeFile.delete()
                 reSamplingFile.delete()
@@ -207,19 +232,17 @@ class AudioDecodeManager(
 
     /** 一時的なファイルを作る */
     private fun createTempFile(fileName: String): File = tempFolder
-        .resolve("${fileName}_${Random.nextInt()}") // TODO もっといい重複しない方法
+        .resolve("${fileName}_${uniqueCount++}")
         .apply { createNewFile() }
 
     /**
-     * デコードする、した音声のアイテム
+     * デコード中のアイテム
      *
      * @param filePath 元データのパス
-     * @param outputDecodePcmFile デコードした音声 PCM の保存先
      * @param decodeJob 非同期で処理されているデコード処理の[Job]。キャンセルとか待機とかで使う。
      */
     private data class AudioDecodeItem(
         val filePath: RenderData.FilePath,
-        val outputDecodePcmFile: File,
         val decodeJob: Job
     )
 
@@ -227,6 +250,7 @@ class AudioDecodeManager(
         private const val AUDIO_DECODE_FILE = "audio_decode_file"
         private const val AUDIO_FIX_SAMPLING = "audio_fix_sampling"
         private const val AUDIO_FIX_MONO_TO_STEREO = "audio_fix_mono_to_stereo"
+        private const val PREFIX_DECODE_PCM_FILE = "pcm_file_"
 
         /** 音声デコードの並列上限。大きすぎるとデコーダーが枯渇してクラッシュする。少なすぎるとなかなか終わらない。 */
         private const val MAX_DECODE_CONCURRENCY = 4 // TODO 適当すぎる、ちゃんと調べる
