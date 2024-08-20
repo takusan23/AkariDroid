@@ -131,11 +131,9 @@ class AudioDecodeManager(
     /**
      * 破棄する。
      * [outputDecodePcmFolder]は別途消してください（プレビューと動画書き出しで使い回す？）。
-     * TODO 動画書き出し時に PCM ファイル使い回す？
      */
     fun destroy() {
         decodeScope.cancel()
-        // outputDecodePcmFolder.delete()
     }
 
     /**

@@ -146,7 +146,7 @@ class AudioRender(
         audioItemRenderList.forEach { it.destroy() }
 
         outPcmFile.delete()
-        outputDecodePcmFolder.deleteRecursively()
+        // outputDecodePcmFolder.deleteRecursively() TODO 動画書き出し時に PCM ファイル使い回す
         tempFolder.deleteRecursively()
     }
 
