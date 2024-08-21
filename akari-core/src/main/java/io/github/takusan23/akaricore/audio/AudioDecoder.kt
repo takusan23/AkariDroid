@@ -44,10 +44,11 @@ internal class AudioDecoder {
         onOutputBufferAvailable: (ByteArray) -> Unit,
     ) = withContext(Dispatchers.Default) {
         val bufferInfo = MediaCodec.BufferInfo()
+        var isRunning = isActive
         mediaCodec!!.start()
 
         try {
-            while (isActive) {
+            while (isRunning) {
                 // もし -1 が返ってくれば configure() が間違ってる
                 val inputBufferId = mediaCodec!!.dequeueInputBuffer(TIMEOUT_US)
                 if (inputBufferId >= 0) {
@@ -61,7 +62,7 @@ internal class AudioDecoder {
                         // データなくなった場合は終了フラグを立てる
                         mediaCodec!!.queueInputBuffer(inputBufferId, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                         // おわり
-                        break
+                        isRunning = false
                     }
                 }
                 // 出力

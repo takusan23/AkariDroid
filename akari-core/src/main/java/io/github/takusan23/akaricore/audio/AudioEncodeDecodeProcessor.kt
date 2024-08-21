@@ -40,8 +40,9 @@ object AudioEncodeDecodeProcessor {
             audioDecoder.startAudioDecode(
                 readSampleData = { byteBuffer ->
                     val size = mediaExtractor.readSampleData(byteBuffer, 0)
+                    val sampleTime = mediaExtractor.sampleTime
                     mediaExtractor.advance()
-                    return@startAudioDecode size to mediaExtractor.sampleTime
+                    return@startAudioDecode size to sampleTime
                 },
                 onOutputBufferAvailable = { bytes ->
                     outputStream.write(bytes)

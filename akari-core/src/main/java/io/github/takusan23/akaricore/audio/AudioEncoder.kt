@@ -57,10 +57,12 @@ internal class AudioEncoder {
         onOutputFormatAvailable: suspend (MediaFormat) -> Unit,
     ) = withContext(Dispatchers.Default) {
         val bufferInfo = MediaCodec.BufferInfo()
+        // TODO エンコードも最後途切れている可能性がある。fun test_モノラル音声をステレオ音声にできる() 参照。MediaCodec 非同期にしたい。
+        var isRunning = isActive
         mediaCodec!!.start()
 
         try {
-            while (isActive) {
+            while (isRunning) {
                 // もし -1 が返ってくれば configure() が間違ってる
                 val inputBufferId = mediaCodec!!.dequeueInputBuffer(TIMEOUT_US)
                 if (inputBufferId >= 0) {
@@ -77,7 +79,7 @@ internal class AudioEncoder {
                         mediaCodec!!.queueInputBuffer(inputBufferId, 0, readByteSize, System.nanoTime() / 1000, 0)
                     } else {
                         // もうない！
-                        break
+                        isRunning = false
                     }
                 }
                 // 出力
