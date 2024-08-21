@@ -23,6 +23,9 @@ object AkariCoreEncoder {
     private const val AUDIO_TRACK_FILE_NAME = "audio_track"
     private const val RESULT_FILE_NAME_PREFIX = "AkariDroid_Result_"
 
+    /** プレビューで作った PCM は使わない。プレビュー準備中の可能性があるため */
+    private const val ENCODE_OUT_PCM_FILE_NAME = "encode_outpcm_file"
+
     /** エンコードの進捗 */
     sealed interface EncodeStatus {
 
@@ -67,9 +70,11 @@ object AkariCoreEncoder {
             context = context
         )
         // 音声トラック生成器
+        // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。
+        val outPcmFile = projectFolder.resolve(ENCODE_OUT_PCM_FILE_NAME)
         val audioRender = AudioRender(
             context = context,
-            outPcmFile = projectFolder.resolve(VideoEditorPreviewPlayer.OUT_PCM_FILE_NAME),
+            outPcmFile = outPcmFile,
             outputDecodePcmFolder = projectFolder.resolve(VideoEditorPreviewPlayer.DECODE_PCM_FOLDER_NAME).apply { mkdir() },
             tempFolder = projectFolder.resolve(VideoEditorPreviewPlayer.TEMP_FOLDER_NAME).apply { mkdir() }
         )
@@ -161,6 +166,7 @@ object AkariCoreEncoder {
             videoTrackFile.delete()
             audioTrackFile.delete()
             resultVideoFile.delete()
+            outPcmFile.delete()
             // リソース開放
             canvasRender.destroy()
             audioRender.destroy()
