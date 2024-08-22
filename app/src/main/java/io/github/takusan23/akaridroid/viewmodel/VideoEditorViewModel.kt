@@ -44,8 +44,16 @@ import java.io.File
 import kotlin.math.max
 import kotlin.random.Random
 
-/** [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel */
-class VideoEditorViewModel(private val application: Application) : AndroidViewModel(application) {
+/**
+ * [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel
+ *
+ * @param projectName プロジェクト名
+ */
+class VideoEditorViewModel(
+    private val application: Application,
+    projectName: String
+) : AndroidViewModel(application) {
+
     private val context: Context
         get() = application.applicationContext
 
@@ -82,7 +90,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
     )
 
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
-    val projectFolder = ProjectFolderManager.getProjectFolder(context)
+    val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
@@ -119,7 +127,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             // 読み取る
             // 多分今後のアップデートで互換性が崩壊するので、try-catch する
             val readRenderData = runCatching {
-                ProjectFolderManager.readRenderData(context)
+                ProjectFolderManager.readRenderData(context, projectName)
             }.getOrNull() ?: renderData.value
 
             /** ファイルが有効かどうか。もし存在しない場合は false。
@@ -161,7 +169,7 @@ class VideoEditorViewModel(private val application: Application) : AndroidViewMo
             // クラッシュ対策
             launch {
                 renderData.collectLatest { renderData ->
-                    ProjectFolderManager.writeRenderData(context, renderData)
+                    ProjectFolderManager.writeRenderData(context, renderData, projectName)
                 }
             }
 

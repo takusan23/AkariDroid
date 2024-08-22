@@ -15,9 +15,16 @@ fun AkariDroidMainScreen() {
     // 画面遷移
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = NavigationPaths.VideoEditor.path) {
-        composable(NavigationPaths.VideoEditor.path) {
+    NavHost(navController = navController, startDestination = NavigationPaths.ProjectList.path) {
+        composable(NavigationPaths.ProjectList.path) {
+            ProjectListScreen(
+                onOpen = { projectName -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}") }
+            )
+        }
+        composable("${NavigationPaths.VideoEditor.path}/{projectName}") { backStackEntry ->
+            val projectName = backStackEntry.arguments?.getString("projectName")!!
             VideoEditorScreen(
+                projectName = projectName,
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
             )
         }
@@ -54,7 +61,10 @@ fun AkariDroidMainScreen() {
 /** 画面遷移先 */
 enum class NavigationPaths(val path: String) {
 
-    /** 動画編集画面 */
+    /** プロジェクト一覧画面 */
+    ProjectList("project_list"),
+
+    /** 動画編集画面。パラメーターを渡すと editor/{projectName} です。 */
     VideoEditor("editor"),
 
     /** 設定画面 */

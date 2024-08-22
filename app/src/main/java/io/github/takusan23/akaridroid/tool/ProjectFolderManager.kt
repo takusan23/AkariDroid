@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.data.ProjectItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -12,10 +13,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
+/**
+ * プロジェクト関連
+ * プロジェクト名がフォルダ名になる
+ */
 object ProjectFolderManager {
-
-    /** プロジェクト保存先、複数プロジェクトが出来るようになればこの辺も分ける */
-    private const val PROJECT_FOLDER_NAME = "akaridroid_project_20240216"
 
     /** [RenderData]を JSON にしたときのファイル名 */
     private const val RENDER_DATA_JSON_FILE_NAME = "render_data.json"
@@ -36,10 +38,11 @@ object ProjectFolderManager {
      * デコードした音声とか、エンコード中の一次保存先のとかに使われる。
      *
      * @param context [Context]
+     * @param name プロジェクト名
      */
     fun getProjectFolder(
         context: Context,
-        name: String = PROJECT_FOLDER_NAME
+        name: String
     ): File = context.getExternalFilesDir(null)!!.resolve(name).apply { mkdir() }
 
     /**
@@ -50,7 +53,7 @@ object ProjectFolderManager {
      */
     suspend fun readRenderData(
         context: Context,
-        name: String = PROJECT_FOLDER_NAME
+        name: String
     ): RenderData? {
         // ないなら null
         val jsonFile = getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME)
@@ -74,7 +77,7 @@ object ProjectFolderManager {
     suspend fun writeRenderData(
         context: Context,
         renderData: RenderData,
-        name: String = PROJECT_FOLDER_NAME
+        name: String
     ) {
         val jsonFile = getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME)
 
@@ -87,6 +90,27 @@ object ProjectFolderManager {
     }
 
     /**
+     * プロジェクト一覧を取得する
+     *
+     * @param context [Context]
+     * @return [ProjectItem]配列
+     */
+    suspend fun loadProjectList(context: Context): List<ProjectItem> = withContext(Dispatchers.IO) {
+        // フォルダ内に render_data.json があれば
+        return@withContext context.getExternalFilesDir(null)
+            ?.listFiles()
+            ?.mapNotNull { file ->
+                val projectName = file.name
+                val renderData = readRenderData(context, projectName) ?: return@mapNotNull null
+                ProjectItem(
+                    projectName = projectName,
+                    lastModifiedDate = file.lastModified(),
+                    videoDurationMs = renderData.durationMs
+                )
+            } ?: emptyList()
+    }
+
+    /**
      * TODO 実験的、他の端末へ持ち運べる何かをちゃんと作る
      * ポータブルプロジェクトを作る。
      * 持ち出せるよう、端末依存の[RenderData.FilePath.Uri]を全て別のファイルにコピーし[RenderData.FilePath.File]にパスを書き直す。
@@ -94,7 +118,7 @@ object ProjectFolderManager {
      */
     suspend fun exportPortableProject(
         context: Context,
-        name: String = PROJECT_FOLDER_NAME
+        name: String
     ) = withContext(Dispatchers.IO) {
         val renderData = readRenderData(context, name) ?: return@withContext
         val exportFolder = context.getExternalFilesDir(null)!!.resolve(EXPORT_PORTABLE_PROJECT_FOLDER_NAME).apply { mkdir() }

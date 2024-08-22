@@ -206,4 +206,5 @@
     <string name="video_edit_bottomsheet_shader_compile_check_ok">コンパイルに成功しました。利用できます。</string>
     <string name="video_edit_bottomsheet_shader_compile_check_fail_syntax_error">コンパイルに失敗しました。文法間違いがないか探してみてください。</string>
     <string name="video_edit_bottomsheet_shader_compile_check_fail">コンパイルに失敗しました。文法間違いがないか探してみてください。</string>
+    <string name="project_list">プロジェクト一覧</string>
 </resources>
