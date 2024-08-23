@@ -209,5 +209,15 @@
     <string name="project_list">プロジェクト一覧</string>
     <string name="project_list_create_project">新規作成</string>
     <string name="project_list_import_project">取り込み</string>
-    <string name="project_list_create_name">プロジェクト名</string>
+    <string name="project_list_bottomsheet_create_name">プロジェクト名</string>
+    <string name="project_list_bottomsheet_create_title">新規作成</string>
+    <string name="project_list_bottomsheet_create_button">作成</string>
+    <string name="project_list_bottomsheet_menu_title">プロジェクトのメニュー</string>
+    <string name="project_list_bottomsheet_menu_delete_title">削除</string>
+    <string name="project_list_bottomsheet_menu_delete_description">プロジェクトを削除します</string>
+    <string name="project_list_bottomsheet_menu_export_title">(実験的) ポータブルプロジェクト（仮）</string>
+    <string name="project_list_bottomsheet_menu_export_description">他の端末で動画編集の続きが出来るようになります。エクスポートのために容量を消費します。</string>
+    <string name="project_list_bottomsheet_menu_delete_dialog_title">本当に削除しますか？</string>
+    <string name="project_list_bottomsheet_menu_delete_dialog_confirm">削除</string>
+    <string name="project_list_bottomsheet_menu_delete_dialog_cancel">キャンセル</string>
 </resources>

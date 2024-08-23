@@ -55,7 +55,9 @@ fun ProjectListScreen(
                     viewModel.createProject(name)
                     onOpen(name)
                 }
-            }
+            },
+            onDelete = { name -> viewModel.deleteProject(name) },
+            onExport = { name -> viewModel.exportPortableProject(name) }
         )
     }
 
@@ -81,7 +83,8 @@ fun ProjectListScreen(
             items(projectList.value) { item ->
                 ProjectListItem(
                     projectItem = item,
-                    onClick = { onOpen(it.projectName) }
+                    onClick = { onOpen(it.projectName) },
+                    onMenuClick = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.ProjectMenu(it.projectName) }
                 )
                 HorizontalDivider()
             }

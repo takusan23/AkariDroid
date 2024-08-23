@@ -5,4 +5,7 @@ sealed interface ProjectListBottomSheetRequestData {
 
     /** 新規作成 */
     data object CreateNewProject : ProjectListBottomSheetRequestData
+
+    /** メニューを開く */
+    data class ProjectMenu(val name: String) : ProjectListBottomSheetRequestData
 }

@@ -37,7 +37,7 @@ fun CreateNewProjectBottomSheet(onCreate: (String) -> Unit) {
     ) {
 
         Text(
-            text = stringResource(id = R.string.project_list_create_project),
+            text = stringResource(id = R.string.project_list_bottomsheet_create_title),
             fontSize = 24.sp
         )
 
@@ -45,7 +45,7 @@ fun CreateNewProjectBottomSheet(onCreate: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             value = name.value,
             onValueChange = { name.value = it },
-            label = { Text(text = stringResource(id = R.string.project_list_create_name)) },
+            label = { Text(text = stringResource(id = R.string.project_list_bottomsheet_create_name)) },
             singleLine = true
         )
 
@@ -55,7 +55,7 @@ fun CreateNewProjectBottomSheet(onCreate: (String) -> Unit) {
         ) {
             Icon(painter = painterResource(id = R.drawable.ic_outlined_add_24px), contentDescription = null)
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-            Text(text = stringResource(id = R.string.project_list_create_project))
+            Text(text = stringResource(id = R.string.project_list_bottomsheet_create_button))
         }
     }
 }
