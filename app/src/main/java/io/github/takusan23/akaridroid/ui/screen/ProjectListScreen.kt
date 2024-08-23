@@ -11,15 +11,21 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.component.ProjectListItem
-import io.github.takusan23.akaridroid.ui.component.ProjectListMenu
+import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRequestData
+import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRouter
+import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListItem
+import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListMenu
 import io.github.takusan23.akaridroid.viewmodel.ProjectListViewModel
+import kotlinx.coroutines.launch
 
 /**
  * プロジェクト一覧画面
@@ -33,14 +39,31 @@ fun ProjectListScreen(
     viewModel: ProjectListViewModel = viewModel(),
     onOpen: (String) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val projectList = viewModel.projectListFlow.collectAsState()
+
+    val bottomSheetRequestData = remember { mutableStateOf<ProjectListBottomSheetRequestData?>(null) }
+
+    // ボトムシート
+    if (bottomSheetRequestData.value != null) {
+        ProjectListBottomSheetRouter(
+            requestData = bottomSheetRequestData.value!!,
+            onDismiss = { bottomSheetRequestData.value = null },
+            onCreate = { name ->
+                scope.launch {
+                    viewModel.createProject(name)
+                    onOpen(name)
+                }
+            }
+        )
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(id = R.string.project_list)) },
+                title = { Text(text = stringResource(id = R.string.app_name)) },
                 scrollBehavior = scrollBehavior
             )
         }
@@ -50,7 +73,7 @@ fun ProjectListScreen(
             item {
                 ProjectListMenu(
                     modifier = Modifier.padding(10.dp),
-                    onCreate = { /* TODO 押した時 */ },
+                    onCreate = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.CreateNewProject },
                     onImport = { /* TODO 押した時 */ }
                 )
             }

@@ -209,4 +209,5 @@
     <string name="project_list">プロジェクト一覧</string>
     <string name="project_list_create_project">新規作成</string>
     <string name="project_list_import_project">取り込み</string>
+    <string name="project_list_create_name">プロジェクト名</string>
 </resources>

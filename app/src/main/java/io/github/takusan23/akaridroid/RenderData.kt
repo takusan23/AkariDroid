@@ -15,10 +15,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RenderData(
     val version: Int = VERSION,
-    val durationMs: Long,
-    val videoSize: Size,
-    val canvasRenderItem: List<CanvasItem>,
-    val audioRenderItem: List<AudioItem>
+    val durationMs: Long = 60_000L,
+    val videoSize: Size = Size(1280, 720),
+    val canvasRenderItem: List<CanvasItem> = emptyList(),
+    val audioRenderItem: List<AudioItem> = emptyList()
 ) {
 
     /** 映像、音声で共通している */

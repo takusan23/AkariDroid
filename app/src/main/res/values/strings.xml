@@ -208,4 +208,5 @@ Please note that this is not the time for the video.</string>
     <string name="project_list">Project list</string>
     <string name="project_list_create_project">Create new</string>
     <string name="project_list_import_project">Import</string>
+    <string name="project_list_create_name">Project name</string>
 </resources>

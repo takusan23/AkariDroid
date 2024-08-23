@@ -23,7 +23,45 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
 
     init {
         viewModelScope.launch {
-            _projectListFlow.value = ProjectFolderManager.loadProjectList(context)
+            loadProjectList()
+        }
+    }
+
+    /** プロジェクト一覧を取得する */
+    private suspend fun loadProjectList() {
+        _projectListFlow.value = ProjectFolderManager.loadProjectList(context)
+    }
+
+    /**
+     * プロジェクトを作成する
+     *
+     * @param name 名前
+     * @return 名前。[io.github.takusan23.akaridroid.RenderData]の JSON が生成されているはず
+     */
+    suspend fun createProject(name: String): String {
+        ProjectFolderManager.createProject(context, name)
+        loadProjectList()
+        return name
+    }
+
+    /**
+     * プロジェクトを削除する
+     *
+     * @param name 名前
+     */
+    fun deleteProject(name: String) {
+        viewModelScope.launch {
+            ProjectFolderManager.deleteProject(context, name)
+            loadProjectList()
+        }
+    }
+
+    /**
+     * プロジェクトを持ち出す
+     */
+    fun exportPortableProject(name: String) {
+        viewModelScope.launch {
+
         }
     }
 

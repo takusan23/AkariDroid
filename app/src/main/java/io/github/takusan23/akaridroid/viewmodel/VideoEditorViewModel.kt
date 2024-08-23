@@ -57,14 +57,7 @@ class VideoEditorViewModel(
     private val context: Context
         get() = application.applicationContext
 
-    private val _renderData = MutableStateFlow(
-        RenderData(
-            durationMs = 60_000L,
-            videoSize = RenderData.Size(1280, 720),
-            canvasRenderItem = emptyList(),
-            audioRenderItem = emptyList()
-        )
-    )
+    private val _renderData = MutableStateFlow(RenderData())
     private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
     private val _timeLineData = MutableStateFlow(
         TimeLineData(

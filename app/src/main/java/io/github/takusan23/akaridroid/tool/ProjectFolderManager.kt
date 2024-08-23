@@ -90,6 +90,45 @@ object ProjectFolderManager {
     }
 
     /**
+     * プロジェクトを作成する。
+     * [RenderData]を作成する。
+     */
+    suspend fun createProject(context: Context, name: String) {
+        // 重複チェック TODO 重複していればエラー
+        if (getProjectFolder(context, name).exists()) return
+
+        val defaultRenderData = RenderData()
+        writeRenderData(context, defaultRenderData, name)
+    }
+
+    /** プロジェクトを削除する */
+    suspend fun deleteProject(context: Context, name: String) {
+        // Uri へのアクセスを破棄する。takePermission は上限があるので
+        val renderData = readRenderData(context, name)
+        renderData?.audioRenderItem?.mapNotNull {
+            when (it) {
+                is RenderData.AudioItem.Audio -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
+            }
+        }?.forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+        renderData?.canvasRenderItem?.mapNotNull {
+            when (it) {
+                is RenderData.CanvasItem.Effect,
+                is RenderData.CanvasItem.Shader,
+                is RenderData.CanvasItem.Shape,
+                is RenderData.CanvasItem.SwitchAnimation,
+                is RenderData.CanvasItem.Text -> null
+
+                is RenderData.CanvasItem.Image -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
+                is RenderData.CanvasItem.Video -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
+            }
+        }?.forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+
+        // 再帰的に消す
+        val projectFolder = getProjectFolder(context, name)
+        projectFolder.deleteRecursively()
+    }
+
+    /**
      * プロジェクト一覧を取得する
      *
      * @param context [Context]
