@@ -67,19 +67,36 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
      *
      * @param name 名前
      * @param portableName zip ファイル名
-     * @param uri zip ファイルの保存先
+     * @param zipUri zip ファイルの保存先
      */
-    fun exportPortableProject(name: String, portableName: String, uri: Uri) {
+    fun exportPortableProject(name: String, portableName: String, zipUri: Uri) {
         viewModelScope.launch {
             // TODO 下位互換性
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ProjectFolderManager.exportPortableProject(context, name, portableName, uri)
+                ProjectFolderManager.exportPortableProject(context, name, portableName, zipUri)
 
                 // TODO Snackbar
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, context.getString(R.string.project_list_bottomsheet_menu_export_successful), Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+
+    /**
+     * プロジェクトを取り込む
+     *
+     * @param zipUri 選択した zip ファイルの[Uri]
+     */
+    fun importPortableProject(zipUri: Uri) {
+        viewModelScope.launch {
+            ProjectFolderManager.importPortableProject(context, zipUri)
+
+            // TODO Snackbar
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, context.getString(R.string.project_list_bottomsheet_menu_import_successful), Toast.LENGTH_SHORT).show()
+            }
+            loadProjectList()
         }
     }
 

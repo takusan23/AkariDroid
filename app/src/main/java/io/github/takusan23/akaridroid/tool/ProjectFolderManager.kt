@@ -8,13 +8,13 @@ import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.pathString
 
@@ -170,85 +170,120 @@ object ProjectFolderManager {
     ) = withContext(Dispatchers.IO) {
         val renderData = readRenderData(context, name) ?: return@withContext
         // 拡張子 zip を消す
-        val portableNameWithoutExtension = portableName.split(".").first()
+        val portableNameWithoutExtension = portableName.fileNameWithoutExtension
         val portableProjectPath = context.getExternalFilesDir(null)!!.resolve(portableNameWithoutExtension).toPath()
 
         // 保存先 zip に書き込む
         ZipOutputStream(context.contentResolver.openOutputStream(zipUri)).use { zipOutputStream ->
 
             // 並列でする
-            val deferredUpdatedAudioRenderItem = renderData.audioRenderItem.map { audioItem ->
-                async {
-                    when (audioItem) {
-                        is RenderData.AudioItem.Audio -> {
-                            // Uri なら指定フォルダにコピーする
-                            if (audioItem.filePath is RenderData.FilePath.Uri) {
-                                val uri = audioItem.filePath.uriPath.toUri()
-                                val fileName = UriTool.getFileName(context, uri)!!
-                                // zip にいれる
-                                zipOutputStream.putNextEntry(ZipEntry(fileName))
-                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
-                                // 展開後のパスを想定する
-                                audioItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
-                            } else {
-                                audioItem
-                            }
-                        }
+            val audioItemList = renderData.audioRenderItem.map { audioItem ->
+                when (audioItem) {
+                    is RenderData.AudioItem.Audio -> {
+                        // 展開後のパスを想定する
+                        val fileName = zipOutputStream.createZipEntryAndCopy(context, audioItem.filePath)
+                        audioItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
                     }
                 }
             }
 
-            val deferredUpdatedCanvasRenderItem = renderData.canvasRenderItem.map { canvasItem ->
-                async {
-                    when (canvasItem) {
-                        is RenderData.CanvasItem.Effect,
-                        is RenderData.CanvasItem.Shader,
-                        is RenderData.CanvasItem.Shape,
-                        is RenderData.CanvasItem.SwitchAnimation,
-                        is RenderData.CanvasItem.Text -> canvasItem
+            val canvasItemList = renderData.canvasRenderItem.map { canvasItem ->
+                when (canvasItem) {
+                    is RenderData.CanvasItem.Effect,
+                    is RenderData.CanvasItem.Shader,
+                    is RenderData.CanvasItem.Shape,
+                    is RenderData.CanvasItem.SwitchAnimation,
+                    is RenderData.CanvasItem.Text -> canvasItem
 
-                        is RenderData.CanvasItem.Image -> {
-                            if (canvasItem.filePath is RenderData.FilePath.Uri) {
-                                val uri = canvasItem.filePath.uriPath.toUri()
-                                val fileName = UriTool.getFileName(context, uri)!!
-                                // zip にいれる
-                                zipOutputStream.putNextEntry(ZipEntry(fileName))
-                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
-                                // 展開後のパスを想定する
-                                canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
-                            } else {
-                                canvasItem
-                            }
-                        }
+                    is RenderData.CanvasItem.Image -> {
+                        // 展開後のパスを想定する
+                        val fileName = zipOutputStream.createZipEntryAndCopy(context, canvasItem.filePath)
+                        canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
+                    }
 
-                        is RenderData.CanvasItem.Video -> {
-                            if (canvasItem.filePath is RenderData.FilePath.Uri) {
-                                val uri = canvasItem.filePath.uriPath.toUri()
-                                val fileName = UriTool.getFileName(context, uri)!!
-                                // zip にいれる
-                                zipOutputStream.putNextEntry(ZipEntry(fileName))
-                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
-                                // 展開後のパスを想定する
-                                canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
-                            } else {
-                                canvasItem
-                            }
-                        }
+                    is RenderData.CanvasItem.Video -> {
+                        // 展開後のパスを想定する
+                        val fileName = zipOutputStream.createZipEntryAndCopy(context, canvasItem.filePath)
+                        canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
                     }
                 }
             }
 
             // 待ち合わせして更新
             val portableRenderData = renderData.copy(
-                audioRenderItem = deferredUpdatedAudioRenderItem.awaitAll(),
-                canvasRenderItem = deferredUpdatedCanvasRenderItem.awaitAll()
+                audioRenderItem = audioItemList,
+                canvasRenderItem = canvasItemList
             )
 
             // RenderData も zip にいれる
             val jsonString = jsonSerialization.encodeToString(portableRenderData)
             zipOutputStream.putNextEntry(ZipEntry(RENDER_DATA_JSON_FILE_NAME))
             zipOutputStream.write(jsonString.toByteArray())
+            zipOutputStream.closeEntry()
         }
     }
+
+    /**
+     * ポータブルプロジェクトを取り込む
+     *
+     * @param zipUri 選択した zip ファイルの[Uri]
+     */
+    suspend fun importPortableProject(context: Context, zipUri: Uri) = withContext(Dispatchers.IO) {
+        val zipFileName = UriTool.getFileName(context, zipUri)!!
+        // zip じゃない場合は何もしない
+        if (!zipFileName.endsWith(".zip")) return@withContext
+
+        val projectFolder = getProjectFolder(context, zipFileName.fileNameWithoutExtension)
+        // 解凍していく
+        ZipInputStream(context.contentResolver.openInputStream(zipUri)).use { zipInputStream ->
+            // 展開する
+            var currentZipEntry: ZipEntry?
+            while (isActive) {
+                // もうない場合
+                currentZipEntry = zipInputStream.nextEntry
+                if (currentZipEntry == null) break
+                // ファイルを作り取り出す
+                val copyFile = projectFolder.resolve(currentZipEntry.name).apply { createNewFile() }
+                copyFile.writeBytes(zipInputStream.readBytes())
+            }
+        }
+    }
+
+    /**
+     * [ZipOutputStream]へ[RenderData.FilePath]を追加する
+     *
+     * @param context [Context]
+     * @param filePath 追加する [RenderData.FilePath]
+     * @return ファイル名
+     */
+    private suspend fun ZipOutputStream.createZipEntryAndCopy(
+        context: Context,
+        filePath: RenderData.FilePath
+    ): String = withContext(Dispatchers.IO) {
+        println(filePath)
+        when (filePath) {
+            is RenderData.FilePath.File -> {
+                val file = File(filePath.filePath)
+                val fileName = file.name
+                putNextEntry(ZipEntry(fileName))
+                file.inputStream().use { inputStream -> write(inputStream.readBytes()) }
+                closeEntry()
+                fileName
+            }
+
+            is RenderData.FilePath.Uri -> {
+                val uri = filePath.uriPath.toUri()
+                val fileName = UriTool.getFileName(context, uri)!!
+                putNextEntry(ZipEntry(fileName))
+                context.contentResolver.openInputStream(uri)!!.use { inputStream -> write(inputStream.readBytes()) }
+                closeEntry()
+                fileName
+            }
+        }
+    }
+
+    /** 拡張子を除く */
+    private val String.fileNameWithoutExtension
+        get() = this.split(".").first()
 
 }

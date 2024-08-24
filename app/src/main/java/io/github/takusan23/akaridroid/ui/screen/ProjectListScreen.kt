@@ -76,7 +76,7 @@ fun ProjectListScreen(
                 ProjectListMenu(
                     modifier = Modifier.padding(10.dp),
                     onCreate = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.CreateNewProject },
-                    onImport = { /* TODO 押した時 */ }
+                    onImport = { uri -> viewModel.importPortableProject(uri) }
                 )
             }
 

@@ -216,9 +216,10 @@
     <string name="project_list_bottomsheet_menu_delete_title">削除</string>
     <string name="project_list_bottomsheet_menu_delete_description">プロジェクトを削除します</string>
     <string name="project_list_bottomsheet_menu_export_title">(実験的) ポータブルプロジェクト（仮）</string>
-    <string name="project_list_bottomsheet_menu_export_description">他の端末で動画編集の続きが出来るようになります。エクスポートのために容量を消費します。</string>
+    <string name="project_list_bottomsheet_menu_export_description">他の端末で動画編集の続きが出来るようになります。端末の中にある画像、動画データをコピーするため容量を消費します。</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_title">本当に削除しますか？</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_confirm">削除</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_cancel">キャンセル</string>
     <string name="project_list_bottomsheet_menu_export_successful">完了しました。取り込みボタンより読み込みができます。</string>
+    <string name="project_list_bottomsheet_menu_import_successful">取り込みが完了しました。</string>
 </resources>

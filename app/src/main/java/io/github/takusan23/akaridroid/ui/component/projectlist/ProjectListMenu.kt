@@ -1,5 +1,8 @@
 package io.github.takusan23.akaridroid.ui.component.projectlist
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -29,8 +32,14 @@ import io.github.takusan23.akaridroid.R
 fun ProjectListMenu(
     modifier: Modifier = Modifier,
     onCreate: () -> Unit,
-    onImport: () -> Unit
+    onImport: (Uri) -> Unit
 ) {
+
+    val zipFilePicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        onImport(uri)
+    }
+
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -42,7 +51,7 @@ fun ProjectListMenu(
             Text(text = stringResource(id = R.string.project_list_create_project))
         }
 
-        OutlinedButton(onClick = onImport) {
+        OutlinedButton(onClick = { zipFilePicker.launch(arrayOf("*/*")) }) {
             Icon(painter = painterResource(id = R.drawable.ic_outline_business_center_24), contentDescription = null)
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
             Text(text = stringResource(id = R.string.project_list_import_project))
