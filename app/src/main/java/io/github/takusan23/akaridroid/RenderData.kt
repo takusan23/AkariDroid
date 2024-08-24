@@ -83,7 +83,7 @@ data class RenderData(
             override val position: Position,
             override val displayTime: DisplayTime,
             override val layerIndex: Int,
-            val filePath: FilePath,
+            val filePath: FilePath, // TODO FilePath、動画、写真、音声で共通なので interface 切りたい
             val size: Size
         ) : CanvasItem
 
