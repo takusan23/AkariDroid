@@ -57,7 +57,7 @@ fun ProjectListScreen(
                 }
             },
             onDelete = { name -> viewModel.deleteProject(name) },
-            onExport = { name -> viewModel.exportPortableProject(name) }
+            onExport = { name, portableName, uri -> viewModel.exportPortableProject(name, portableName, uri) }
         )
     }
 

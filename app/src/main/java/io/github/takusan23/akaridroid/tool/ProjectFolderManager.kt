@@ -2,6 +2,8 @@ package io.github.takusan23.akaridroid.tool
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
@@ -12,6 +14,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import kotlin.io.path.pathString
 
 /**
  * プロジェクト関連
@@ -150,83 +155,100 @@ object ProjectFolderManager {
     }
 
     /**
-     * TODO 実験的、他の端末へ持ち運べる何かをちゃんと作る
+     * TODO 実験的
+     * TODO Android 7 以前のサポート
      * ポータブルプロジェクトを作る。
      * 持ち出せるよう、端末依存の[RenderData.FilePath.Uri]を全て別のファイルにコピーし[RenderData.FilePath.File]にパスを書き直す。
      * フォルダごと移動させたあと[readRenderData]で出来るはず。
      */
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun exportPortableProject(
         context: Context,
-        name: String
+        name: String,
+        portableName: String,
+        zipUri: Uri
     ) = withContext(Dispatchers.IO) {
         val renderData = readRenderData(context, name) ?: return@withContext
-        val exportFolder = context.getExternalFilesDir(null)!!.resolve(EXPORT_PORTABLE_PROJECT_FOLDER_NAME).apply { mkdir() }
-        val jsonFile = exportFolder.resolve(RENDER_DATA_JSON_FILE_NAME)
+        // 拡張子 zip を消す
+        val portableNameWithoutExtension = portableName.split(".").first()
+        val portableProjectPath = context.getExternalFilesDir(null)!!.resolve(portableNameWithoutExtension).toPath()
 
-        // 並列でする
-        val deferredUpdatedAudioRenderItem = renderData.audioRenderItem.map { audioItem ->
-            async {
-                when (audioItem) {
-                    is RenderData.AudioItem.Audio -> {
-                        // Uri なら指定フォルダにコピーする
-                        if (audioItem.filePath is RenderData.FilePath.Uri) {
-                            val copyFile = copyUriToFile(context, audioItem.filePath.uriPath.toUri(), exportFolder)
-                            audioItem.copy(filePath = RenderData.FilePath.File(copyFile.path))
-                        } else {
-                            audioItem
+        // 保存先 zip に書き込む
+        ZipOutputStream(context.contentResolver.openOutputStream(zipUri)).use { zipOutputStream ->
+
+            // 並列でする
+            val deferredUpdatedAudioRenderItem = renderData.audioRenderItem.map { audioItem ->
+                async {
+                    when (audioItem) {
+                        is RenderData.AudioItem.Audio -> {
+                            // Uri なら指定フォルダにコピーする
+                            if (audioItem.filePath is RenderData.FilePath.Uri) {
+                                val uri = audioItem.filePath.uriPath.toUri()
+                                val fileName = UriTool.getFileName(context, uri)!!
+                                // zip にいれる
+                                zipOutputStream.putNextEntry(ZipEntry(fileName))
+                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
+                                // 展開後のパスを想定する
+                                audioItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
+                            } else {
+                                audioItem
+                            }
                         }
                     }
                 }
             }
-        }
-        val deferredUpdatedCanvasRenderItem = renderData.canvasRenderItem.map { canvasItem ->
-            async {
-                when (canvasItem) {
-                    is RenderData.CanvasItem.Effect,
-                    is RenderData.CanvasItem.Shader,
-                    is RenderData.CanvasItem.Shape,
-                    is RenderData.CanvasItem.SwitchAnimation,
-                    is RenderData.CanvasItem.Text -> canvasItem
 
-                    is RenderData.CanvasItem.Image -> {
-                        if (canvasItem.filePath is RenderData.FilePath.Uri) {
-                            val copyFile = copyUriToFile(context, canvasItem.filePath.uriPath.toUri(), exportFolder)
-                            canvasItem.copy(filePath = RenderData.FilePath.File(copyFile.path))
-                        } else {
-                            canvasItem
+            val deferredUpdatedCanvasRenderItem = renderData.canvasRenderItem.map { canvasItem ->
+                async {
+                    when (canvasItem) {
+                        is RenderData.CanvasItem.Effect,
+                        is RenderData.CanvasItem.Shader,
+                        is RenderData.CanvasItem.Shape,
+                        is RenderData.CanvasItem.SwitchAnimation,
+                        is RenderData.CanvasItem.Text -> canvasItem
+
+                        is RenderData.CanvasItem.Image -> {
+                            if (canvasItem.filePath is RenderData.FilePath.Uri) {
+                                val uri = canvasItem.filePath.uriPath.toUri()
+                                val fileName = UriTool.getFileName(context, uri)!!
+                                // zip にいれる
+                                zipOutputStream.putNextEntry(ZipEntry(fileName))
+                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
+                                // 展開後のパスを想定する
+                                canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
+                            } else {
+                                canvasItem
+                            }
                         }
-                    }
 
-                    is RenderData.CanvasItem.Video -> {
-                        if (canvasItem.filePath is RenderData.FilePath.Uri) {
-                            val copyFile = copyUriToFile(context, canvasItem.filePath.uriPath.toUri(), exportFolder)
-                            canvasItem.copy(filePath = RenderData.FilePath.File(copyFile.path))
-                        } else {
-                            canvasItem
+                        is RenderData.CanvasItem.Video -> {
+                            if (canvasItem.filePath is RenderData.FilePath.Uri) {
+                                val uri = canvasItem.filePath.uriPath.toUri()
+                                val fileName = UriTool.getFileName(context, uri)!!
+                                // zip にいれる
+                                zipOutputStream.putNextEntry(ZipEntry(fileName))
+                                context.contentResolver.openInputStream(uri)!!.use { inputStream -> zipOutputStream.write(inputStream.readBytes()) }
+                                // 展開後のパスを想定する
+                                canvasItem.copy(filePath = RenderData.FilePath.File(portableProjectPath.resolve(fileName).pathString))
+                            } else {
+                                canvasItem
+                            }
                         }
                     }
                 }
             }
-        }
-        // 待ち合わせして更新
-        val portableRenderData = renderData.copy(
-            audioRenderItem = deferredUpdatedAudioRenderItem.awaitAll(),
-            canvasRenderItem = deferredUpdatedCanvasRenderItem.awaitAll()
-        )
-        val jsonString = jsonSerialization.encodeToString(portableRenderData)
-        jsonFile.writeText(jsonString)
-    }
 
-    /** Uri をコピーする TODO UriTool にいるべき */
-    private suspend fun copyUriToFile(context: Context, uri: Uri, parentFolder: File): File = withContext(Dispatchers.IO) {
-        val name = UriTool.getFileName(context, uri) ?: System.currentTimeMillis().toString()
-        val copyFile = parentFolder.resolve(name)
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            copyFile.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
+            // 待ち合わせして更新
+            val portableRenderData = renderData.copy(
+                audioRenderItem = deferredUpdatedAudioRenderItem.awaitAll(),
+                canvasRenderItem = deferredUpdatedCanvasRenderItem.awaitAll()
+            )
+
+            // RenderData も zip にいれる
+            val jsonString = jsonSerialization.encodeToString(portableRenderData)
+            zipOutputStream.putNextEntry(ZipEntry(RENDER_DATA_JSON_FILE_NAME))
+            zipOutputStream.write(jsonString.toByteArray())
         }
-        return@withContext copyFile
     }
 
 }

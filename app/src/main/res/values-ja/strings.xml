@@ -220,4 +220,5 @@
     <string name="project_list_bottomsheet_menu_delete_dialog_title">本当に削除しますか？</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_confirm">削除</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_cancel">キャンセル</string>
+    <string name="project_list_bottomsheet_menu_export_successful">完了しました。取り込みボタンより読み込みができます。</string>
 </resources>

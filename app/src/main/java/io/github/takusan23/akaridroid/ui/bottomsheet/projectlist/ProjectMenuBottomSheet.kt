@@ -1,5 +1,8 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet.projectlist
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
@@ -25,16 +28,26 @@ import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
  */
 @Composable
 fun ProjectMenuBottomSheet(
-    onDelete: () -> Unit,
-    onExport: () -> Unit
+    name: String,
+    onDelete: (String) -> Unit,
+    onExport: (name: String, portableName: String, Uri) -> Unit
 ) {
+
+    // zip ファイル名
+    val portableProjectName = "${name}_portable.zip"
 
     val isShowDeleteDialog = remember { mutableStateOf(false) }
     if (isShowDeleteDialog.value) {
         DeleteDialog(
-            onDelete = onDelete,
+            onDelete = { onDelete(name) },
             onDismiss = { isShowDeleteDialog.value = false }
         )
+    }
+
+    // application/zip 多分無理
+    val createZipFile = rememberLauncherForActivityResult(contract = ActivityResultContracts.CreateDocument("*/*")) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        onExport(name, portableProjectName, uri)
     }
 
     Column(
@@ -42,10 +55,13 @@ fun ProjectMenuBottomSheet(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
-        Text(
-            text = stringResource(id = R.string.project_list_bottomsheet_menu_title),
-            fontSize = 24.sp
-        )
+        Column {
+            Text(
+                text = name,
+                fontSize = 24.sp
+            )
+            Text(text = stringResource(id = R.string.project_list_bottomsheet_menu_title))
+        }
 
         BottomSheetMenuItem(
             title = stringResource(id = R.string.project_list_bottomsheet_menu_delete_title),
@@ -58,7 +74,10 @@ fun ProjectMenuBottomSheet(
             title = stringResource(id = R.string.project_list_bottomsheet_menu_export_title),
             description = stringResource(id = R.string.project_list_bottomsheet_menu_export_description),
             iconResId = R.drawable.ic_outline_business_center_24,
-            onClick = onExport
+            onClick = {
+                // 保存先を選んでもらう
+                createZipFile.launch(portableProjectName)
+            }
         )
     }
 }

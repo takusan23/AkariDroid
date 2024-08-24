@@ -219,4 +219,5 @@ Please note that this is not the time for the video.</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_title">Are you sure you want to delete it?</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_confirm">delete</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_cancel">cancel</string>
+    <string name="project_list_bottomsheet_menu_export_successful">Completed. You can import by clicking the Import button.</string>
 </resources>
