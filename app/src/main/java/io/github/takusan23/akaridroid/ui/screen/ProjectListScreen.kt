@@ -16,12 +16,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.R
+import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRouter
+import io.github.takusan23.akaridroid.ui.component.projectlist.EncodingListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListMenu
 import io.github.takusan23.akaridroid.viewmodel.ProjectListViewModel
@@ -40,12 +45,18 @@ fun ProjectListScreen(
     onOpen: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val projectList = viewModel.projectListFlow.collectAsState()
 
-    val bottomSheetRequestData = remember { mutableStateOf<ProjectListBottomSheetRequestData?>(null) }
+    // バックグラウンドでエンコードできるようにエンコーダーサービス
+    val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
+    // エンコード中かどうか
+    val encodeStatus = encoderService.value?.encodeStatusFlow?.collectAsStateWithLifecycle()
 
     // ボトムシート
+    val bottomSheetRequestData = remember { mutableStateOf<ProjectListBottomSheetRequestData?>(null) }
     if (bottomSheetRequestData.value != null) {
         ProjectListBottomSheetRouter(
             requestData = bottomSheetRequestData.value!!,
@@ -81,11 +92,20 @@ fun ProjectListScreen(
             }
 
             items(projectList.value) { item ->
-                ProjectListItem(
-                    projectItem = item,
-                    onClick = { onOpen(it.projectName) },
-                    onMenuClick = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.ProjectMenu(it.projectName) }
-                )
+                // エンコード用のリスト表示と分岐
+                if (encodeStatus?.value?.projectName == item.projectName) {
+                    EncodingListItem(
+                        projectItem = item,
+                        encodeStatus = encodeStatus.value!!,
+                        onCancel = { encoderService.value?.stop() }
+                    )
+                } else {
+                    ProjectListItem(
+                        projectItem = item,
+                        onClick = { onOpen(it.projectName) },
+                        onMenuClick = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.ProjectMenu(it.projectName) }
+                    )
+                }
                 HorizontalDivider()
             }
 

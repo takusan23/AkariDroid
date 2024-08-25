@@ -29,7 +29,6 @@ import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
-import io.github.takusan23.akaridroid.ui.component.EncodingStatus
 import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
@@ -44,10 +43,12 @@ import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
  * 動画編集画面
  *
  * @param onNavigate 画面遷移時に呼ばれる
+ * @param onBack 戻ってほしいときに呼ばれる
  */
 @Composable
 fun VideoEditorScreen(
     onNavigate: (NavigationPaths) -> Unit,
+    onBack: () -> Unit,
     viewModel: VideoEditorViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -58,8 +59,6 @@ fun VideoEditorScreen(
 
     // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
-    // エンコード中かどうか
-    val encodeStatus = encoderService.value?.encodeStatusFlow?.collectAsStateWithLifecycle()
     // 動画の素材や情報が入ったデータ
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
     // プレビューのプレイヤー状態
@@ -76,18 +75,6 @@ fun VideoEditorScreen(
     val historyState = viewModel.historyState.collectAsStateWithLifecycle()
     // フローティングバーに出すメニュー
     val recommendFloatingBarMenuList = viewModel.floatingMenuBarMultiArmedBanditManager.pullItemList.collectAsStateWithLifecycle()
-
-    // エンコード中の場合は別の UI を出して return する
-    if (encodeStatus?.value != null) {
-        Scaffold { paddingValues ->
-            EncodingStatus(
-                modifier = Modifier.padding(paddingValues),
-                encodeStatus = encodeStatus.value!!,
-                onCancel = { encoderService.value?.stop() }
-            )
-        }
-        return
-    }
 
     // 2箇所から呼ばれてるのでこれを呼ぶ
     fun VideoEditorViewModel.resolveRenderItemCreate(result: AddRenderItemMenuResult) {
@@ -113,10 +100,12 @@ fun VideoEditorScreen(
             onEncode = { fileName, parameters ->
                 encoderService.value?.encodeAkariCore(
                     renderData = renderData.value,
-                    projectFolder = viewModel.projectFolder,
+                    projectName = viewModel.projectName,
                     resultFileName = fileName,
                     encoderParameters = parameters
                 )
+                // TODO ここで戻しているのは AudioDecodeManager を破棄させるため。エンコード側でも AudioDecodeManager を使うのでプレビュー側を破棄
+                onBack()
             },
             onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
             onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize)) },

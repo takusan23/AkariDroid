@@ -54,7 +54,6 @@ class VideoEditorViewModel(
     private val application: Application,
     private val savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
-    private val projectName: String = savedStateHandle["projectName"]!!
 
     private val context: Context
         get() = application.applicationContext
@@ -84,8 +83,11 @@ class VideoEditorViewModel(
         )
     )
 
+    /** プロジェクト名 */
+    val projectName: String = savedStateHandle["projectName"]!!
+
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
-    val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
+    private val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(

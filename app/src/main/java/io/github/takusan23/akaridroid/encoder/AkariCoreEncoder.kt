@@ -10,11 +10,11 @@ import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** [VideoEditorPreviewPlayer]のエンコード版 */
 object AkariCoreEncoder {
@@ -26,8 +26,14 @@ object AkariCoreEncoder {
     /** プレビューで作った PCM は使わない。プレビュー準備中の可能性があるため */
     private const val ENCODE_OUT_PCM_FILE_NAME = "encode_outpcm_file"
 
+    /** プレビューで使ってる tempFolder は消えるかもしれないので新設 */
+    private const val TEMP_FOLDER_NAME = "encode_temp_folder"
+
     /** エンコードの進捗 */
     sealed interface EncodeStatus {
+
+        /** エンコード中のプロジェクト名 */
+        val projectName: String
 
         /**
          * エンコード中
@@ -36,22 +42,27 @@ object AkariCoreEncoder {
          * @param durationMs 動画の時間
          */
         data class Progress(
+            override val projectName: String,
             val encodePositionMs: Long,
             val durationMs: Long
         ) : EncodeStatus
 
         /** 映像トラックと音声トラックを一つのコンテナにミックス中 */
-        data object Mixing : EncodeStatus
+        data class Mixing(
+            override val projectName: String
+        ) : EncodeStatus
 
         /** 端末の動画フォルダへ移動中 */
-        data object MoveFile : EncodeStatus
+        data class MoveFile(
+            override val projectName: String
+        ) : EncodeStatus
     }
 
     /**
      * エンコードする
      *
      * @param context [Context]
-     * @param projectFolder PCM とかの保存先
+     * @param projectName プロジェクト名
      * @param resultFileName ファイル名
      * @param encoderParameters エンコーダーのパラメーター
      * @param onUpdateStatus エンコードの進捗。[EncodeStatus]
@@ -59,7 +70,7 @@ object AkariCoreEncoder {
      */
     suspend fun encode(
         context: Context,
-        projectFolder: File,
+        projectName: String,
         renderData: RenderData,
         encoderParameters: EncoderParameters,
         resultFileName: String = "$RESULT_FILE_NAME_PREFIX${System.currentTimeMillis()}.${encoderParameters.containerFormat.extension}",
@@ -71,12 +82,13 @@ object AkariCoreEncoder {
         )
         // 音声トラック生成器
         // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。
+        val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
         val outPcmFile = projectFolder.resolve(ENCODE_OUT_PCM_FILE_NAME)
         val audioRender = AudioRender(
             context = context,
             outPcmFile = outPcmFile,
             outputDecodePcmFolder = projectFolder.resolve(VideoEditorPreviewPlayer.DECODE_PCM_FOLDER_NAME).apply { mkdir() },
-            tempFolder = projectFolder.resolve(VideoEditorPreviewPlayer.TEMP_FOLDER_NAME).apply { mkdir() }
+            tempFolder = projectFolder.resolve(TEMP_FOLDER_NAME).apply { mkdir() }
         )
 
         val durationMs = renderData.durationMs
@@ -112,6 +124,7 @@ object AkariCoreEncoder {
                         onCanvasDrawRequest = { positionMs ->
                             onUpdateStatus(
                                 EncodeStatus.Progress(
+                                    projectName = projectName,
                                     encodePositionMs = positionMs,
                                     durationMs = durationMs
                                 )
@@ -146,7 +159,7 @@ object AkariCoreEncoder {
             ).joinAll() // 両方終わるのを待つ
 
             // 映像トラックと音声トラックを一緒にする
-            onUpdateStatus(EncodeStatus.Mixing)
+            onUpdateStatus(EncodeStatus.Mixing(projectName = projectName))
             MediaMuxerTool.mixed(
                 output = resultVideoFile.toAkariCoreInputOutputData(),
                 containerFormatTrackInputList = listOf(
@@ -156,7 +169,7 @@ object AkariCoreEncoder {
             )
 
             // 動画フォルダへコピーする
-            onUpdateStatus(EncodeStatus.MoveFile)
+            onUpdateStatus(EncodeStatus.MoveFile(projectName = projectName))
             MediaStoreTool.copyToVideoFolder(
                 context = context,
                 file = resultVideoFile

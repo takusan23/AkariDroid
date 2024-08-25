@@ -285,6 +285,6 @@ class VideoEditorPreviewPlayer(
         const val DECODE_PCM_FOLDER_NAME = "decode_pcm_folder"
 
         /** 一時的なフォルダ */
-        const val TEMP_FOLDER_NAME = "temp_folder"
+        private const val TEMP_FOLDER_NAME = "temp_folder"
     }
 }

@@ -21,9 +21,10 @@ fun AkariDroidMainScreen() {
                 onOpen = { projectName -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}") }
             )
         }
-        composable("${NavigationPaths.VideoEditor.path}/{projectName}") { backStackEntry ->
+        composable("${NavigationPaths.VideoEditor.path}/{projectName}") {
             VideoEditorScreen(
-                onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
+                onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(NavigationPaths.Setting.path) {

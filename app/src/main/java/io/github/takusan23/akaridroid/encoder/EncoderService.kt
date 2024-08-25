@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import java.lang.ref.WeakReference
 
 /** エンコーダーサービス */
@@ -74,13 +73,13 @@ class EncoderService : Service() {
      * [RenderData]をもとにエンコードを行う
      *
      * @param renderData 動画編集情報
-     * @param projectFolder 動画編集用に使っても良いフォルダ。PCM のデコードとかで既に使っている
+     * @param projectName プロジェクト名
      * @param encoderParameters エンコーダー設定
      * @param resultFileName 動画のファイル名
      */
     fun encodeAkariCore(
         renderData: RenderData,
-        projectFolder: File,
+        projectName: String,
         encoderParameters: EncoderParameters,
         resultFileName: String
     ) {
@@ -92,7 +91,7 @@ class EncoderService : Service() {
                 // エンコード
                 AkariCoreEncoder.encode(
                     context = this@EncoderService,
-                    projectFolder = projectFolder,
+                    projectName = projectName,
                     renderData = renderData,
                     encoderParameters = encoderParameters,
                     resultFileName = resultFileName,
