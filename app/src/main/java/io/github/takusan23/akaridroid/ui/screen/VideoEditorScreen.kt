@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.encoder.EncoderService
@@ -44,16 +43,12 @@ import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 /**
  * 動画編集画面
  *
- * @param projectName プロジェクト名
  * @param onNavigate 画面遷移時に呼ばれる
  */
 @Composable
 fun VideoEditorScreen(
-    projectName: String,
     onNavigate: (NavigationPaths) -> Unit,
-    viewModel: VideoEditorViewModel = viewModel {
-        VideoEditorViewModel(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!, projectName)
-    }
+    viewModel: VideoEditorViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current

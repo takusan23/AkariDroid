@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
@@ -47,12 +48,13 @@ import kotlin.random.Random
 /**
  * [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel
  *
- * @param projectName プロジェクト名
+ * @param savedStateHandle プロジェクト名を Navigation で渡してもらうので、SavedStateHandle 経由で受け取る
  */
 class VideoEditorViewModel(
     private val application: Application,
-    projectName: String
+    private val savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
+    private val projectName: String = savedStateHandle["projectName"]!!
 
     private val context: Context
         get() = application.applicationContext

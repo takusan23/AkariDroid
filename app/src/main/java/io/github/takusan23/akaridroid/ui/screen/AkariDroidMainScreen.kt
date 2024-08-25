@@ -22,9 +22,7 @@ fun AkariDroidMainScreen() {
             )
         }
         composable("${NavigationPaths.VideoEditor.path}/{projectName}") { backStackEntry ->
-            val projectName = backStackEntry.arguments?.getString("projectName")!!
             VideoEditorScreen(
-                projectName = projectName,
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
             )
         }
