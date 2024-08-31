@@ -36,6 +36,7 @@ object AudioMixingProcessor {
 
                 // 取り出した、合成する音声
                 val filterCurrentMsAudioByteArrayList = onMixingByteArrays(ms.toLong(), AkariCoreAudioProperties.ONE_MILLI_SECONDS_PCM_DATA_SIZE)
+                val trackCount = filterCurrentMsAudioByteArrayList.size
                 // それぞれ読み出さないといけない PCM の位置
                 var pcmReadPosition = 0
 
@@ -59,8 +60,15 @@ object AudioMixingProcessor {
                         rightSum += byteArrayOf(byteArray[pcmReadPosition + 2], byteArray[pcmReadPosition + 3]).toShort().toInt()
                     }
 
-                    // 合成する
-                    // ただし 16bit を超えないように
+                    // PCM 音声を合成する時、16 bit だと 0xFFFF の範囲内に収める必要があるが、単純に足すと超えてしまう可能性がある。
+                    // 多分もっと良いアルゴリズムがあると思うが、とりあえずは、音声トラック全部足して、音声トラック数で割る。
+                    // これがないとノイズになったりしてしまう？
+                    if (0 < trackCount) {
+                        leftSum /= trackCount
+                        rightSum /= trackCount
+                    }
+
+                    // ここでも 16bit を超えないように
                     val leftByteArray = min(Short.MAX_VALUE.toInt(), leftSum).toShort().toByteArray()
                     val rightByteArray = min(Short.MAX_VALUE.toInt(), rightSum).toShort().toByteArray()
 
