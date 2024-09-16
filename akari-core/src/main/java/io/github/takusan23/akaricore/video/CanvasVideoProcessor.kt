@@ -19,8 +19,8 @@ import kotlinx.coroutines.withContext
 /** Canvas から動画を作る */
 object CanvasVideoProcessor {
 
-    /** タイムアウト */
-    private const val TIMEOUT_US = 10000L
+    /** タイムアウト TODO エンコードの場合は 0 よりも速い？ */
+    private const val TIMEOUT_US = 10_000L
 
     /** OpenGL 描画用スレッドの Kotlin Coroutine Dispatcher */
     @OptIn(DelicateCoroutinesApi::class)
@@ -105,8 +105,8 @@ object CanvasVideoProcessor {
                     inputSurface.setPresentationTime(currentPositionUs * 1_000L)
                     inputSurface.swapBuffers()
                     if (!isRunning) {
-                        outputDone = true
                         encodeMediaCodec.signalEndOfInputStream()
+                        outputDone = true
                     }
                     // 時間を増やす
                     // 1 フレーム分の時間。ミリ秒なので増やす
@@ -130,7 +130,7 @@ object CanvasVideoProcessor {
 
                     // Surface経由でデータを貰って保存する
                     val encoderStatus = encodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
-                    if (encoderStatus >= 0) {
+                    if (0 <= encoderStatus) {
                         if (bufferInfo.size > 0) {
                             if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                                 // MediaMuxer へ addTrack した後
@@ -146,9 +146,6 @@ object CanvasVideoProcessor {
                         val newFormat = encodeMediaCodec.outputFormat
                         videoTrackIndex = mediaMuxer.addTrack(newFormat)
                         mediaMuxer.start()
-                    }
-                    if (encoderStatus != MediaCodec.INFO_TRY_AGAIN_LATER) {
-                        continue
                     }
                 }
             } finally {
