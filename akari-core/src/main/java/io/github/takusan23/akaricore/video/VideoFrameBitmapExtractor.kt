@@ -225,7 +225,7 @@ class VideoFrameBitmapExtractor {
             // コンテナフォーマットからサンプルを取り出し、デコーダーに渡す
             // シークしないことで、連続してフレームを取得する場合にキーフレームまで戻る必要がなくなり、早くなる
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
-            if (inputBufferIndex >= 0) {
+            if (0 <= inputBufferIndex) {
                 // デコーダーへ流す
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
@@ -242,11 +242,11 @@ class VideoFrameBitmapExtractor {
                 val outputBufferIndex = decodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 when {
                     outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> {
-                        // もう無い時
+                        // リトライが必要
                         isDecoderOutputAvailable = false
                     }
 
-                    outputBufferIndex >= 0 -> {
+                    0 <= outputBufferIndex -> {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
@@ -263,6 +263,7 @@ class VideoFrameBitmapExtractor {
                             val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
                             if (seekToMs <= presentationTimeMs) {
                                 isRunning = false
+                                isDecoderOutputAvailable = false
                                 latestDecodePositionMs = presentationTimeMs
                             }
                         }
@@ -270,29 +271,35 @@ class VideoFrameBitmapExtractor {
                 }
             }
 
-            // 次に進める。advance() が false の場合はもうデータがないので、break する。
-            val isEndOfFile = !mediaExtractor.advance()
-            if (isEndOfFile) {
-                // return で false（フレームが取得できない旨）を返す
-                returnValue = false
-                break
+            // 次に進める。デコーダーにデータを入れた事を確認してから。
+            // advance() が false の場合はもうデータがないので、break
+            if (0 <= inputBufferIndex) {
+                val isEndOfFile = !mediaExtractor.advance()
+                if (isEndOfFile) {
+                    // return で false（フレームが取得できない旨）を返す
+                    returnValue = false
+                    break
+                }
             }
 
-            // 欲しいフレームが前回の呼び出しと連続していないときの処理。
-            // Android 10 以前はここでシークの判断をします。Android 11 以降は MediaParserKeyFrameTimeDetector でシークの判断をします。
-            // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
-            // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
-            // この場合は一気にシーク位置に一番近いキーフレームまで進める
-            // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
-            // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
-            val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
-            val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
-//            println("loop bufferInfo.presentationTimeUs = ${bufferInfo.presentationTimeUs / 1000} / sampleTime = ${mediaExtractor.sampleTime / 1000} / isKeyFrame = ${isKeyFrame} / seekToMs = $seekToMs")
-            if (isKeyFrame && currentSampleTimeMs < seekToMs) {
-//                println("mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)")
-                mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-//                println("seekTo sampleTime = ${mediaExtractor.sampleTime / 1000}")
-                decodeMediaCodec.flush()
+            // 同様に
+            if (0 <= inputBufferIndex) {
+                // 欲しいフレームが前回の呼び出しと連続していないときの処理。
+                // Android 10 以前はここでシークの判断をします。Android 11 以降は MediaParserKeyFrameTimeDetector でシークの判断をします。
+                // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
+                // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
+                // この場合は一気にシーク位置に一番近いキーフレームまで進める
+                // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
+                // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
+                val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
+                val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
+//                println("loop bufferInfo.presentationTimeUs = ${bufferInfo.presentationTimeUs / 1000} / sampleTime = ${mediaExtractor.sampleTime / 1000} / isKeyFrame = ${isKeyFrame} / seekToMs = $seekToMs")
+                if (isKeyFrame && currentSampleTimeMs < seekToMs) {
+//                    println("mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)")
+                    mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+//                    println("seekTo sampleTime = ${mediaExtractor.sampleTime / 1000}")
+                    decodeMediaCodec.flush()
+                }
             }
         }
 
@@ -327,7 +334,7 @@ class VideoFrameBitmapExtractor {
             // コンテナフォーマットからサンプルを取り出し、デコーダーに渡す
             // while で繰り返しているのは、シーク位置がキーフレームのため戻った場合に、狙った時間のフレームが表示されるまで繰り返しデコーダーに渡すため
             val inputBufferIndex = decodeMediaCodec.dequeueInputBuffer(TIMEOUT_US)
-            if (inputBufferIndex >= 0) {
+            if (0 <= inputBufferIndex) {
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
                 // デコーダーへ流す
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
@@ -343,11 +350,11 @@ class VideoFrameBitmapExtractor {
                 val outputBufferIndex = decodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
                 when {
                     outputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER -> {
-                        // もう無い時
+                        // リトライが必要
                         isDecoderOutputAvailable = false
                     }
 
-                    outputBufferIndex >= 0 -> {
+                    0 <= outputBufferIndex -> {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
@@ -364,6 +371,7 @@ class VideoFrameBitmapExtractor {
                             val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
                             if (seekToMs <= presentationTimeMs) {
                                 isRunning = false
+                                isDecoderOutputAvailable = false
                                 latestDecodePositionMs = presentationTimeMs
                             }
                         }
@@ -383,7 +391,7 @@ class VideoFrameBitmapExtractor {
 
     companion object {
         /** MediaCodec タイムアウト */
-        private const val TIMEOUT_US = 10_000L
+        private const val TIMEOUT_US = 0L
     }
 
 }
