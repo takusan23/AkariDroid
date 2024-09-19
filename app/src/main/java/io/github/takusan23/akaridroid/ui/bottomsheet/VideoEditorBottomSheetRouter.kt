@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
@@ -34,10 +33,7 @@ fun VideoEditorBottomSheetRouter(
     onClose: () -> Unit
 ) {
 
-    ModalBottomSheet(
-        windowInsets = WindowInsets(0, 0, 0, 0),
-        onDismissRequest = onClose
-    ) {
+    ModalBottomSheet(onDismissRequest = onClose) {
 
         when (videoEditorBottomSheetRouteRequestData) {
 
