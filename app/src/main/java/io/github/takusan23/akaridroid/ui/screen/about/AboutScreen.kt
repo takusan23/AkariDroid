@@ -102,7 +102,7 @@ fun AboutScreen(
 @Composable
 private fun InitScreen(onClick: () -> Unit) {
     val context = LocalContext.current
-    val appVersion = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+    val appVersion = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "----" }
 
     Column(
         modifier = Modifier
