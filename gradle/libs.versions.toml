@@ -3,13 +3,13 @@ kotlin = "2.0.20"
 androidGradlePlugin = "8.5.2"
 
 kotlinCoroutine = "1.7.3"
-kotlinSerialization = "1.6.2"
+kotlinSerialization = "1.6.3"
 
-androidxComposeBom = "2024.09.02"
+androidxComposeBom = "2024.10.00"
 androidxCore = "1.13.1"
 androidxAppCompat = "1.7.0"
 androidxLifecycle = "2.8.6"
-androidxActivity = "1.9.2"
+androidxActivity = "1.9.3"
 androidxDataStore = "1.1.1"
 
 androidMaterial = "1.7.0"
