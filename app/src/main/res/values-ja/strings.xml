@@ -5,7 +5,7 @@
     <string name="setting_license_title">ライセンス</string>
     <string name="setting_font_delete">フォントを削除</string>
     <string name="setting_font_add">フォントを追加</string>
-    <string name="setting_about_message">わたしは動画編集アプリだよ。よろしくね！\"</string>
+    <string name="setting_about_message">わたしは動画編集アプリだよ。よろしくね！</string>
     <string name="setting_about_open_github">GitHub を開く</string>
     <string name="setting_about_library">動画編集ライブラリ</string>
     <string name="setting_about_sushi">すし</string>
@@ -36,7 +36,7 @@
     <string name="video_edit_renderitem_image_title">画像</string>
     <string name="video_edit_renderitem_image_description">画像を追加します。</string>
     <string name="video_edit_renderitem_video_title">動画</string>
-    <string name="video_edit_renderitem_video_description">動画を追加します。性能が許す限りタイムラインに追加できるはず？\"</string>
+    <string name="video_edit_renderitem_video_description">動画を追加します。性能が許す限りタイムラインに追加できるはず？</string>
     <string name="video_edit_renderitem_audio_title">音声</string>
     <string name="video_edit_renderitem_audio_description">音声を追加します。</string>
     <string name="video_edit_renderitem_shape_title">図形</string>
