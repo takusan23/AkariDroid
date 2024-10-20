@@ -64,6 +64,12 @@ class EncoderService : Service() {
         return START_NOT_STICKY
     }
 
+    // MEDIA_PROCESSING は 6 時間までしか動かせないらしい。アプリを表示させるとリセットされる模様。
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        super.onTimeout(startId, fgsType)
+        stopSelf()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
@@ -101,6 +107,7 @@ class EncoderService : Service() {
                 // 完了時はフォアグラウンドサービスを通常サービスに
                 _encodeStatusFlow.value = null
                 ServiceCompat.stopForeground(this@EncoderService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
         }
     }
@@ -136,12 +143,24 @@ class EncoderService : Service() {
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else PendingIntent.FLAG_UPDATE_CURRENT
             addAction(R.drawable.ic_outline_close_24, getString(R.string.service_encode_notification_cancel), PendingIntent.getBroadcast(this@EncoderService, 1, Intent(EncoderServiceBroadcastAction.SERVICE_STOP.action), flags))
         }.build()
-        val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-        } else {
-            0
+
+        // MEDIA_PROCESSING は Android 15 で追加されたため、14 の場合は SPECIAL_USE を使う。
+        val foregroundServiceType = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM -> ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROCESSING
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            else -> 0
         }
-        ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, foregroundServiceType)
+        // TODO ServiceCompat.startForeground が targetSdk=35 に対応したら Compat だけ使う
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            startForeground(NOTIFICATION_ID, notification, foregroundServiceType)
+        } else {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification,
+                foregroundServiceType
+            )
+        }
     }
 
     /** ブロードキャストのアクション列挙型 */
