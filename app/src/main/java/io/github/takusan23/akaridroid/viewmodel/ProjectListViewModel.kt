@@ -33,11 +33,6 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
         }
     }
 
-    /** プロジェクト一覧を取得する */
-    private suspend fun loadProjectList() {
-        _projectListFlow.value = ProjectFolderManager.loadProjectList(context)
-    }
-
     /**
      * プロジェクトを作成する
      *
@@ -45,8 +40,10 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
      * @return 名前。[io.github.takusan23.akaridroid.RenderData]の JSON が生成されているはず
      */
     suspend fun createProject(name: String): String {
-        ProjectFolderManager.createProject(context, name)
-        loadProjectList()
+        withContext(Dispatchers.IO) {
+            ProjectFolderManager.createProject(context, name)
+            loadProjectList()
+        }
         return name
     }
 
@@ -98,6 +95,11 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
             }
             loadProjectList()
         }
+    }
+
+    /** プロジェクト一覧を取得する */
+    private suspend fun loadProjectList() {
+        _projectListFlow.value = ProjectFolderManager.loadProjectList(context)
     }
 
 }

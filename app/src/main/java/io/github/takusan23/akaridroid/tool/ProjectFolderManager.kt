@@ -100,7 +100,7 @@ object ProjectFolderManager {
      */
     suspend fun createProject(context: Context, name: String) {
         // 重複チェック TODO 重複していればエラー
-        if (getProjectFolder(context, name).exists()) return
+        if (readRenderData(context, name) != null) return
 
         val defaultRenderData = RenderData()
         writeRenderData(context, defaultRenderData, name)
