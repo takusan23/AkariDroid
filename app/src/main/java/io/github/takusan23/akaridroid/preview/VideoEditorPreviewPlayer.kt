@@ -1,11 +1,12 @@
 package io.github.takusan23.akaridroid.preview
 
 import android.content.Context
-import android.graphics.Bitmap
+import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.canvasrender.VideoRenderer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,12 +35,12 @@ class VideoEditorPreviewPlayer(
     private val playerScope = CoroutineScope(Dispatchers.Default + Job())
 
     /**
-     * [CanvasRender]に複数スレッドから同時アクセスされないように
+     * [VideoRenderer]に複数スレッドから同時アクセスされないように
      * 直列にしないと、例えば描画途中に素材が破棄される→MediaCodec も破棄→破棄された MediaCodec に対して操作をする→落ちてしまう。
      */
     private val canvasRenderMutex = Mutex()
 
-    private val canvasRender = CanvasRender(context)
+    private val videoRenderer = VideoRenderer(context = context)
     private val audioRender = AudioRender(
         context = context,
         outPcmFile = projectFolder.resolve(OUT_PCM_FILE_NAME),
@@ -51,7 +52,6 @@ class VideoEditorPreviewPlayer(
         channelCount = AkariCoreAudioProperties.CHANNEL_COUNT,
         bitDepth = AkariCoreAudioProperties.BIT_DEPTH
     )
-    private val bitmapCanvasController = BitmapCanvasController()
 
     private val _playerStatus = MutableStateFlow(
         PlayerStatus(
@@ -65,9 +65,6 @@ class VideoEditorPreviewPlayer(
 
     /** プレビュープレイヤーのプレイヤー状態 Flow */
     val playerStatus = _playerStatus.asStateFlow()
-
-    /** プレビュー画像として[Bitmap]を流す Flow */
-    val previewBitmap = bitmapCanvasController.latestBitmap
 
     init {
 
@@ -148,12 +145,17 @@ class VideoEditorPreviewPlayer(
         videoHeight: Int,
         durationMs: Long
     ) {
+        // TODO 10Bit HDR のテスト
+        videoRenderer.setVideoParameters(videoWidth, videoHeight, isEnableTenBitHdr = false)
         _playerStatus.update { it.copy(durationMs = durationMs) }
-        bitmapCanvasController.createCanvas(videoWidth, videoHeight)
+    }
+
+    fun setPreviewSurfaceHolder(surfaceHolder: SurfaceHolder?) {
+        videoRenderer.setOutputSurfaceHolder(surfaceHolder)
     }
 
     /**
-     * 動画で再生する音声素材をセットする。
+     * 動画で再生する音声素材をセットする。キャンセル対応。
      * 詳しくは[AudioRender.setRenderData]
      */
     suspend fun setAudioRenderItem(
@@ -165,7 +167,7 @@ class VideoEditorPreviewPlayer(
     }
 
     /**
-     * 動画で再生するキャンパス要素をセットする
+     * 動画で再生するキャンパス要素をセットする。キャンセル対応。
      * 詳しくは[CanvasRender.setRenderData]
      */
     suspend fun setCanvasRenderItem(
@@ -174,7 +176,7 @@ class VideoEditorPreviewPlayer(
         // 準備とプレビュー再生が反映されるまで prepare に
         setProgress(ProgressType.CANVAS) {
             canvasRenderMutex.withLock {
-                canvasRender.setRenderData(canvasItemList)
+                videoRenderer.setRenderData(canvasItemList)
             }
             drawVideoFrame()
         }
@@ -243,9 +245,7 @@ class VideoEditorPreviewPlayer(
         currentPositionMs: Long = playerStatus.value.currentPositionMs
     ) {
         canvasRenderMutex.withLock {
-            bitmapCanvasController.update { canvas ->
-                canvasRender.draw(canvas, durationMs, currentPositionMs)
-            }
+            videoRenderer.draw(durationMs, currentPositionMs)
         }
     }
 

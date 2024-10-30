@@ -49,7 +49,7 @@ class CanvasRender(private val context: Context) {
             } ?: when (renderItem) { // 無ければ作る
                 is RenderData.CanvasItem.Text -> TextRender(context, renderItem)
                 is RenderData.CanvasItem.Image -> ImageRender(context, renderItem)
-                is RenderData.CanvasItem.Video -> VideoRender(context, renderItem)
+                is RenderData.CanvasItem.Video -> VideoRender(context, renderItem, -1)
                 is RenderData.CanvasItem.Shape -> ShapeRender(renderItem)
                 is RenderData.CanvasItem.Shader -> ShaderRender(renderItem)
                 is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRender(renderItem)

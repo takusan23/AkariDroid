@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
@@ -29,6 +28,7 @@ import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
+import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
 import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
@@ -63,8 +63,6 @@ fun VideoEditorScreen(
     val renderData = viewModel.renderData.collectAsStateWithLifecycle()
     // プレビューのプレイヤー状態
     val previewPlayerStatus = viewModel.videoEditorPreviewPlayer.playerStatus.collectAsStateWithLifecycle()
-    // プレビューのBitmap
-    val previewBitmap = viewModel.videoEditorPreviewPlayer.previewBitmap.collectAsStateWithLifecycle()
     // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
     // タイムライン
@@ -129,19 +127,31 @@ fun VideoEditorScreen(
         ) {
             Column {
                 // タッチ編集・プレビュー
-                PreviewContainer(
+                Box(
                     modifier = Modifier
                         .aspectRatio(1f)
                         .fillMaxWidth()
                         .fillMaxHeight(0.5f),
-                    previewBitmap = previewBitmap.value?.asImageBitmap(),
-                    touchEditorData = touchEditorData.value,
-                    onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
-                    onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
-                    playerStatus = previewPlayerStatus.value,
-                    onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                    onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
-                )
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    ComposeSurfaceView(
+                        modifier = Modifier.aspectRatio(renderData.value.videoSize.width / renderData.value.videoSize.height.toFloat()),
+                        onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
+                        onSizeChanged = { _, _ -> /* do nothing */ },
+                        onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) }
+                    )
+
+                    PreviewContainer(
+                        modifier = Modifier.matchParentSize(),
+                        touchEditorData = touchEditorData.value,
+                        onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
+                        onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
+                        playerStatus = previewPlayerStatus.value,
+                        onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
+                    )
+                }
 
                 // 戻るボタンとか
                 Row(modifier = Modifier.align(Alignment.End)) {

@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 class ImageRender(
     private val context: Context,
     private val image: RenderData.CanvasItem.Image
-) : BaseItemRender() {
+) : BaseItemRender(), DrawCanvas {
 
     /** Glide でロードした画像 */
     private var bitmap: Bitmap? = null
@@ -42,6 +42,12 @@ class ImageRender(
 
     override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
         val bitmap = bitmap ?: return@withContext
+        val (x, y) = image.position
+        canvas.drawBitmap(bitmap, x, y, paint)
+    }
+
+    override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
+        val bitmap = bitmap ?: return
         val (x, y) = image.position
         canvas.drawBitmap(bitmap, x, y, paint)
     }

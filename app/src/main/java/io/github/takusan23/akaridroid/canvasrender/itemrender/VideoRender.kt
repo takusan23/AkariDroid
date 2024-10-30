@@ -3,11 +3,11 @@ package io.github.takusan23.akaridroid.canvasrender.itemrender
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Paint
-import androidx.core.graphics.scale
+import android.opengl.Matrix
 import androidx.core.net.toUri
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
-import io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor
+import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
+import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,19 +30,17 @@ fun RenderData.CanvasItem.Video.calcVideoFramePositionMs(currentPositionMs: Long
     return currentPositionMsInPlaybackSpeed + displayOffset.offsetFirstMs
 }
 
-/** 動画を描画する */
+/** 動画を描画する TODO VideoRenderer と紛らわしい */
 class VideoRender(
     private val context: Context,
-    private val video: RenderData.CanvasItem.Video
-) : BaseItemRender() {
+    private val video: RenderData.CanvasItem.Video,
+    texId: Int
+) : BaseItemRender(), DrawSurfaceTexture {
 
-    /** Bitmap を取り出す */
-    private var videoFrameBitmapExtractor: VideoFrameBitmapExtractor? = null
+    private var akariVideoDecoder: AkariVideoDecoder? = null
 
-    /** [preDraw]したときに取得する Bitmap */
-    private var preLoadBitmap: Bitmap? = null
-
-    private val paint = Paint()
+    /** デコードした動画フレームの出力先。OpenGL ES で使えるテクスチャ */
+    override var akariGraphicsSurfaceTexture = AkariGraphicsSurfaceTexture(texId)
 
     override val layerIndex: Int
         get() = video.layerIndex
@@ -50,44 +48,56 @@ class VideoRender(
     override suspend fun prepare() = withContext(Dispatchers.IO) {
         // クロマキーする場合
         val isEnableChromaKey = video.chromaKeyColor != null
-        videoFrameBitmapExtractor = VideoFrameBitmapExtractor().apply {
-            // Uri と File で分岐
-            prepareDecoder(
+        akariVideoDecoder = AkariVideoDecoder().apply {
+            prepare(
                 input = when (video.filePath) {
                     is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
                     is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
                 },
+                outputSurface = akariGraphicsSurfaceTexture.surface,
                 chromakeyThreshold = if (isEnableChromaKey) CHROMAKEY_THRESHOLD else null,
                 chromakeyColor = if (isEnableChromaKey) video.chromaKeyColor!! else null
             )
         }
     }
 
-    override suspend fun preDraw(durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
+    override suspend fun preDraw(durationMs: Long, currentPositionMs: Long) {
         super.preDraw(durationMs, currentPositionMs)
 
         // 動画のフレーム取得は時間がかかるので、preDraw で取得する
-        val videoFrameBitmapExtractor = videoFrameBitmapExtractor ?: return@withContext
+        val akariVideoDecoder = akariVideoDecoder ?: return
 
         // 再生速度、オフセットを考慮した、動画のフレーム取得時間を出す
         val framePositionMs = video.calcVideoFramePositionMs(currentPositionMs = currentPositionMs)
 
-        // 取り出す
-        preLoadBitmap = videoFrameBitmapExtractor.getVideoFrameBitmap(seekToMs = framePositionMs)?.let { origin ->
-            // リサイズする場合
-            val (width, height) = video.size
-            origin.scale(width, height)
-        }
+        // 指定位置のフレームを取得するためシークする
+        akariVideoDecoder.seekTo(framePositionMs)
     }
 
     override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.IO) {
-        val preLoadBitmap = preLoadBitmap ?: return@withContext
+//        val preLoadBitmap = preLoadBitmap ?: return@withContext
+//        val (x, y) = video.position
+//        canvas.drawBitmap(preLoadBitmap, x, y, paint)
+    }
+
+
+    override fun draw(mvpMatrix: FloatArray, outputWidth: Int, outputHeight: Int) {
         val (x, y) = video.position
-        canvas.drawBitmap(preLoadBitmap, x, y, paint)
+        val (width, height) = video.size
+
+        // 0..1 の範囲にする
+        val scaleX = width / outputWidth.toFloat()
+        val scaleY = height / outputHeight.toFloat()
+        val transX = ((x / outputWidth) * 2) - 1
+        val transY = ((y / outputHeight) * 2) - 1
+
+        // 行列の適用は多分順番がある
+        Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
+        Matrix.translateM(mvpMatrix, 0, transX, -transY, 1f)
     }
 
     override fun destroy() {
-        videoFrameBitmapExtractor?.destroy()
+        akariVideoDecoder?.destroy()
     }
 
     override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {

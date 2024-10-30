@@ -56,6 +56,7 @@ abstract class BaseItemRender {
      * @param durationMs 動画の合計時間
      * @param currentPositionMs 描画したい時間
      */
+    @Deprecated("互換性のために残している。DrawCanvas / DrawSurfaceTexture が呼ばれます")
     abstract suspend fun draw(
         canvas: Canvas,
         drawFrame: Bitmap,
