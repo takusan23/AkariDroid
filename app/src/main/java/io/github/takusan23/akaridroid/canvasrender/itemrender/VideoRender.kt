@@ -85,15 +85,19 @@ class VideoRender(
         val (x, y) = video.position
         val (width, height) = video.size
 
-        // 0..1 の範囲にする
+        // scale 0..1 の範囲にする
         val scaleX = width / outputWidth.toFloat()
         val scaleY = height / outputHeight.toFloat()
-        val transX = ((x / outputWidth) * 2) - 1
-        val transY = ((y / outputHeight) * 2) - 1
+        // translate は -1..1 の範囲にする
+        val halfWidth = width / 2
+        val halfHeight = height / 2
+        val transX = (((x + halfWidth) / outputWidth) * 2)-1
+        val transY =(((y + halfHeight) / outputHeight) * 2)-1
 
         // 行列の適用は多分順番がある
-        Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
+        // テクスチャ座標は反転してるので負の値
         Matrix.translateM(mvpMatrix, 0, transX, -transY, 1f)
+        Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
     }
 
     override fun destroy() {

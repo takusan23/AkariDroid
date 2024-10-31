@@ -213,17 +213,20 @@ class VideoEditorPreviewPlayer(
      * [task]ブロックを抜けたら自動で false になります。
      */
     private inline fun setProgress(type: ProgressType, task: () -> Unit) {
-        _playerStatus.update {
-            when (type) {
-                ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = false)
-                ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = false)
+        try {
+            _playerStatus.update {
+                when (type) {
+                    ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = false)
+                    ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = false)
+                }
             }
-        }
-        task()
-        _playerStatus.update {
-            when (type) {
-                ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = true)
-                ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = true)
+            task()
+        } finally {
+            _playerStatus.update {
+                when (type) {
+                    ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = true)
+                    ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = true)
+                }
             }
         }
     }

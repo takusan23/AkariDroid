@@ -275,7 +275,7 @@ class VideoEditorViewModel(
             _renderData
                 .map { it.canvasRenderItem }
                 .distinctUntilChanged()
-                .collect { renderItem ->
+                .collectLatest { renderItem ->
                     videoEditorPreviewPlayer.setCanvasRenderItem(renderItem)
                 }
         }
