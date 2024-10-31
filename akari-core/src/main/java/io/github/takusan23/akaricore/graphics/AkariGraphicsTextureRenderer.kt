@@ -274,12 +274,13 @@ class AkariGraphicsTextureRenderer internal constructor(
      * GL スレッドから呼び出すこと。
      */
     internal fun prepareDraw() {
-        // 多分いる
-        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
-
         // 描画先をフレームバッファオブジェクトに
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, framebuffer)
         checkGlError("glBindFramebuffer")
+
+        // FBO のクリア？
+        // 多分必要
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
     }
 
     /**
