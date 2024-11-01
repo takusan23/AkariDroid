@@ -24,8 +24,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 
 /**
@@ -46,28 +46,45 @@ class VideoRenderer(private val context: Context) {
         surfaceHolderFlow,
         videoParametersFlow,
         ::Pair
-    ).runningFold<Pair<SurfaceHolder?, VideoParameters?>?, AkariGraphicsProcessor?>(null) { current, next ->
-        // Surface が破棄されたら前回の AkariGraphicsProcessor を破棄し、作り直す
-        current?.destroy()
+    ).let { combineFlow ->
+        var currentAkariGraphicsProcessor: AkariGraphicsProcessor? = null
+        combineFlow.transform { next ->
 
-        // null なら Surface 破棄
-        val surfaceHolder = next?.first
-        val videoParameters = next?.second
-        if (surfaceHolder != null && videoParameters != null) {
-            val (outputWidth, outputHeight, isEnableTenBitHdr) = videoParameters
+            println("next = $next")
 
-            // AkariGraphicsProcessor の glViewport に合わせる
-            surfaceHolder.setFixedSize(outputWidth, outputHeight)
+            // 今の AkariGraphicsProcessor は破棄する
+            // もう使えないため emit() で null
+            // TODO コンテキストを切り離す detach 手段を用意する
+            emit(null)
+            currentAkariGraphicsProcessor?.destroy {
+                itemRenderList.forEach {
+                    if (it is DrawSurfaceTexture) {
+                        it.akariGraphicsSurfaceTexture.detachGl()
+                    }
+                }
+            }
+            currentAkariGraphicsProcessor = null
 
-            // OpenGL ES の上に構築された動画フレーム描画システム
-            AkariGraphicsProcessor(
-                outputSurface = surfaceHolder.surface,
-                width = outputWidth,
-                height = outputHeight,
-                isEnableTenBitHdr = isEnableTenBitHdr
-            ).apply { prepare() }
-        } else {
-            null
+            val surfaceHolder = next.first
+            val videoParameters = next.second
+            if (surfaceHolder != null && videoParameters != null) {
+                val (outputWidth, outputHeight, isEnableTenBitHdr) = videoParameters
+
+                // AkariGraphicsProcessor の glViewport に合わせる
+                surfaceHolder.setFixedSize(outputWidth, outputHeight)
+
+                // OpenGL ES の上に構築された動画フレーム描画システム
+                // prepare() 後に emit() する
+                val newAkariGraphicsProcessor = AkariGraphicsProcessor(
+                    outputSurface = surfaceHolder.surface,
+                    width = outputWidth,
+                    height = outputHeight,
+                    isEnableTenBitHdr = isEnableTenBitHdr
+                )
+                newAkariGraphicsProcessor.prepare()
+                emit(newAkariGraphicsProcessor)
+                currentAkariGraphicsProcessor = newAkariGraphicsProcessor
+            }
         }
     }.stateIn(
         scope = scope,
@@ -150,7 +167,6 @@ class VideoRenderer(private val context: Context) {
                 }
             }
         }
-
 
         // 描画する
         // レイヤー順に

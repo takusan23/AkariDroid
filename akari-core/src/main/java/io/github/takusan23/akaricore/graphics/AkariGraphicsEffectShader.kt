@@ -1,6 +1,7 @@
 package io.github.takusan23.akaricore.graphics
 
 import android.opengl.GLES20
+import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -149,7 +150,12 @@ class AkariGraphicsEffectShader(
         val compiled = IntArray(1)
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0)
         if (compiled[0] == 0) {
-            shader = 0
+            // 失敗したら例外を投げる。その際に構文エラーのメッセージを取得する
+            val syntaxErrorMessage = GLES20.glGetShaderInfoLog(shader)
+            GLES20.glDeleteShader(shader)
+            throw GlslSyntaxErrorException(syntaxErrorMessage)
+            // ここで return 0 しても例外を投げるので意味がない
+            // shader = 0
         }
         return shader
     }
@@ -174,8 +180,8 @@ class AkariGraphicsEffectShader(
             1.0f, 1.0f, 0f, 1f, 1f
         )
 
-        private const val VERTEX_SHADER = """
-attribute vec4 a_position;
+        private const val VERTEX_SHADER = """#version 300 es
+in vec4 a_position;
 
 void main() {
   gl_Position = a_position;
