@@ -50,8 +50,6 @@ class VideoRenderer(private val context: Context) {
         var currentAkariGraphicsProcessor: AkariGraphicsProcessor? = null
         combineFlow.transform { next ->
 
-            println("next = $next")
-
             // 今の AkariGraphicsProcessor は破棄する
             // もう使えないため emit() で null
             // TODO コンテキストを切り離す detach 手段を用意する

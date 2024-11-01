@@ -169,7 +169,7 @@ class AkariGraphicsTextureRenderer internal constructor(
     }
 
     /**
-     * エフェクトを適用する。
+     * [AkariGraphicsEffectShader]のエフェクトを適用する。
      * GL スレッドから呼び出すこと。
      */
     fun applyEffect(effectShader: AkariGraphicsEffectShader) {

@@ -5,15 +5,28 @@ import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-// TODO ドキュメント書く
+/**
+ * フラグメントシェーダーでフレームにエフェクトを適用する。
+ * [AkariGraphicsProcessor]は最後以外は描画先がフレームバッファオブジェクトになるので、そのテクスチャにエフェクトを適用する。
+ *
+ * [prepareShader]を呼び出してから、[AkariGraphicsTextureRenderer.applyEffect]を呼び出す。
+ *
+ * # フラグメントシェーダーで使える uniform 変数
+ * ## uniform vec2 vResolution
+ * 出力先の縦横サイズが入っています。座標の正規化に使います。
+ *
+ * ## uniform sampler2D sVideoFrameTexture
+ * フレームバッファオブジェクトのテクスチャです。
+ * texture() に入れて使います。
+ *
+ * @param width 幅
+ * @param height 高さ
+ * @param fragmentShaderCode フラグメントシェーダー。使える uniform 変数は上記です。
+ */
 class AkariGraphicsEffectShader(
     private val width: Int,
     private val height: Int,
-    private val xStart: Float,
-    private val xEnd: Float,
-    private val yStart: Float,
-    private val yEnd: Float,
-    private val fragmentShaderCode: String
+    private val fragmentShaderCode: String = FRAGMENT_SHADER_NEGATIVE
 ) {
 
     private val mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer()
@@ -22,14 +35,24 @@ class AkariGraphicsEffectShader(
 
     // Uniform 変数のハンドル
     private var vResolutionHandle = 0
-    private var vCropLocationHandle = 0
     private var sVideoFrameTextureHandle = 0
+
+    // ユーザー追加 uniform 変数
+
+    /** float 版。key は uniform 変数名、value は glGetUniformLocation の返り値 */
+    private val floatUniformLocationMap = hashMapOf<String, Int>()
+
+    /** vec2 版。key は uniform 変数名、value は glGetUniformLocation の返り値 */
+    private val vec2UniformLocationMap = hashMapOf<String, Int>()
+
+    /** vec4 版。key は uniform 変数名、value は glGetUniformLocation の返り値 */
+    private val vec4UniformLocationMap = hashMapOf<String, Int>()
 
     init {
         mTriangleVertices.put(mTriangleVerticesData).position(0)
     }
 
-    /** 準備する */
+    /** フラグメントシェーダーのコンパイル等を行う */
     fun prepareShader() {
         // シェーダーのコンパイル
         mProgram = createProgram(VERTEX_SHADER, fragmentShaderCode)
@@ -48,11 +71,6 @@ class AkariGraphicsEffectShader(
         if (vResolutionHandle == -1) {
             throw RuntimeException("Could not get uniform location for vResolution")
         }
-        vCropLocationHandle = GLES20.glGetUniformLocation(mProgram, "vCropLocation")
-        checkGlError("glGetUniformLocation vCropLocation")
-        if (vCropLocationHandle == -1) {
-            throw RuntimeException("Could not get uniform location for vCropLocation")
-        }
         sVideoFrameTextureHandle = GLES20.glGetUniformLocation(mProgram, "sVideoFrameTexture")
         checkGlError("glGetUniformLocation sVideoFrameTexture")
         if (sVideoFrameTextureHandle == -1) {
@@ -65,11 +83,87 @@ class AkariGraphicsEffectShader(
     }
 
     /**
+     * uniform float 変数を探して登録する
+     *
+     * @param uniformName uniform 変数名
+     */
+    fun findFloatUniformLocation(uniformName: String) {
+        floatUniformLocationMap[uniformName] = GLES20.glGetUniformLocation(mProgram, uniformName)
+        checkGlError("glGetUniformLocation $uniformName")
+    }
+
+    /**
+     * uniform vec2 変数を探して登録する
+     *
+     * @param uniformName uniform 変数名
+     */
+    fun findVec2UniformLocation(uniformName: String) {
+        vec2UniformLocationMap[uniformName] = GLES20.glGetUniformLocation(mProgram, uniformName)
+        checkGlError("glGetUniformLocation $uniformName")
+    }
+
+    /**
+     * uniform vec4 変数を探して登録する
+     *
+     * @param uniformName uniform 変数名
+     */
+    fun findVec4UniformLocation(uniformName: String) {
+        vec4UniformLocationMap[uniformName] = GLES20.glGetUniformLocation(mProgram, uniformName)
+        checkGlError("glGetUniformLocation $uniformName")
+    }
+
+    /**
+     * float uniform 変数に値をセットする
+     *
+     * @param uniformName uniform 変数名
+     * @param float 値
+     */
+    fun setFloatUniform(uniformName: String, float: Float) {
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
+        val location = floatUniformLocationMap[uniformName] ?: return
+        GLES20.glUniform1f(location, float)
+        checkGlError("glUniform1f $uniformName")
+    }
+
+    /**
+     * vec2 uniform 変数に値をセットする
+     *
+     * @param uniformName uniform 変数名
+     * @param float1 vec2
+     * @param float2 vec2
+     */
+    fun setVec2Uniform(uniformName: String, float1: Float, float2: Float) {
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
+        val location = vec2UniformLocationMap[uniformName] ?: return
+        GLES20.glUniform2f(location, float1, float2)
+        checkGlError("glUniform2f $uniformName")
+    }
+
+    /**
+     * vec4 uniform 変数に値をセットする
+     *
+     * @param uniformName uniform 変数名
+     * @param float1 vec4
+     * @param float2 vec4
+     * @param float3 vec4
+     * @param float4 vec4
+     */
+    fun setVec4Uniform(uniformName: String, float1: Float, float2: Float, float3: Float, float4: Float) {
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
+        val location = vec4UniformLocationMap[uniformName] ?: return
+        GLES20.glUniform4f(location, float1, float2, float3, float4)
+        checkGlError("glUniform4f $uniformName")
+    }
+
+    /**
      * エフェクトを適用する
      *
      * @param fboTextureUnit フレームバッファオブジェクトのテクスチャユニット
      */
-    fun applyEffect(fboTextureUnit: Int) {
+    internal fun applyEffect(fboTextureUnit: Int) {
         // glUseProgram する
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
@@ -79,10 +173,6 @@ class AkariGraphicsEffectShader(
         GLES20.glUniform1i(sVideoFrameTextureHandle, fboTextureUnit)
         // 解像度
         GLES20.glUniform2f(vResolutionHandle, width.toFloat(), height.toFloat())
-        // エフェクトの範囲
-        // Y 座標はテクスチャ座標が反転しているため、意図的にやっている。コーディングミスではない
-        GLES20.glUniform4f(vCropLocationHandle, xStart, xEnd, 1f - yEnd, 1f - yStart)
-        checkGlError("glUniform1i glUniform2f glUniform4f")
 
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
@@ -181,12 +271,34 @@ class AkariGraphicsEffectShader(
         )
 
         private const val VERTEX_SHADER = """#version 300 es
-in vec4 a_position;
+            in vec4 a_position;
+            
+            void main() {
+              gl_Position = a_position;
+            }
+        """
 
-void main() {
-  gl_Position = a_position;
-}
-"""
+        /** 色反転フラグメントシェーダー。サンプル用 */
+        const val FRAGMENT_SHADER_NEGATIVE = """#version 300 es
+            precision mediump float;
+
+            uniform vec2 vResolution;
+            uniform sampler2D sVideoFrameTexture;
+            
+            out vec4 FragColor;
+
+            void main() {
+              // テクスチャ座標に変換
+              vec2 vTextureCoord = gl_FragCoord.xy / vResolution.xy;
+              // 出力色
+              vec4 outColor = vec4(1.);
+              // 色暗転
+              outColor = texture(sVideoFrameTexture, vTextureCoord);
+              outColor.rgb = vec3(1.) - outColor.rgb;
+              // 出力
+              FragColor = outColor;
+            }
+        """
     }
 
 }
