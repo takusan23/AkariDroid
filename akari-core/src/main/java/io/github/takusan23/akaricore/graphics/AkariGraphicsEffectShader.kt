@@ -1,6 +1,8 @@
 package io.github.takusan23.akaricore.graphics
 
 import android.opengl.GLES20
+import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader.Companion.VERTEX_SHADER_GLSL100
+import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader.Companion.VERTEX_SHADER_GLSL300
 import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -19,13 +21,11 @@ import java.nio.ByteOrder
  * フレームバッファオブジェクトのテクスチャです。
  * texture() に入れて使います。
  *
- * @param width 幅
- * @param height 高さ
+ * @param vertexShaderCode "#version 100"の場合は[VERTEX_SHADER_GLSL100]、"#version 300"の場合は[VERTEX_SHADER_GLSL300]
  * @param fragmentShaderCode フラグメントシェーダー。使える uniform 変数は上記です。
  */
 class AkariGraphicsEffectShader(
-    private val width: Int,
-    private val height: Int,
+    private val vertexShaderCode: String = VERTEX_SHADER_GLSL300,
     private val fragmentShaderCode: String = FRAGMENT_SHADER_NEGATIVE
 ) {
 
@@ -55,7 +55,7 @@ class AkariGraphicsEffectShader(
     /** フラグメントシェーダーのコンパイル等を行う */
     fun prepareShader() {
         // シェーダーのコンパイル
-        mProgram = createProgram(VERTEX_SHADER, fragmentShaderCode)
+        mProgram = createProgram(vertexShaderCode, fragmentShaderCode)
         if (mProgram == 0) {
             throw RuntimeException("failed creating program")
         }
@@ -161,9 +161,15 @@ class AkariGraphicsEffectShader(
     /**
      * エフェクトを適用する
      *
+     * @param width 幅
+     * @param height 高さ
      * @param fboTextureUnit フレームバッファオブジェクトのテクスチャユニット
      */
-    internal fun applyEffect(fboTextureUnit: Int) {
+    internal fun applyEffect(
+        width: Int,
+        height: Int,
+        fboTextureUnit: Int
+    ) {
         // glUseProgram する
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
@@ -270,8 +276,16 @@ class AkariGraphicsEffectShader(
             1.0f, 1.0f, 0f, 1f, 1f
         )
 
-        private const val VERTEX_SHADER = """#version 300 es
+        const val VERTEX_SHADER_GLSL300 = """#version 300 es
             in vec4 a_position;
+            
+            void main() {
+              gl_Position = a_position;
+            }
+        """
+
+        const val VERTEX_SHADER_GLSL100 = """#version 100
+            attribute vec4 a_position;
             
             void main() {
               gl_Position = a_position;

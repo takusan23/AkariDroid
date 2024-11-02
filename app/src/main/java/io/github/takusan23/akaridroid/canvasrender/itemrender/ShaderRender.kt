@@ -6,9 +6,7 @@ import io.github.takusan23.akaridroid.RenderData
  * ユーザーが入力したフラグメントシェーダーで、各動画フレームにエフェクトを適用する
  * 詳しくは[BaseShaderRender]で。
  */
-class ShaderRender(
-    private val shader: RenderData.CanvasItem.Shader
-) : BaseShaderRender() {
+class ShaderRender(private val shader: RenderData.CanvasItem.Shader) : BaseShaderRender() {
     override val layerIndex: Int
         get() = shader.layerIndex
 

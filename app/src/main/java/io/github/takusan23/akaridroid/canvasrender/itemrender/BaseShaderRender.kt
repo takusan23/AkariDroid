@@ -4,31 +4,14 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
+import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * フラグメントシェーダーで[Bitmap]を描画する。
- * 各フレームを[Bitmap]で受け取って、GLSL のフラグメントシェーダーでエフェクトを適用するのに使えます。
- *
- * デフォルトの uniform 変数は、[GpuShaderImageProcessor]を参照してください。
- * また、[ShaderRender]では、以下の uniform 変数が動画編集用に用意されています。
- *
- * ## uniform float f_time;
- * 素材が開始した時間から、素材が終わるまでを 0~1 でセットします。
- * 動画の再生位置ではありません。
- * 必要ない場合は利用しなくても大丈夫です。
- *
- * abstract class なのは、以下はすべてフラグメントシェーダーでフレームを処理する。共通しているため。
- * 両方とも GLSL を使って、動画のフレームにエフェクトを適用している。
- *
- * - [ShaderRender]
- * - [SwitchAnimationRender]
- * - [EffectRender]
- */
-abstract class BaseShaderRender : BaseItemRender() {
+// TODO コメント書き直す
+abstract class BaseShaderRender : BaseItemRender(), DrawFragmentShader {
 
     /** Bitmap を GLSL で加工する */
     private var gpuShaderImageProcessor: GpuShaderImageProcessor? = null
@@ -45,23 +28,47 @@ abstract class BaseShaderRender : BaseItemRender() {
 
     abstract val displayTime: RenderData.DisplayTime
 
+    override var akariGraphicsEffectShader: AkariGraphicsEffectShader? = null
+
+    // TODO GLスレッドから呼び出す。prepare() - destroy() で生成 - 破棄するため
     override suspend fun prepare() {
         try {
-            val processor = GpuShaderImageProcessor().apply {
-                prepare(
-                    fragmentShaderCode = fragmentShader,
-                    width = size.width,
-                    height = size.height
-                )
+            akariGraphicsEffectShader = AkariGraphicsEffectShader(
+                vertexShaderCode = AkariGraphicsEffectShader.VERTEX_SHADER_GLSL100,
+                fragmentShaderCode = fragmentShader
+            ).apply {
+                // コンパイル
+                prepareShader()
+                // 必要な uniform 変数を探す
+                findVec4UniformLocation(UNIFORM_NAME_CROP_LOCATION)
+                findFloatUniformLocation(UNIFORM_NAME_F_TIME)
             }
-            // 初期化に成功すれば
-            gpuShaderImageProcessor = processor
-            // f_time uniform 変数を追加する
-            processor.addCustomFloatUniformHandle(UNIFORM_NAME_F_TIME)
         } catch (e: Exception) {
             // シェーダーのミス等
-            e.printStackTrace()
+            e.printStackTrace(System.out)
         }
+    }
+
+    override fun setVideoSize(width: Int, height: Int) {
+        val relativeX = position.x / width
+        val relativeY = position.y / height
+
+        // 描画するべき範囲を渡す
+        akariGraphicsEffectShader?.setVec4Uniform(
+            uniformName = UNIFORM_NAME_CROP_LOCATION,
+            float1 = relativeX, // xStart
+            float2 = relativeX + (size.width / width.toFloat()), // xEnd
+            // OpenGL テクスチャ座標は反転しているので注意
+            float3 = 1f - (relativeY + (size.height / height.toFloat())), // yEnd
+            float4 = 1f - relativeY, // yStart
+        )
+    }
+
+    override fun preEffect(durationMs: Long, currentPositionMs: Long) {
+        // 素材の開始から終了までを 0~1 で計算して uniform 変数に渡す
+        val positionInRenderItem = currentPositionMs - displayTime.startMs
+        val progressInRenderItem = positionInRenderItem / displayTime.durationMs.toFloat()
+        akariGraphicsEffectShader?.setFloatUniform(UNIFORM_NAME_F_TIME, progressInRenderItem)
     }
 
     override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) = withContext(Dispatchers.Default) {
@@ -101,7 +108,8 @@ abstract class BaseShaderRender : BaseItemRender() {
     }
 
     override fun destroy() {
-        gpuShaderImageProcessor?.destroy()
+        akariGraphicsEffectShader?.destroy()
+        akariGraphicsEffectShader = null
     }
 
     abstract override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean
@@ -113,6 +121,9 @@ abstract class BaseShaderRender : BaseItemRender() {
     companion object {
         /** 素材の開始から終了までを 0~1 で表す uniform 変数名 */
         private const val UNIFORM_NAME_F_TIME = "f_time"
+
+        /** 範囲を vec4 で渡す uniform 変数。vec4(xStart,xEnd,yStart,yEnd) */
+        private const val UNIFORM_NAME_CROP_LOCATION = "vCropLocation"
     }
 
 }

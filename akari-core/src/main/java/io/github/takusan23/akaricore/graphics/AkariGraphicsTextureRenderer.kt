@@ -174,7 +174,7 @@ class AkariGraphicsTextureRenderer internal constructor(
      */
     fun applyEffect(effectShader: AkariGraphicsEffectShader) {
         // FBO のテクスチャユニットを渡して描画
-        effectShader.applyEffect(2) // GLES20.GL_TEXTURE2
+        effectShader.applyEffect(width, height, 2) // GLES20.GL_TEXTURE2
 
         // プログラム（シェーダー）を戻す
         GLES20.glUseProgram(mProgram)
@@ -297,9 +297,9 @@ class AkariGraphicsTextureRenderer internal constructor(
         return action(textures.first())
     }
 
-    /** [AkariGraphicsEffectShader]を作りやすくするためだけのやつ */
-    internal fun <T> genEffect(action: (width: Int, height: Int) -> T): T {
-        return action(width, height)
+    /** [AkariGraphicsEffectShader]を作る。詳しくは[AkariGraphicsProcessor]で。 */
+    internal suspend fun <T> genEffect(action: suspend () -> T): T {
+        return action()
     }
 
     /**

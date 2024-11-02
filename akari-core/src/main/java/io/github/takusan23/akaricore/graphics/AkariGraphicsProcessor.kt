@@ -44,8 +44,15 @@ class AkariGraphicsProcessor(
         textureRenderer.genTextureId(action)
     }
 
-    suspend fun <T> genEffect(action: (width: Int, height: Int) -> T): T = withContext(openGlRelatedThreadDispatcher) {
+    suspend fun <T> genEffect(action: suspend () -> T): T = withContext(openGlRelatedThreadDispatcher) {
         textureRenderer.genEffect(action)
+    }
+
+    /** TODO これ公開したくない。GL スレッド自体を渡すのはしたくない。[genEffect]したものを weakreference で持っておくか */
+    suspend fun withGlThread(action: suspend () -> Unit) {
+        withContext(openGlRelatedThreadDispatcher) {
+            action()
+        }
     }
 
     /**

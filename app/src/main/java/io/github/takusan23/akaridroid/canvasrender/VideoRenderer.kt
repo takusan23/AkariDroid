@@ -6,6 +6,7 @@ import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.BaseItemRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.DrawCanvas
+import io.github.takusan23.akaridroid.canvasrender.itemrender.DrawFragmentShader
 import io.github.takusan23.akaridroid.canvasrender.itemrender.DrawSurfaceTexture
 import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRender
@@ -31,6 +32,8 @@ import kotlinx.coroutines.launch
 /**
  * タイムラインの素材を映像に出力する
  * [RenderData.CanvasItem]の素材を使って、[AkariGraphicsProcessor]でフレームを作り、SurfaceView / MediaCodec に出力する
+ *
+ * TODO なんとかしてテストを書きたい
  */
 class VideoRenderer(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
@@ -112,7 +115,14 @@ class VideoRenderer(private val context: Context) {
         // 前の呼び出しから消えた素材はリソース開放させる
         itemRenderList.forEach { renderItem ->
             if (canvasRenderItem.none { renderItem.isEquals(it) }) {
-                renderItem.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                // TODO GL スレッドから呼ばないといけないはずで厳しい
+                if (renderItem is DrawFragmentShader) {
+                    akariGraphicsProcessor.withGlThread {
+                        renderItem.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                    }
+                } else {
+                    renderItem.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                }
             }
         }
 
@@ -140,7 +150,18 @@ class VideoRenderer(private val context: Context) {
             itemRenderList
                 .filter { itemRender -> itemRender.currentLifecycleState == BaseItemRender.RenderLifecycleState.PREPARED }
                 .filter { itemRender -> !itemRender.isDisplayPosition(currentPositionMs) }
-                .map { itemRender -> launch { itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED) } }
+                .map { itemRender ->
+                    launch {
+                        // TODO GL スレッドから呼ばないといけないはずで厳しい
+                        if (itemRender is DrawFragmentShader) {
+                            akariGraphicsProcessor.withGlThread {
+                                itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                            }
+                        } else {
+                            itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                        }
+                    }
+                }
         }
 
         // 描画すべきリスト
@@ -151,7 +172,18 @@ class VideoRenderer(private val context: Context) {
         coroutineScope {
             displayPositionItemList
                 .filter { it.currentLifecycleState == BaseItemRender.RenderLifecycleState.DESTROYED }
-                .map { itemRender -> launch { itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.PREPARED) } }
+                .map { itemRender ->
+                    launch {
+                        // TODO GL スレッドから呼ばないといけないはずで厳しい
+                        if (itemRender is DrawFragmentShader) {
+                            akariGraphicsProcessor.withGlThread {
+                                itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.PREPARED)
+                            }
+                        } else {
+                            itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.PREPARED)
+                        }
+                    }
+                }
         }
 
         // preDraw を並列で呼び出す
@@ -191,6 +223,14 @@ class VideoRenderer(private val context: Context) {
                             onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) }
                         )
                     }
+
+                    is DrawFragmentShader -> {
+                        if (itemRender.akariGraphicsEffectShader != null) {
+                            itemRender.setVideoSize(videoParameters.outputWidth, videoParameters.outputHeight)
+                            itemRender.preEffect(durationMs, currentPositionMs)
+                            applyEffect(itemRender.akariGraphicsEffectShader!!)
+                        }
+                    }
                 }
             }
         }
@@ -199,7 +239,14 @@ class VideoRenderer(private val context: Context) {
     /** 破棄する */
     suspend fun destroy() {
         itemRenderList.forEach { itemRender ->
-            itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+            // TODO GL スレッドから呼ばないといけないはずで厳しい
+            if (itemRender is DrawFragmentShader) {
+                akariGraphicsProcessorFlow.value?.withGlThread {
+                    itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+                }
+            } else {
+                itemRender.setLifecycle(BaseItemRender.RenderLifecycleState.DESTROYED)
+            }
         }
         scope.cancel()
     }
