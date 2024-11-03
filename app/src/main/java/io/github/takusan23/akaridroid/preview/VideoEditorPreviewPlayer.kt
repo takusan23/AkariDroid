@@ -6,7 +6,7 @@ import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.CanvasRender
-import io.github.takusan23.akaridroid.canvasrender.VideoRenderer
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,12 +35,12 @@ class VideoEditorPreviewPlayer(
     private val playerScope = CoroutineScope(Dispatchers.Default + Job())
 
     /**
-     * [VideoRenderer]に複数スレッドから同時アクセスされないように
+     * [VideoTrackRenderer]に複数スレッドから同時アクセスされないように
      * 直列にしないと、例えば描画途中に素材が破棄される→MediaCodec も破棄→破棄された MediaCodec に対して操作をする→落ちてしまう。
      */
     private val canvasRenderMutex = Mutex()
 
-    private val videoRenderer = VideoRenderer(context = context)
+    private val videoRenderer = VideoTrackRenderer(context = context)
     private val audioRender = AudioRender(
         context = context,
         outPcmFile = projectFolder.resolve(OUT_PCM_FILE_NAME),
@@ -180,6 +180,7 @@ class VideoEditorPreviewPlayer(
             }
             drawVideoFrame()
         }
+        videoRenderer.suspendObserveAkariGraphicsProcessorReCreate(canvasItemList)
     }
 
     /** シークする */

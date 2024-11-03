@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 // TODO コメント書き直す
+// TODO "#version 300 es"が使えるようにする
 abstract class BaseShaderRender : BaseItemRender(), DrawFragmentShader {
 
     /** Bitmap を GLSL で加工する */

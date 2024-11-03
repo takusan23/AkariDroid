@@ -281,6 +281,10 @@ class AkariGraphicsTextureRenderer internal constructor(
         // FBO のクリア？
         // 多分必要
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
+
+        // drawCanvas / drawSurfaceTexture どっちも呼び出さない場合 glUseProgram 誰もしないので
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
     }
 
     /**
@@ -307,6 +311,10 @@ class AkariGraphicsTextureRenderer internal constructor(
      * フレームバッファオブジェクトのテクスチャを描画します。これでオフスクリーンで描画されてた内容が画面に表示されるはず。
      */
     internal fun drawEnd() {
+        // 多分 applyEffect すると glUseProgram
+        GLES20.glUseProgram(mProgram)
+        checkGlError("glUseProgram")
+
         // 描画先をデフォルトの FBO にして、Surface に描画されるように
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
         checkGlError("glBindFramebuffer")

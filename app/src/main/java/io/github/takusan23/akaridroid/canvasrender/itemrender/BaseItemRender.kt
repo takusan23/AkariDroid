@@ -21,6 +21,7 @@ import io.github.takusan23.akaridroid.RenderData
  *  - [destroy]
  *  - [destroy]後に再度必要であれば[prepare]に戻る
  */
+// TODO そもそもライフサイクルの概念が必要ないやつがある。
 abstract class BaseItemRender {
 
     /** 状態 */

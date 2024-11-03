@@ -193,7 +193,7 @@ class AkariGraphicsEffectShader(
         checkGlError("glFinish")
     }
 
-    /** 破棄時に呼び出す */
+    /** 破棄時に呼び出す。GL スレッドから呼ばないとだめな気がします。 */
     fun destroy() {
         GLES20.glDeleteProgram(mProgram)
     }

@@ -103,6 +103,7 @@ class AkariGraphicsSurfaceTexture(private val initTexName: Int) {
     /**
      * 破棄する
      * GL スレッドから呼び出すこと（テクスチャを破棄したい）
+     * TODO テクスチャを明示的に破棄すべきか
      */
     fun destroy() {
         val textures = intArrayOf(initTexName)
