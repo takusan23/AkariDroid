@@ -4,10 +4,10 @@ import android.opengl.GLES20
 import android.view.Surface
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 /**
  * OpenGL ES の上に構築された、映像フレームを作るやつ
@@ -55,34 +55,35 @@ class AkariGraphicsProcessor(
     }
 
     /**
-     * コルーチンがキャンセルされるまで描画を続ける
+     * ループで描画する。
+     * [LoopContinueData.isRequestNextFrame]が false か、コルーチンがキャンセルされたら終了する。
      *
      * @param draw このブロックは GL スレッドから呼び出されます
-     * @return [DrawInfo]。ループ継続かどうかと、MediaCodec / MediaRecorder に渡している場合は経過時間を渡してください。
+     * @return [LoopContinueData]。ループ継続かどうかと、MediaCodec / MediaRecorder に渡している場合は経過時間を渡してください。
      */
-    suspend fun drawLoop(draw: suspend AkariGraphicsTextureRenderer.() -> DrawInfo) {
+    suspend fun drawLoop(draw: suspend AkariGraphicsTextureRenderer.() -> LoopContinueData) {
         withContext(openGlRelatedThreadDispatcher) {
-            // TODO ensureActive() の連続。本当に必要か見る
+            // TODO yield() の連続。本当に必要か見る
             while (isActive) {
-                ensureActive()
+                yield()
                 textureRenderer.prepareDraw()
-                ensureActive()
+                yield()
                 val drawInfo = draw(textureRenderer)
-                ensureActive()
+                yield()
                 textureRenderer.drawEnd()
-                ensureActive()
+                yield()
                 // presentationTime、多分必要。
                 // 無くても動く時があるが、AkariGraphicsProcessor が描画する場合は必要そう
                 // 時間が当てにならなくなる
                 inputSurface.setPresentationTime(drawInfo.currentFrameMs * 1_000_000)
                 inputSurface.swapBuffers()
-                if (!drawInfo.isRunning) break
+                if (!drawInfo.isRequestNextFrame) break
             }
         }
     }
 
     /**
-     * 一回だけ描画する
+     * 一回だけ描画する。
      *
      * @param draw このブロックは GL スレッドから呼び出されます
      */
@@ -115,8 +116,16 @@ class AkariGraphicsProcessor(
     }
 
 
-    data class DrawInfo(
-        val isRunning: Boolean,
-        val currentFrameMs: Long
+    /**
+     * [drawLoop]でループを続行するかと、現在の動画時間。
+     * [currentFrameMs]がなぜ必要かというと、[AkariGraphicsProcessor]の[inputSurface]に MediaCodec / MediaRecorder を使うと、出力された動画の時間が増えすぎてしまう。
+     * 動画の時間を提供するために必要。
+     *
+     * @param isRequestNextFrame 次フレームの作成をするか。しない場合は[drawLoop]を終わります。
+     * @param currentFrameMs ループを開始してからの経過時間（ミリ秒）
+     */
+    data class LoopContinueData(
+        var isRequestNextFrame: Boolean,
+        var currentFrameMs: Long
     )
 }

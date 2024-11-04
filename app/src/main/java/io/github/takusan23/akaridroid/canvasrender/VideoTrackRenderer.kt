@@ -1,8 +1,10 @@
 package io.github.takusan23.akaridroid.canvasrender
 
 import android.content.Context
+import android.view.Surface
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.EffectRenderer
 import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.ImageRenderer
@@ -45,14 +47,14 @@ class VideoTrackRenderer(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
 
     /** SurfaceView の Surface はコールバックで受け取る必要があり、コンストラクタでは受け取れない。Flow でいい感じに受け取る。null で破棄判定 */
-    private val surfaceHolderFlow = MutableStateFlow<SurfaceHolder?>(null)
+    private val surfaceVariantFlow = MutableStateFlow<SurfaceVariant?>(null)
 
     /** パラメーターあとから変更したいので Flow */
     private val videoParametersFlow = MutableStateFlow<VideoParameters?>(null)
 
-    /** [surfaceHolderFlow]と[videoParametersFlow]から[AkariGraphicsProcessor]を作る */
+    /** [surfaceVariantFlow]と[videoParametersFlow]から[AkariGraphicsProcessor]を作る */
     private val akariGraphicsProcessorFlow = combine(
-        surfaceHolderFlow,
+        surfaceVariantFlow,
         videoParametersFlow,
         ::Pair
     ).let { combineFlow ->
@@ -69,18 +71,20 @@ class VideoTrackRenderer(private val context: Context) {
             }
             currentAkariGraphicsProcessor = null
 
-            val surfaceHolder = next.first
+            val surfaceVariant = next.first
             val videoParameters = next.second
-            if (surfaceHolder != null && videoParameters != null) {
+            if (surfaceVariant != null && videoParameters != null) {
                 val (outputWidth, outputHeight, isEnableTenBitHdr) = videoParameters
 
-                // AkariGraphicsProcessor の glViewport に合わせる
-                surfaceHolder.setFixedSize(outputWidth, outputHeight)
+                // SurfaceHolder の場合は AkariGraphicsProcessor の glViewport に合わせる
+                if (surfaceVariant is SurfaceVariant.SurfaceHolder) {
+                    surfaceVariant.holder.setFixedSize(outputWidth, outputHeight)
+                }
 
                 // OpenGL ES の上に構築された動画フレーム描画システム
                 // prepare() 後に emit() する
                 val newAkariGraphicsProcessor = AkariGraphicsProcessor(
-                    outputSurface = surfaceHolder.surface,
+                    outputSurface = surfaceVariant.surface,
                     width = outputWidth,
                     height = outputHeight,
                     isEnableTenBitHdr = isEnableTenBitHdr
@@ -107,15 +111,23 @@ class VideoTrackRenderer(private val context: Context) {
         videoParametersFlow.value = VideoParameters(outputWidth, outputHeight, isEnableTenBitHdr)
     }
 
+    // TODO 違いを書く
     fun setOutputSurfaceHolder(surfaceHolder: SurfaceHolder?) {
-        surfaceHolderFlow.value = surfaceHolder
+        surfaceVariantFlow.value = surfaceHolder?.let { SurfaceVariant.SurfaceHolder(it) }
     }
 
+    // TODO 違いを書く
+    fun setOutputSurface(surface: Surface?) {
+        surfaceVariantFlow.value = surface?.let { SurfaceVariant.Surface(it) }
+    }
+
+    // TODO 違いを書く
     suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>) {
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
         setRenderData(canvasRenderItem, akariGraphicsProcessor)
     }
 
+    // TODO 違いを書く
     suspend fun suspendObserveAkariGraphicsProcessorReCreate(canvasRenderItem: List<RenderData.CanvasItem>) {
         // SurfaceView の Surface 再生成などで AkariGraphicsProcessor 自体が再生成される
         // 再生成されると、OpenGL ES コンテキストに依存している AkariGraphicsEffectShader 等は使えなくなってしまう。 TODO コンテキスト間共有できないか調べる
@@ -158,6 +170,133 @@ class VideoTrackRenderer(private val context: Context) {
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
         val videoParameters = videoParametersFlow.filterNotNull().first()
 
+        // 描画すべき動画素材を取得
+        val displayPositionItemList = prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+
+        // 描画する
+        // レイヤー順に
+        // TODO エンコードには使わないのであんまりないはずだが、eglPresentationTimeANDROID を呼び出せるようにする
+        akariGraphicsProcessor.drawOneshot {
+            drawItemRendererToAkariGraphicsProcessor(
+                durationMs = durationMs,
+                currentPositionMs = currentPositionMs,
+                videoParameters = videoParameters,
+                akariGraphicsTextureRenderer = this,
+                displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
+            )
+        }
+    }
+
+    /**
+     * エンコード（動画の書き出し）時用。
+     * 動画の時間になるまでループする。多分こっちのほうが withContext 呼び出しが減るので良いはず。
+     *
+     * @param durationMs 動画の時間
+     * @param frameRate
+     */
+    suspend fun drawLoop(
+        durationMs: Long,
+        frameRate: Int,
+        onProgress: (currentPositionMs: Long) -> Unit
+    ) {
+        // AkariGraphicsProcessor が生成されるまで待つ
+        val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
+        val videoParameters = videoParametersFlow.filterNotNull().first()
+
+        // 1フレームの時間
+        // 60fps なら 16ms、30fps なら 33ms
+        val frameMs = 1_000 / frameRate
+        // 作成済み動画の時間
+        var currentPositionMs = 0L
+
+        val loopContinueData = AkariGraphicsProcessor.LoopContinueData(true, 0)
+        akariGraphicsProcessor.drawLoop {
+            onProgress(currentPositionMs)
+
+            // 今の時間と続行するかを入れる
+            loopContinueData.currentFrameMs = currentPositionMs
+            loopContinueData.isRequestNextFrame = currentPositionMs <= durationMs
+
+            // 描画する
+            drawItemRendererToAkariGraphicsProcessor(
+                durationMs = durationMs,
+                currentPositionMs = currentPositionMs,
+                videoParameters = videoParameters,
+                akariGraphicsTextureRenderer = this,
+                // TODO これシングルスレッドでいいかな
+                displayPositionItemList = prepareDraw(
+                    akariGraphicsProcessor = akariGraphicsProcessor,
+                    durationMs = durationMs,
+                    currentPositionMs = currentPositionMs
+                )
+            )
+
+            // 時間を増やす
+            // 1 フレーム分の時間。ミリ秒なので増やす
+            currentPositionMs += frameMs
+            // ループ情報を返す
+            loopContinueData
+        }
+    }
+
+    /** 破棄する */
+    fun destroy() {
+        scope.cancel()
+    }
+
+    private suspend fun drawItemRendererToAkariGraphicsProcessor(
+        durationMs: Long,
+        currentPositionMs: Long,
+        videoParameters: VideoParameters,
+        akariGraphicsTextureRenderer: AkariGraphicsTextureRenderer,
+        displayPositionItemList: List<RendererInterface>
+    ) {
+        displayPositionItemList.forEach { itemRender ->
+            when {
+                itemRender is DrawCanvasInterface -> {
+                    akariGraphicsTextureRenderer.drawCanvas {
+                        itemRender.draw(this, durationMs, currentPositionMs)
+                    }
+                }
+
+                itemRender is DrawSurfaceTextureInterface -> {
+                    akariGraphicsTextureRenderer.drawSurfaceTexture(
+                        akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
+                        isAwaitTextureUpdate = false,
+                        onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) }
+                    )
+                }
+
+                itemRender is DrawFragmentShaderInterface -> {
+                    if (itemRender.akariGraphicsEffectShader != null) {
+                        itemRender.preEffect(
+                            width = videoParameters.outputWidth,
+                            height = videoParameters.outputHeight,
+                            durationMs = durationMs,
+                            currentPositionMs = currentPositionMs
+                        )
+                        akariGraphicsTextureRenderer.applyEffect(itemRender.akariGraphicsEffectShader!!)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * [draw]の準備を行う。
+     * タイムラインの動画素材の準備（やもう使われなくなった素材の破棄）や、[PreDrawInterface.preDraw]の呼び出しをする。
+     *
+     * @param akariGraphicsProcessor [AkariGraphicsProcessor]
+     * @param durationMs 動画時間
+     * @param currentPositionMs 動画の再生位置
+     * @return 描画すべき動画時間。[RendererInterface]
+     */
+    private suspend fun prepareDraw(
+        akariGraphicsProcessor: AkariGraphicsProcessor,
+        durationMs: Long,
+        currentPositionMs: Long
+    ): List<RendererInterface> {
+
         // タイムラインの時間外になったら破棄する
         coroutineScope {
             itemRenderList
@@ -175,7 +314,7 @@ class VideoTrackRenderer(private val context: Context) {
         // 描画すべきリスト
         val displayPositionItemList = itemRenderList
             .filter { it.isDisplayPosition(currentPositionMs) }
-            .ifEmpty { null } ?: return
+            .ifEmpty { null } ?: return emptyList()
 
         // タイムラインに入ったことを伝えてない場合は伝える
         // 必要な素材のみ準備する
@@ -206,48 +345,7 @@ class VideoTrackRenderer(private val context: Context) {
                 }
         }
 
-        // TODO eglPresentationTimeANDROID を呼び出せるようにする
-        akariGraphicsProcessor.drawOneshot {
-
-            // 描画する
-            // レイヤー順に
-            displayPositionItemList
-                .sortedBy { it.layerIndex }
-                .forEach { itemRender ->
-                    when {
-                        itemRender is DrawCanvasInterface -> {
-                            drawCanvas {
-                                itemRender.draw(this, durationMs, currentPositionMs)
-                            }
-                        }
-
-                        itemRender is DrawSurfaceTextureInterface -> {
-                            drawSurfaceTexture(
-                                akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
-                                isAwaitTextureUpdate = false,
-                                onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) }
-                            )
-                        }
-
-                        itemRender is DrawFragmentShaderInterface -> {
-                            if (itemRender.akariGraphicsEffectShader != null) {
-                                itemRender.preEffect(
-                                    width = videoParameters.outputWidth,
-                                    height = videoParameters.outputHeight,
-                                    durationMs = durationMs,
-                                    currentPositionMs = currentPositionMs
-                                )
-                                applyEffect(itemRender.akariGraphicsEffectShader!!)
-                            }
-                        }
-                    }
-                }
-        }
-    }
-
-    /** 破棄する */
-    fun destroy() {
-        scope.cancel()
+        return displayPositionItemList
     }
 
     private data class VideoParameters(
@@ -255,5 +353,19 @@ class VideoTrackRenderer(private val context: Context) {
         val outputHeight: Int,
         val isEnableTenBitHdr: Boolean = false
     )
+
+    /**
+     * Surface / SurfaceHolder どっちも受け付けできるように。
+     * [SurfaceVariant.SurfaceHolder]の場合は、[android.view.SurfaceHolder.setFixedSize]を自動で呼び出します。
+     */
+    private interface SurfaceVariant {
+        val surface: android.view.Surface
+
+        data class Surface(override val surface: android.view.Surface) : SurfaceVariant
+
+        data class SurfaceHolder(val holder: android.view.SurfaceHolder) : SurfaceVariant {
+            override val surface: android.view.Surface = holder.surface
+        }
+    }
 
 }

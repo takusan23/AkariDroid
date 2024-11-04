@@ -20,7 +20,7 @@ import java.io.InputStream
  */
 class AudioRender(
     context: Context,
-    val outPcmFile: File,
+    private val outPcmFile: File,
     private val outputDecodePcmFolder: File,
     private val tempFolder: File
 ) {

@@ -15,13 +15,26 @@ class AkariVideoEncoder {
     private var encodeMediaCodec: MediaCodec? = null
     private var mediaMuxer: MediaMuxer? = null
 
+    /**
+     * MediaCodec エンコーダーの準備をする
+     *
+     * @param output 出力先ファイル。全てのバージョンで動くのは[AkariCoreInputOutput.JavaFile]のみです。
+     * @param codecName コーデック名
+     * @param containerFormat コンテナフォーマット
+     * @param bitRate ビットレート
+     * @param frameRate フレームレート
+     * @param keyframeInterval キーフレームの間隔
+     * @param outputVideoWidth 動画の高さ
+     * @param outputVideoHeight 動画の幅
+     */
     fun prepare(
         output: AkariCoreInputOutput.Output,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-        bitRate: Int = 1_000_000,
-        frameRate: Int = 30,
         outputVideoWidth: Int = 1280,
         outputVideoHeight: Int = 720,
+        frameRate: Int = 30,
+        bitRate: Int = 1_000_000,
+        keyframeInterval: Int = 1,
         codecName: String = MediaFormat.MIMETYPE_VIDEO_HEVC
     ) {
         // エンコーダーにセットするMediaFormat
@@ -29,7 +42,7 @@ class AkariVideoEncoder {
         val videoMediaFormat = MediaFormat.createVideoFormat(codecName, outputVideoWidth, outputVideoHeight).apply {
             setInteger(MediaFormat.KEY_BIT_RATE, bitRate)
             setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
-            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, keyframeInterval)
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
         }
 
@@ -41,6 +54,10 @@ class AkariVideoEncoder {
         }
     }
 
+    /**
+     * エンコーダーの入力になる[Surface]を取得する。
+     * [io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]等に渡す。
+     */
     fun getInputSurface(): Surface = encodeMediaCodec!!.createInputSurface()
 
     suspend fun start() {
@@ -81,6 +98,7 @@ class AkariVideoEncoder {
             }
         } finally {
             // エンコーダー終了
+            encodeMediaCodec.signalEndOfInputStream()
             encodeMediaCodec.stop()
             encodeMediaCodec.release()
             // MediaMuxerも終了

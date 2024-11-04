@@ -5,7 +5,6 @@ import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
-import io.github.takusan23.akaridroid.canvasrender.CanvasRender
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -168,7 +167,7 @@ class VideoEditorPreviewPlayer(
 
     /**
      * 動画で再生するキャンパス要素をセットする。キャンセル対応。
-     * 詳しくは[CanvasRender.setRenderData]
+     * 詳しくは[VideoTrackRenderer.setRenderData]
      */
     suspend fun setCanvasRenderItem(
         canvasItemList: List<RenderData.CanvasItem> = emptyList(),

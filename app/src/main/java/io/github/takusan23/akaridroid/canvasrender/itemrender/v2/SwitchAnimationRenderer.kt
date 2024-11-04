@@ -47,8 +47,6 @@ void main() {
     vec4 fragCoord = gl_FragCoord;
     // 正規化する
     vec2 uv = fragCoord.xy / vResolution.xy;
-    // 反転しているので
-    uv = vec2(uv.x, 1.-uv.y);
     // 色を出す
     vec4 color = texture2D(sVideoFrameTexture, uv);
     
@@ -82,8 +80,6 @@ void main() {
     vec4 fragCoord = gl_FragCoord;
     // 正規化する
     vec2 uv = fragCoord.xy / vResolution.xy;
-    // 反転しているので
-    uv = vec2(uv.x, 1.-uv.y);
     
     // 範囲内
     if (vCropLocation[0] < uv.x && vCropLocation[1] > uv.x && vCropLocation[2] < uv.y && vCropLocation[3] > uv.y) {
@@ -126,7 +122,6 @@ const float Radius = 16.0; // ぼかし具合
 void main()
 {
     vec2 v_vTexcoord = gl_FragCoord.xy / vResolution.xy;
-    v_vTexcoord = vec2(v_vTexcoord.x, 1.-v_vTexcoord.y);
     
     // 範囲内
     if (vCropLocation[0] < v_vTexcoord.x && vCropLocation[1] > v_vTexcoord.x && vCropLocation[2] < v_vTexcoord.y && vCropLocation[3] > v_vTexcoord.y) {

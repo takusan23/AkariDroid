@@ -4,17 +4,17 @@ import android.content.Context
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.common.MediaMuxerTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
-import io.github.takusan23.akaricore.video.CanvasVideoProcessor
+import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
-import io.github.takusan23.akaridroid.canvasrender.CanvasRender
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** [VideoEditorPreviewPlayer]のエンコード版 */
 object AkariCoreEncoder {
@@ -75,11 +75,10 @@ object AkariCoreEncoder {
         encoderParameters: EncoderParameters,
         resultFileName: String = "$RESULT_FILE_NAME_PREFIX${System.currentTimeMillis()}.${encoderParameters.containerFormat.extension}",
         onUpdateStatus: (EncodeStatus) -> Unit
-    ): Unit = withContext(Dispatchers.IO) {
+    ) {
         // 映像トラック生成器
-        val canvasRender = CanvasRender(
-            context = context
-        )
+        val videoRenderer = VideoTrackRenderer(context)
+
         // 音声トラック生成器
         // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。
         val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
@@ -99,46 +98,69 @@ object AkariCoreEncoder {
         try {
             // 映像トラック、音声トラックを作り始める
             // 最後に2つのトラックを1つの mp4 にする
-            listOf(
-                launch {
+            coroutineScope {
+                launch(Dispatchers.Default) {
                     // 映像もエンコードする時
                     val videoParams = when (encoderParameters) {
                         is EncoderParameters.AudioOnly -> return@launch
                         is EncoderParameters.AudioVideo -> encoderParameters.videoEncoderParameters
                     }
 
-                    // 素材を入れる
-                    canvasRender.setRenderData(
+                    // エンコーダー
+                    val akariVideoEncoder = AkariVideoEncoder().apply {
+                        prepare(
+                            output = videoTrackFile.toAkariCoreInputOutputData(),
+                            codecName = videoParams.codec.androidMediaCodecName,
+                            bitRate = videoParams.bitrate,
+                            frameRate = videoParams.frameRate,
+                            keyframeInterval = videoParams.keyframeInterval,
+                            outputVideoWidth = renderData.videoSize.width,
+                            outputVideoHeight = renderData.videoSize.height,
+                            containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
+                        )
+                    }
+
+                    // 出力先と動画素材を渡す
+                    videoRenderer.setOutputSurface(
+                        surface = akariVideoEncoder.getInputSurface()
+                    )
+                    videoRenderer.setVideoParameters(
+                        outputWidth = renderData.videoSize.width,
+                        outputHeight = renderData.videoSize.height
+                    )
+                    videoRenderer.setRenderData(
                         canvasRenderItem = renderData.canvasRenderItem
                     )
-                    // 動画のフレームを作る
-                    CanvasVideoProcessor.start(
-                        output = videoTrackFile.toAkariCoreInputOutputData(),
-                        codecName = videoParams.codec.androidMediaCodecName,
-                        bitRate = videoParams.bitrate,
-                        frameRate = videoParams.frameRate,
-                        keyframeInterval = videoParams.keyframeInterval,
-                        outputVideoWidth = renderData.videoSize.width,
-                        outputVideoHeight = renderData.videoSize.height,
-                        containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
-                        onCanvasDrawRequest = { positionMs ->
-                            onUpdateStatus(
-                                EncodeStatus.Progress(
-                                    projectName = projectName,
-                                    encodePositionMs = positionMs,
-                                    durationMs = durationMs
-                                )
-                            )
-                            canvasRender.draw(
-                                outCanvas = this,
+
+                    // エンコーダー開始
+                    val encoderJob = launch { akariVideoEncoder.start() }
+
+                    // 描画も開始
+                    val graphicsJob = launch {
+                        try {
+                            videoRenderer.drawLoop(
                                 durationMs = durationMs,
-                                currentPositionMs = positionMs
+                                frameRate = videoParams.frameRate,
+                                onProgress = { currentPositionMs ->
+                                    onUpdateStatus(
+                                        EncodeStatus.Progress(
+                                            projectName = projectName,
+                                            encodePositionMs = currentPositionMs,
+                                            durationMs = durationMs
+                                        )
+                                    )
+                                }
                             )
-                            positionMs <= durationMs
+                        } finally {
+                            videoRenderer.destroy()
                         }
-                    )
-                },
-                launch {
+                    }
+
+                    // 描画が終わるまで待ってその後エンコーダーも止める
+                    graphicsJob.join()
+                    encoderJob.cancelAndJoin()
+                }
+                launch(Dispatchers.Default) {
                     val audioParams = when (encoderParameters) {
                         is EncoderParameters.AudioOnly -> encoderParameters.audioEncoderParameters
                         is EncoderParameters.AudioVideo -> encoderParameters.audioEncoderParameters
@@ -150,13 +172,13 @@ object AkariCoreEncoder {
                     )
                     // エンコードする
                     AudioEncodeDecodeProcessor.encode(
-                        input = audioRender.outPcmFile.toAkariCoreInputOutputData(),
+                        input = outPcmFile.toAkariCoreInputOutputData(),
                         output = audioTrackFile.toAkariCoreInputOutputData(),
                         codecName = audioParams.codec.androidMediaCodecName,
                         bitRate = audioParams.bitrate
                     )
                 }
-            ).joinAll() // 両方終わるのを待つ
+            }
 
             // 映像トラックと音声トラックを一緒にする
             onUpdateStatus(EncodeStatus.Mixing(projectName = projectName))
@@ -181,7 +203,7 @@ object AkariCoreEncoder {
             resultVideoFile.delete()
             outPcmFile.delete()
             // リソース開放
-            canvasRender.destroy()
+            videoRenderer.destroy()
             audioRender.destroy()
         }
     }
