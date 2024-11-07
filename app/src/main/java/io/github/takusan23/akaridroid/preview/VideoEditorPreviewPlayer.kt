@@ -97,8 +97,8 @@ class VideoEditorPreviewPlayer(
                     // false なら起動しない
                     if (!isPlaying) return@collectLatest
 
-                    // TODO fps を RenderData からもらう
-                    val fps = 60
+                    // TODO プレビュー用 fps 設定を新設したい
+                    val fps = 30
 
                     // 1フレームの時間（60fps なら16ミリ秒）の PCM 音声を再生するのに必要なバイト配列
                     val pcmByteArrayFromOneVideoFrame = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE / fps)
@@ -114,6 +114,7 @@ class VideoEditorPreviewPlayer(
 
                             // フレームを生成する
                             // Canvas に書く
+                            // TODO withContext を毎フレーム呼ぶのはコストがかかる
                             drawVideoFrame(durationMs, currentPositionMs)
 
                             // 動画の1フレーム分の音声を取り出して再生する
@@ -177,8 +178,8 @@ class VideoEditorPreviewPlayer(
             canvasRenderMutex.withLock {
                 videoRenderer.setRenderData(canvasItemList)
             }
-            drawVideoFrame()
         }
+        drawVideoFrame()
         videoRenderer.suspendObserveAkariGraphicsProcessorReCreate(canvasItemList)
     }
 

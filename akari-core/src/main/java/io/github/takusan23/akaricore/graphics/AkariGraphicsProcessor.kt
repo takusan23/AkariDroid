@@ -4,7 +4,6 @@ import android.opengl.GLES20
 import android.view.Surface
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
@@ -64,14 +63,11 @@ class AkariGraphicsProcessor(
     suspend fun drawLoop(draw: suspend AkariGraphicsTextureRenderer.() -> LoopContinueData) {
         withContext(openGlRelatedThreadDispatcher) {
             // TODO yield() の連続。本当に必要か見る
-            while (isActive) {
+            while (true) {
                 yield()
                 textureRenderer.prepareDraw()
-                yield()
                 val drawInfo = draw(textureRenderer)
-                yield()
                 textureRenderer.drawEnd()
-                yield()
                 // presentationTime、多分必要。
                 // 無くても動く時があるが、AkariGraphicsProcessor が描画する場合は必要そう
                 // 時間が当てにならなくなる

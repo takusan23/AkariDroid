@@ -231,7 +231,7 @@ class VideoTrackRenderer(private val context: Context) {
                 currentPositionMs = currentPositionMs,
                 videoParameters = videoParameters,
                 akariGraphicsTextureRenderer = this,
-                displayPositionItemList = displayPositionItemList
+                displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
             )
 
             // 時間を増やす
