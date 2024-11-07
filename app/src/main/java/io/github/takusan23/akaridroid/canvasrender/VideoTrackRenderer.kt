@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * タイムラインの素材を描画して、動画フレームとして出力する。
@@ -171,7 +172,9 @@ class VideoTrackRenderer(private val context: Context) {
         val videoParameters = videoParametersFlow.filterNotNull().first()
 
         // 描画すべき動画素材を取得
-        val displayPositionItemList = prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+        val displayPositionItemList = withContext(Dispatchers.Default) {
+            prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+        }
 
         // 描画する
         // レイヤー順に
@@ -217,18 +220,18 @@ class VideoTrackRenderer(private val context: Context) {
             loopContinueData.currentFrameMs = currentPositionMs
             loopContinueData.isRequestNextFrame = currentPositionMs <= durationMs
 
+            // 描画すべき動画素材の取得
+            val displayPositionItemList = withContext(Dispatchers.Default) {
+                prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+            }
+
             // 描画する
             drawItemRendererToAkariGraphicsProcessor(
                 durationMs = durationMs,
                 currentPositionMs = currentPositionMs,
                 videoParameters = videoParameters,
                 akariGraphicsTextureRenderer = this,
-                // TODO これシングルスレッドでいいかな
-                displayPositionItemList = prepareDraw(
-                    akariGraphicsProcessor = akariGraphicsProcessor,
-                    durationMs = durationMs,
-                    currentPositionMs = currentPositionMs
-                )
+                displayPositionItemList = displayPositionItemList
             )
 
             // 時間を増やす
