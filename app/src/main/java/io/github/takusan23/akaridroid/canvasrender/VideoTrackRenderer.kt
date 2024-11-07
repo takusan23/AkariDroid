@@ -191,13 +191,17 @@ class VideoTrackRenderer(private val context: Context) {
     }
 
     /**
-     * エンコード（動画の書き出し）時用。
-     * 動画の時間になるまでループする。多分こっちのほうが withContext 呼び出しが減るので良いはず。
+     * エンコード（動画の書き出し）用。動画の時間になるまでループする。
+     * 動画の時間が終わるか、コルーチンがキャンセルされると終わる。
+     *
+     * [draw]を毎フレーム呼び出すと、[AkariGraphicsProcessor.drawOneshot]を毎回呼び出すことになるので遅くなる。
+     * また、[drawPreviewLoop]と違い時間が増えてく一方なので動画時間を渡す。
      *
      * @param durationMs 動画の時間
-     * @param frameRate
+     * @param frameRate フレームレート
+     * @param onProgress 描画した時間
      */
-    suspend fun drawLoop(
+    suspend fun drawRecordLoop(
         durationMs: Long,
         frameRate: Int,
         onProgress: (currentPositionMs: Long) -> Unit
@@ -237,6 +241,50 @@ class VideoTrackRenderer(private val context: Context) {
             // 時間を増やす
             // 1 フレーム分の時間。ミリ秒なので増やす
             currentPositionMs += frameMs
+            // ループ情報を返す
+            loopContinueData
+        }
+    }
+
+    /**
+     * 描画ループし続ける。つまりプレビュー再生用。
+     * コルーチンがキャンセルされると終わる。
+     *
+     * [drawRecordLoop]との違いは、こっちはプレビュー位置を自由に変更できる。プレビュー用なので。
+     * [draw]を毎フレーム呼び出すと、[AkariGraphicsProcessor.drawOneshot]を毎回呼び出すことになるので遅くなる。
+     *
+     * @param durationMs 動画の時間
+     * @param onCurrentPositionMs 動画の再生位置。戻したり進めたりは呼び出し側で好きにできます。
+     */
+    suspend fun drawPreviewLoop(
+        durationMs: Long,
+        onCurrentPositionMs: () -> Long
+    ) {
+        // AkariGraphicsProcessor が生成されるまで待つ
+        val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
+        val videoParameters = videoParametersFlow.filterNotNull().first()
+
+        // エンコードするわけじゃないので、常に true / 0
+        val loopContinueData = AkariGraphicsProcessor.LoopContinueData(true, 0)
+        akariGraphicsProcessor.drawLoop {
+
+            // 時間を取得。前回のフレームの時間と違うときだけ描画
+            val currentPositionMs = onCurrentPositionMs()
+
+            // 描画すべき動画素材の取得
+            val displayPositionItemList = withContext(Dispatchers.Default) {
+                prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+            }
+
+            // 描画する
+            drawItemRendererToAkariGraphicsProcessor(
+                durationMs = durationMs,
+                currentPositionMs = currentPositionMs,
+                videoParameters = videoParameters,
+                akariGraphicsTextureRenderer = this,
+                displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
+            )
+
             // ループ情報を返す
             loopContinueData
         }

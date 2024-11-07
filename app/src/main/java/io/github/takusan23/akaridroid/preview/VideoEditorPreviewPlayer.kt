@@ -10,6 +10,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -98,7 +101,8 @@ class VideoEditorPreviewPlayer(
                     if (!isPlaying) return@collectLatest
 
                     // TODO プレビュー用 fps 設定を新設したい
-                    val fps = 30
+                    val fps = 60
+                    val frameMs = 1_000L / fps
 
                     // 1フレームの時間（60fps なら16ミリ秒）の PCM 音声を再生するのに必要なバイト配列
                     val pcmByteArrayFromOneVideoFrame = ByteArray(AkariCoreAudioProperties.ONE_SECOND_PCM_DATA_SIZE / fps)
@@ -106,30 +110,39 @@ class VideoEditorPreviewPlayer(
                     pcmPlayer.play()
 
                     try {
-                        // 終わるかするまで
-                        while (isActive) {
-
-                            // 生成すべき時間
-                            val (_, currentPositionMs, durationMs) = _playerStatus.value
-
-                            // フレームを生成する
-                            // Canvas に書く
-                            // TODO withContext を毎フレーム呼ぶのはコストがかかる
-                            drawVideoFrame(durationMs, currentPositionMs)
-
-                            // 動画の1フレーム分の音声を取り出して再生する
-                            audioRender.seek(currentPositionMs)
-                            audioRender.readPcmByteArray(pcmByteArrayFromOneVideoFrame)
-                            pcmPlayer.writePcmData(pcmByteArrayFromOneVideoFrame)
-
-                            // 次のフレームのために時間を進める
-                            if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
-                                val frameMs = 1000 / fps // TODO fps を RenderData から取り出す
-                                _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + frameMs) }
-                            } else {
-                                // 動画時間超えたら終わり
-                                break
+                        coroutineScope {
+                            // 時間を増やす
+                            val timerJob = launch {
+                                while (isActive) {
+                                    delay(frameMs)
+                                    // 次のフレームのために時間を進める
+                                    if (_playerStatus.value.currentPositionMs <= _playerStatus.value.durationMs) {
+                                        _playerStatus.update { it.copy(currentPositionMs = it.currentPositionMs + frameMs) }
+                                    }
+                                }
                             }
+                            // 映像を描画する
+                            val graphicsJob = launch {
+                                videoRenderer.drawPreviewLoop(
+                                    durationMs = _playerStatus.value.durationMs,
+                                    onCurrentPositionMs = { _playerStatus.value.currentPositionMs }
+                                )
+                            }
+                            // 音声を再生する
+                            val audioJob = launch {
+                                _playerStatus
+                                    .map { it.currentPositionMs }
+                                    .collectLatest { currentPositionMs ->
+                                        // 動画の1フレーム分の音声を取り出して再生する
+                                        audioRender.seek(currentPositionMs)
+                                        audioRender.readPcmByteArray(pcmByteArrayFromOneVideoFrame)
+                                        pcmPlayer.writePcmData(pcmByteArrayFromOneVideoFrame)
+                                    }
+                            }
+                            // 終わるかするまで
+                            timerJob.join()
+                            graphicsJob.cancelAndJoin()
+                            audioJob.cancelAndJoin()
                         }
                     } finally {
                         pcmPlayer.pause()

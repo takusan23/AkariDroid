@@ -55,7 +55,10 @@ class AkariGraphicsProcessor(
 
     /**
      * ループで描画する。
-     * [LoopContinueData.isRequestNextFrame]が false か、コルーチンがキャンセルされたら終了する。
+     * 連続してフレームを描画する場合は、[drawOneshot]をループで呼び出すよりこちらを使ってください。
+     * [withContext]の呼び出しが地味に高コストなので。
+     *
+     * [LoopContinueData.isRequestNextFrame]が false か、コルーチンがキャンセルされたら終了します。
      *
      * @param draw このブロックは GL スレッドから呼び出されます
      * @return [LoopContinueData]。ループ継続かどうかと、MediaCodec / MediaRecorder に渡している場合は経過時間を渡してください。
@@ -80,6 +83,7 @@ class AkariGraphicsProcessor(
 
     /**
      * 一回だけ描画する。
+     * 一回限りのプレビュー更新など。
      *
      * @param draw このブロックは GL スレッドから呼び出されます
      */
@@ -116,6 +120,8 @@ class AkariGraphicsProcessor(
      * [drawLoop]でループを続行するかと、現在の動画時間。
      * [currentFrameMs]がなぜ必要かというと、[AkariGraphicsProcessor]の[inputSurface]に MediaCodec / MediaRecorder を使うと、出力された動画の時間が増えすぎてしまう。
      * 動画の時間を提供するために必要。
+     *
+     * 録画じゃなくてプレビューのみの場合は[currentFrameMs]は 0 固定で良いはず。
      *
      * @param isRequestNextFrame 次フレームの作成をするか。しない場合は[drawLoop]を終わります。
      * @param currentFrameMs ループを開始してからの経過時間（ミリ秒）

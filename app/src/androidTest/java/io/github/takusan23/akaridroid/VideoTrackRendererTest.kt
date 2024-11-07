@@ -515,7 +515,7 @@ class VideoTrackRendererTest {
             coroutineScope {
                 val encoderJob = launch { akariVideoEncoder.start() }
                 val graphicsJob = launch {
-                    videoTrackRenderer.drawLoop(
+                    videoTrackRenderer.drawRecordLoop(
                         durationMs = durationMs,
                         frameRate = 30,
                         onProgress = { /* do nothing */ }

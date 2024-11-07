@@ -138,7 +138,7 @@ object AkariCoreEncoder {
                     // 描画も開始
                     val graphicsJob = launch {
                         try {
-                            videoRenderer.drawLoop(
+                            videoRenderer.drawRecordLoop(
                                 durationMs = durationMs,
                                 frameRate = videoParams.frameRate,
                                 onProgress = { currentPositionMs ->
