@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2
+package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import android.content.Context
 import android.opengl.Matrix
@@ -7,12 +7,28 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.canvasrender.itemrender.calcVideoFramePositionMs
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.DrawSurfaceTextureInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.PreDrawInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.ProcessorDestroyInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.TimelineLifecycleRenderer
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawSurfaceTextureInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 import java.io.File
+
+/**
+ * とりあえずここに置かせて；；
+ * 再生位置を渡して、素材の再生位置を出す。再生速度、オフセットが考慮される。
+ *
+ * @param currentPositionMs 動画全体の再生位置
+ * @return 動画素材の取り出すフレームの時間
+ */
+fun RenderData.CanvasItem.Video.calcVideoFramePositionMs(currentPositionMs: Long): Long {
+    // 素材の開始位置から見た positionMs にする
+    val currentPositionMsInItem = currentPositionMs - displayTime.startMs
+    // 再生速度を考慮した positionMsInItem にする
+    val currentPositionMsInPlaybackSpeed = (currentPositionMsInItem * displayTime.playbackSpeed).toLong()
+    // オフセット、読み飛ばす分を考慮
+    // offset は再生速度考慮している
+    return currentPositionMsInPlaybackSpeed + displayOffset.offsetFirstMs
+}
 
 class VideoRenderer(
     private val context: Context,

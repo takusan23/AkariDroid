@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature
+package io.github.takusan23.akaridroid.canvasrender.itemrender.feature
 
 import android.graphics.Canvas
 

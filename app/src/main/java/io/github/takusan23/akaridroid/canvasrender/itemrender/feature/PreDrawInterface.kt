@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature
+package io.github.takusan23.akaridroid.canvasrender.itemrender.feature
 
 /** [DrawCanvasInterface.draw]や[DrawSurfaceTextureInterface.draw]よりも前に処理をしたい場合 */
 interface PreDrawInterface {

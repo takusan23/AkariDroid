@@ -1,11 +1,11 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2
+package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.DrawCanvasInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.TimelineLifecycleRenderer
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 
 /** 図形を描画する */
 class ShapeRenderer(

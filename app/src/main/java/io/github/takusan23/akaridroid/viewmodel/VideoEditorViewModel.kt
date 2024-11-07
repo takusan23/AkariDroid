@@ -12,7 +12,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRenderer
 import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
@@ -816,7 +816,7 @@ class VideoEditorViewModel(
         val newSizeRenderItem = when (val renderItem = getRenderItem(request.id)!!) {
             is RenderData.AudioItem.Audio -> return // 音声は来ない
             is RenderData.CanvasItem.Image -> renderItem.copy(size = request.size)
-            is RenderData.CanvasItem.Text -> renderItem.copy(textSize = TextRender.analyzeTextSize(renderItem, request.size.height))
+            is RenderData.CanvasItem.Text -> renderItem.copy(textSize = TextRenderer.analyzeTextSize(renderItem, request.size.height))
             is RenderData.CanvasItem.Video -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.Shape -> renderItem.copy(size = request.size)
             is RenderData.CanvasItem.Shader -> renderItem.copy(size = request.size)
@@ -917,7 +917,7 @@ class VideoEditorViewModel(
             is RenderData.CanvasItem.Image -> this.size
             is RenderData.CanvasItem.Video -> this.size
             is RenderData.CanvasItem.Shape -> this.size
-            is RenderData.CanvasItem.Text -> TextRender.analyzeDrawSize(this) // テキストには Size が生えていないので計算する
+            is RenderData.CanvasItem.Text -> TextRenderer.analyzeDrawSize(this) // テキストには Size が生えていないので計算する
             is RenderData.CanvasItem.Shader -> this.size
             is RenderData.CanvasItem.SwitchAnimation -> this.size
             is RenderData.CanvasItem.Effect -> this.size

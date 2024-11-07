@@ -1,14 +1,13 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2
+package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.DrawFragmentShaderInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.GlTimelineLifecycleInterface
-import io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature.ProcessorDestroyInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawFragmentShaderInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.GlTimelineLifecycleInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
 
 // TODO コメント書き直す
 // TODO "#version 300 es"が使えるようにする
-// TODO シェーダー系は AkariGraphicsProcessor(OpenGL ES コンテキスト) が有効な間のみなので、TimelineStaticRenderer2 の方を使う
 abstract class BaseShaderRenderer : GlTimelineLifecycleInterface(), DrawFragmentShaderInterface, ProcessorDestroyInterface {
 
     /** [io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]にエフェクトを適用するため */

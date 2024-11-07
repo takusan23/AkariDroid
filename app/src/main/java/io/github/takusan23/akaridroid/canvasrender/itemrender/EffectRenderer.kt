@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2
+package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.RenderData

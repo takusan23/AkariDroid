@@ -1,18 +1,22 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
+import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 import io.github.takusan23.akaridroid.tool.FontManager
 
 /** 文字を描画する */
-class TextRender(
+class TextRenderer(
     private val context: Context,
     private val text: RenderData.CanvasItem.Text
-) : BaseItemRender(), DrawCanvas {
+) : TimelineLifecycleRenderer(), DrawCanvasInterface {
+
+    override val layerIndex: Int
+        get() = text.layerIndex
 
     // 枠なし文字
     private val fillPaint = createPaint(text).apply {
@@ -25,10 +29,16 @@ class TextRender(
         strokeWidth = 5f
     }
 
-    override val layerIndex: Int
-        get() = text.layerIndex
+    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+        return text == renderItem
+    }
 
-    override suspend fun prepare() {
+    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
+        return currentPositionMs in text.displayTime
+    }
+
+    override suspend fun enterTimeline() {
+        super.enterTimeline()
         // フォントをロードする
         val fontManager = FontManager(context)
         text.fontName
@@ -39,27 +49,9 @@ class TextRender(
             }
     }
 
-    override suspend fun draw(canvas: Canvas, drawFrame: Bitmap, durationMs: Long, currentPositionMs: Long) {
-        fillPaint.color = Color.parseColor(text.fontColor)
-        fillPaint.textSize = text.textSize
-
-        // 枠取りにするなら
-        val isDrawStroke = text.strokeColor != null
-        if (isDrawStroke) {
-            strokePaint.color = Color.parseColor(text.strokeColor)
-            strokePaint.textSize = text.textSize
-        }
-
-        val (x, y) = text.position
-
-        // 複数行サポート
-        text.text.lines().forEachIndexed { index, text ->
-            canvas.drawText(text, x, y + (fillPaint.textSize * index), fillPaint)
-
-            if (isDrawStroke) {
-                canvas.drawText(text, x, y + (fillPaint.textSize * index), strokePaint)
-            }
-        }
+    override suspend fun leaveTimeline() {
+        super.leaveTimeline()
+        // do nothing
     }
 
     override suspend fun draw(canvas: Canvas, durationMs: Long, currentPositionMs: Long) {
@@ -85,22 +77,10 @@ class TextRender(
         }
     }
 
-    override fun destroy() {
-        // do nothing
-    }
-
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
-        return text == renderItem
-    }
-
-    override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
-        return currentPositionMs in text.displayTime
-    }
-
     companion object {
 
         /**
-         * [TextRender]で利用されている[Paint]を返す。
+         * [TextRenderer]で利用されている[Paint]を返す。
          * 文字を書くときに必要な縦横サイズの測定に。
          *
          * @param text 文字サイズとか。[RenderData.CanvasItem.Text]

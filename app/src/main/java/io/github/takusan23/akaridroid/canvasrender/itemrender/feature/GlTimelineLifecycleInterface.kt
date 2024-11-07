@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.canvasrender.itemrender.v2.feature
+package io.github.takusan23.akaridroid.canvasrender.itemrender.feature
 
 /** [TimelineLifecycleRenderer]と同じですが、GL スレッドで呼び出されるのが約束されます。 */
 abstract class GlTimelineLifecycleInterface : RendererInterface {

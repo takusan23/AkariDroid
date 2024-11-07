@@ -11,7 +11,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
-import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRender
+import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRenderer
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
@@ -344,7 +344,7 @@ class VideoTrackRendererTest {
                     layerIndex = 1,
                     size = RenderData.Size(1280, 720),
                     name = "フラグメントシェーダー",
-                    fragmentShader = EffectRender.FRAGMENT_SHADER_MOSAIC // EffectRender から借りてくる
+                    fragmentShader = EffectRenderer.FRAGMENT_SHADER_MOSAIC // EffectRender から借りてくる
                 )
             )
         )
@@ -379,7 +379,7 @@ class VideoTrackRendererTest {
                     layerIndex = 1,
                     size = RenderData.Size(640, 320),
                     name = "フラグメントシェーダー",
-                    fragmentShader = EffectRender.FRAGMENT_SHADER_MOSAIC
+                    fragmentShader = EffectRenderer.FRAGMENT_SHADER_MOSAIC
                 )
             )
         )
