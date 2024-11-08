@@ -181,7 +181,7 @@ fun VideoEditorScreen(
                     TimeLine(
                         modifier = Modifier,
                         timeLineData = timeLineData.value,
-                        currentPositionMs = previewPlayerStatus.value.currentPositionMs,
+                        currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
                         durationMs = renderData.value.durationMs,
                         msWidthPx = timeLineMsWidthPx.intValue,
                         onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },

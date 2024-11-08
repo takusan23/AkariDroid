@@ -131,6 +131,8 @@ private data class TimeLineItemComponentDragAndDropData(
  * タイムライン
  *
  * @param msWidthPx 1 ミリ秒をどれだけの幅で表すか
+ * @param currentPositionMs プレビューの再生位置。ラムダで値を取るため遅延読み取りが可能です。これにより、高速に値が変化しても再コンポジションされません。
+ * @param durationMs 動画の時間
  */
 @Composable
 fun TimeLine(
@@ -147,7 +149,7 @@ fun TimeLine(
             TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
         )
     ),
-    currentPositionMs: Long,
+    currentPositionMs: () -> Long,
     durationMs: Long,
     msWidthPx: Int,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
@@ -191,15 +193,13 @@ fun TimeLine(
                 onDragAndDropRequest = onDragAndDropRequest,
             )
 
-            // タイムラインの縦の棒
-            // タイムラインに重ねて使う
-            if (timelineScrollableAreaCoordinates.value != null) {
-                OverlayTimeLineComponents(
-                    timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value!!,
-                    durationMs = durationMs,
-                    currentPositionMs = currentPositionMs
-                )
-            }
+            // タイムラインの縦の棒。タイムラインに重ねて使う
+            // matchParentSize で親 Box の大きさに合わせる
+            OverlayTimeLineComponents(
+                modifier = Modifier.matchParentSize(),
+                durationMs = { durationMs },
+                currentPositionMs = currentPositionMs
+            )
         }
     }
 }
@@ -208,32 +208,30 @@ fun TimeLine(
  * タイムラインの縦の棒。タイムラインに重ねるコンポーネント
  *
  * @param modifier [Modifier]
- * @param timeLineScrollableAreaCoordinates [RequiredSizeTimeLine]コンポーネントのサイズ
  * @param durationMs 動画時間
  * @param currentPositionMs 再生位置
  */
 @Composable
 private fun OverlayTimeLineComponents(
     modifier: Modifier = Modifier,
-    timeLineScrollableAreaCoordinates: LayoutCoordinates,
-    durationMs: Long,
-    currentPositionMs: Long
+    durationMs: () -> Long,
+    currentPositionMs: () -> Long
 ) {
-    val barModifier = modifier.height(with(LocalDensity.current) { timeLineScrollableAreaCoordinates.size.height.toDp() })
+    Box(modifier) {
+        // 動画の長さ
+        TimeLinePositionBar(
+            modifier = Modifier.fillMaxHeight(),
+            color = Color.Blue,
+            positionMs = durationMs
+        )
 
-    // 動画の長さ
-    TimeLinePositionBar(
-        modifier = barModifier,
-        color = Color.Blue,
-        positionMs = durationMs
-    )
-
-    // 再生位置
-    TimeLinePositionBar(
-        modifier = barModifier,
-        color = Color.Red,
-        positionMs = currentPositionMs
-    )
+        // 再生位置
+        TimeLinePositionBar(
+            modifier = Modifier.fillMaxHeight(),
+            color = Color.Red,
+            positionMs = currentPositionMs
+        )
+    }
 }
 
 /**
@@ -258,7 +256,7 @@ private fun RequiredSizeTimeLine(
     timeLineData: TimeLineData,
     onSeek: (positionMs: Long) -> Unit,
     timeLineScrollableAreaCoordinates: LayoutCoordinates?,
-    currentPositionMs: Long,
+    currentPositionMs: () -> Long,
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
     onDelete: (TimeLineData.Item) -> Unit,
@@ -379,7 +377,7 @@ private fun TimeLineLane(
     modifier: Modifier = Modifier,
     laneItemList: List<TimeLineData.Item>,
     laneIndex: Int,
-    currentPositionMs: Long,
+    currentPositionMs: () -> Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     magnetPositionList: List<MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
@@ -437,7 +435,7 @@ private fun TimeLineLane(
 private fun TimeLineItem(
     modifier: Modifier = Modifier,
     timeLineItemData: TimeLineData.Item,
-    currentPositionMs: Long,
+    currentPositionMs: () -> Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     magnetPositionList: List<MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
@@ -465,10 +463,10 @@ private fun TimeLineItem(
     val durationMs = remember(timeLineItemData) { mutableLongStateOf(timeLineItemData.durationMs) }
     // 磁石モード用に、くっつける位置。
     // 自分自身は除く必要あり。あと再生位置も欲しい
-    val magnetPositionMsList = remember(magnetPositionList, currentPositionMs) {
+    val magnetPositionMsList = remember(magnetPositionList, currentPositionMs()) {
         magnetPositionList
             .filter { it.id != timeLineItemData.id }
-            .map { it.positionMs } + currentPositionMs
+            .map { it.positionMs } + currentPositionMs()
     }
 
     Surface(
@@ -615,7 +613,7 @@ private fun TimeLineItem(
         // ボトムシートを出すとか
         TimeLineItemContextMenu(
             isVisibleMenu = isVisibleMenu.value,
-            isEnableCut = currentPositionMs in timeLineItemData.timeRange,
+            isEnableCut = currentPositionMs() in timeLineItemData.timeRange,
             onDismissRequest = { isVisibleMenu.value = false },
             onEdit = onEdit,
             onCut = onCut,
@@ -728,14 +726,14 @@ private fun TimeLineTopTimeLabel(
 private fun TimeLinePositionBar(
     modifier: Modifier = Modifier,
     color: Color,
-    positionMs: Long
+    positionMs: () -> Long
 ) {
     val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
 
     Box(
         modifier = modifier
             .width(2.dp)
-            .offset { IntOffset(with(msWidthPx) { positionMs.msToWidth }, 0) }
+            .offset { IntOffset(with(msWidthPx) { positionMs().msToWidth }, 0) }
             .background(color)
     )
 }

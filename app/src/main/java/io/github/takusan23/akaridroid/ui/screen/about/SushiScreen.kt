@@ -61,7 +61,7 @@ fun AboutSushiScreen(onBack: () -> Unit) {
             TimeLine(
                 modifier = Modifier.weight(1f),
                 timeLineData = sushiData.value,
-                currentPositionMs = currentPositionMs.longValue,
+                currentPositionMs = { currentPositionMs.longValue },
                 durationMs = 60_000,
                 msWidthPx = 20,
                 onSeek = { positionMs -> currentPositionMs.longValue = positionMs },
