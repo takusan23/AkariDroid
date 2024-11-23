@@ -193,7 +193,7 @@ class VideoEditorPreviewPlayer(
             }
         }
         drawVideoFrame()
-        videoRenderer.awaitSetRenderDataInRecreateAkariGraphicsProcessor(canvasItemList)
+        videoRenderer.repeatSetRenderDataInRecreateAkariGraphicsProcessor(canvasItemList)
     }
 
     /** シークする */

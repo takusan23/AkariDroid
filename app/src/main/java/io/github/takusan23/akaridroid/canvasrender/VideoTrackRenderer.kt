@@ -104,6 +104,13 @@ class VideoTrackRenderer(private val context: Context) {
     /** 描画する [RendererInterface] の配列。基底インターフェース */
     private var itemRenderList = emptyList<RendererInterface>()
 
+    /**
+     * 動画の情報をセットする
+     *
+     * @param outputWidth 幅
+     * @param outputHeight 高さ
+     * @param isEnableTenBitHdr 10Bit HDR を利用する場合は true。10Bit HDR の動画を扱う場合。
+     */
     fun setVideoParameters(
         outputWidth: Int,
         outputHeight: Int,
@@ -112,57 +119,52 @@ class VideoTrackRenderer(private val context: Context) {
         videoParametersFlow.value = VideoParameters(outputWidth, outputHeight, isEnableTenBitHdr)
     }
 
-    // TODO 違いを書く
+    /**
+     * [SurfaceHolder]を動画のフレーム出力先として利用する。
+     * SurfaceView の生成コールバックで貰えるやつ。
+     *
+     * [setOutputSurface]との違いは[SurfaceHolder.setFixedSize]を呼び出し、OpenGL ES の glViewport と合わせます。
+     *
+     * @param surfaceHolder [surfaceHolder]
+     */
     fun setOutputSurfaceHolder(surfaceHolder: SurfaceHolder?) {
         surfaceVariantFlow.value = surfaceHolder?.let { SurfaceVariant.SurfaceHolder(it) }
     }
 
-    // TODO 違いを書く
+    /**
+     * [Surface]を動画のフレーム出力先として利用する。
+     * [android.media.MediaCodec]などで利用。
+     *
+     * @param surface [Surface]
+     */
     fun setOutputSurface(surface: Surface?) {
         surfaceVariantFlow.value = surface?.let { SurfaceVariant.Surface(it) }
     }
 
-    // TODO 違いを書く
+    /**
+     * 動画素材をセットする
+     *
+     * @param canvasRenderItem [RenderData.CanvasItem]の配列
+     */
     suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>) {
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
         setRenderData(canvasRenderItem, akariGraphicsProcessor)
     }
 
-    // TODO 違いを書く
-    suspend fun awaitSetRenderDataInRecreateAkariGraphicsProcessor(canvasRenderItem: List<RenderData.CanvasItem>) {
-        // SurfaceView の Surface 再生成などで AkariGraphicsProcessor 自体が再生成される
-        // 再生成されると、OpenGL ES コンテキストに依存している AkariGraphicsEffectShader 等は使えなくなってしまう。 TODO コンテキスト間共有できないか調べる
-        // そのため、再生成されたら作り直す必要がある。
+    /**
+     * [setRenderData]と似ていますが、こちらはキャンセルされるまで処理が終わりません。
+     *
+     * [AkariGraphicsProcessor]は[setOutputSurfaceHolder]等の呼び出しにより再生成がされます。Surface 再生成などで呼び出される。
+     * 再生成されると、OpenGL ES コンテキストに依存している AkariGraphicsEffectShader 等は使えなくなってしまう。TODO コンテキスト間共有できないか調べる
+     *
+     * そのため、再生成されたら作り直す必要がある。
+     * 再生成されたことを検知するため常に呼び出し元には戻らない関数になります。
+     */
+    suspend fun repeatSetRenderDataInRecreateAkariGraphicsProcessor(canvasRenderItem: List<RenderData.CanvasItem>) {
         // setRenderData でセットしたので初回は skip
         akariGraphicsProcessorFlow.drop(1).collectLatest { akariGraphicsProcessor ->
             akariGraphicsProcessor ?: return@collectLatest
             setRenderData(canvasRenderItem, akariGraphicsProcessor)
-        }
-    }
-
-    private suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>, akariGraphicsProcessor: AkariGraphicsProcessor) {
-
-        // 前の呼び出しから消えた素材はリソース開放させる
-        itemRenderList.forEach { renderItem ->
-            if (canvasRenderItem.none { renderItem.isEquals(it) }) {
-                when (renderItem) {
-                    is TimelineLifecycleRenderer -> renderItem.leaveTimeline()
-                    is GlTimelineLifecycleInterface -> akariGraphicsProcessor.withOpenGlThread { renderItem.leaveTimelineGl() }
-                }
-            }
-        }
-
-        itemRenderList = canvasRenderItem.map { renderItem ->
-            // データが変化していない場合は使い回す
-            itemRenderList.firstOrNull { it.isEquals(renderItem) } ?: when (renderItem) { // 無ければ作る
-                is RenderData.CanvasItem.Effect -> EffectRenderer(renderItem)
-                is RenderData.CanvasItem.Image -> ImageRenderer(context, renderItem)
-                is RenderData.CanvasItem.Shader -> ShaderRenderer(renderItem)
-                is RenderData.CanvasItem.Shape -> ShapeRenderer(renderItem)
-                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderer(renderItem)
-                is RenderData.CanvasItem.Text -> TextRenderer(context, renderItem)
-                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, texId) }
-            }
         }
     }
 
@@ -295,6 +297,34 @@ class VideoTrackRenderer(private val context: Context) {
         scope.cancel()
     }
 
+    /** [setRenderData]と[repeatSetRenderDataInRecreateAkariGraphicsProcessor]の共通部分 */
+    private suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>, akariGraphicsProcessor: AkariGraphicsProcessor) {
+
+        // 前の呼び出しから消えた素材はリソース開放させる
+        itemRenderList.forEach { renderItem ->
+            if (canvasRenderItem.none { renderItem.isEquals(it) }) {
+                when (renderItem) {
+                    is TimelineLifecycleRenderer -> renderItem.leaveTimeline()
+                    is GlTimelineLifecycleInterface -> akariGraphicsProcessor.withOpenGlThread { renderItem.leaveTimelineGl() }
+                }
+            }
+        }
+
+        itemRenderList = canvasRenderItem.map { renderItem ->
+            // データが変化していない場合は使い回す
+            itemRenderList.firstOrNull { it.isEquals(renderItem) } ?: when (renderItem) { // 無ければ作る
+                is RenderData.CanvasItem.Effect -> EffectRenderer(renderItem)
+                is RenderData.CanvasItem.Image -> ImageRenderer(context, renderItem)
+                is RenderData.CanvasItem.Shader -> ShaderRenderer(renderItem)
+                is RenderData.CanvasItem.Shape -> ShapeRenderer(renderItem)
+                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderer(renderItem)
+                is RenderData.CanvasItem.Text -> TextRenderer(context, renderItem)
+                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, texId) }
+            }
+        }
+    }
+
+    /** [draw]と[drawRecordLoop]と[drawPreviewLoop]の共通部分 */
     private suspend fun drawItemRendererToAkariGraphicsProcessor(
         durationMs: Long,
         currentPositionMs: Long,
