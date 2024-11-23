@@ -45,6 +45,10 @@ class VideoRenderer(
     override val layerIndex: Int
         get() = video.layerIndex
 
+    /** クロマキーにする色。null で無効。TODO 動画以外にクロマキーしたいところがなく [DrawSurfaceTextureInterface] に置くわけにも行かない。キャストが必要で面倒 */
+    val chromaKeyColorOrNull: Int?
+        get() = video.chromaKeyColor
+
     // 動画のデコーダーは有限なので、タイムラインで必要になるまで作らない
     override suspend fun enterTimeline() {
         super.enterTimeline()
@@ -110,6 +114,6 @@ class VideoRenderer(
     }
 
     companion object {
-        private const val CHROMAKEY_THRESHOLD = 0.3f // TODO ユーザー入力で変更できるようにする
+        const val CHROMAKEY_THRESHOLD = 0.3f // TODO ユーザー入力で変更できるようにする
     }
 }

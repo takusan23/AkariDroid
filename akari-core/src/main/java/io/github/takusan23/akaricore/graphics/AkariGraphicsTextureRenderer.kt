@@ -35,6 +35,8 @@ class AkariGraphicsTextureRenderer internal constructor(
     private var sCanvasTextureHandle = 0
     private var sFboTextureHandle = 0
     private var iDrawModeHandle = 0
+    private var fChromakeyThreshold = 0
+    private var vChromakeyColor = 0
 
     // テクスチャ ID
     private var surfaceTextureTextureId = 0
@@ -110,12 +112,18 @@ class AkariGraphicsTextureRenderer internal constructor(
      * SurfaceTexture を描画する。
      * GL スレッドから呼び出すこと。
      *
+     * @param akariSurfaceTexture 描画する[AkariGraphicsSurfaceTexture]
      * @param isAwaitTextureUpdate カメラ映像等、テクスチャが更新されるまで描画しない場合は true。false はテクスチャが更新されてなくても描画します。
+     * @param onTransform 位置や回転を適用するための行列を作るための関数
+     * @param chromakeyThreshold クロマキーする場合。クロマキーのしきい値
+     * @param chromaKeyColor クロマキーする場合。クロマキーにする色
      */
     suspend fun drawSurfaceTexture(
         akariSurfaceTexture: AkariGraphicsSurfaceTexture,
         isAwaitTextureUpdate: Boolean = false,
-        onTransform: ((mvpMatrix: FloatArray) -> Unit)? = null
+        onTransform: ((mvpMatrix: FloatArray) -> Unit)? = null,
+        chromakeyThreshold: Float? = null,
+        chromaKeyColor: Int? = null
     ) {
         // attachGlContext の前に呼ぶ必要あり。多分
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
@@ -143,6 +151,11 @@ class AkariGraphicsTextureRenderer internal constructor(
         // モード切替
         GLES20.glUniform1i(iDrawModeHandle, FRAGMENT_SHADER_DRAW_MODE_SURFACE_TEXTURE)
         checkGlError("glUniform1i sSurfaceTextureHandle sCanvasTextureHandle iDrawModeHandle")
+
+        // クロマキーする場合
+        // null の場合は 0 にして動かないように
+        GLES20.glUniform1f(fChromakeyThreshold, chromakeyThreshold ?: 0f)
+        GLES20.glUniform4fv(vChromakeyColor, 1, chromaKeyColor?.toColorVec4() ?: floatArrayOf(0f, 0f, 0f, 0f), 0)
 
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
@@ -233,6 +246,14 @@ class AkariGraphicsTextureRenderer internal constructor(
         checkGlError("glGetUniformLocation iDrawMode")
         if (iDrawModeHandle == -1) {
             throw RuntimeException("Could not get attrib location for iDrawMode")
+        }
+        fChromakeyThreshold = GLES20.glGetUniformLocation(mProgram, "chromakeyThreshold")
+        if (fChromakeyThreshold == -1) {
+            throw RuntimeException("Could not get attrib location for chromakeyThreshold")
+        }
+        vChromakeyColor = GLES20.glGetUniformLocation(mProgram, "chromakeyColor")
+        if (vChromakeyColor == -1) {
+            throw RuntimeException("Could not get attrib location for chromakeyColor")
         }
 
         // テクスチャ ID を払い出してもらう
@@ -482,6 +503,15 @@ class AkariGraphicsTextureRenderer internal constructor(
         return shader
     }
 
+    /** 16進数を RGBA の配列にする。それぞれ 0から1 */
+    private fun Int.toColorVec4(): FloatArray {
+        val r = (this shr 16 and 0xff) / 255.0f
+        val g = (this shr 8 and 0xff) / 255.0f
+        val b = (this and 0xff) / 255.0f
+        val a = (this shr 24 and 0xff) / 255.0f
+        return floatArrayOf(r, g, b, a)
+    }
+
     companion object {
         private const val FLOAT_SIZE_BYTES = 4
         private const val TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES
@@ -515,6 +545,8 @@ void main() {
         private const val FRAGMENT_SHADER_DRAW_MODE_CANVAS_BITMAP = 2
         private const val FRAGMENT_SHADER_DRAW_MODE_FBO = 3
 
+        // TODO クロマキーのためのコードが入るくらいなら SurfaceTexture / Canvas / FBO 描画のシェーダーを分けたほうがいい気がしてきた。
+
         private const val FRAGMENT_SHADER_10BIT_HDR = """#version 300 es
 #extension GL_EXT_YUV_target : require
 precision mediump float;
@@ -529,6 +561,10 @@ uniform __samplerExternal2DY2YEXT sSurfaceTexture;
 // 2 Bitmap（テキストや画像を描画した Canvas）
 // 3 FBO
 uniform int iDrawMode;
+
+// SurfaceTexture 時のみ。クロマキー
+uniform float chromakeyThreshold; // クロマキーのしきい値。0 でクロマキー無効
+uniform vec4 chromakeyColor; // クロマキーにする色
 
 // 出力色
 out vec4 FragColor;
@@ -549,6 +585,11 @@ void main() {
 
   if (iDrawMode == 1) {
     outColor.rgb = yuvToRgb(texture(sSurfaceTexture, vTextureCoord).rgb);
+    
+    // クロマキーで透過判定になったら discard
+    if (chromakeyThreshold != .0 && length(outColor.rgb - chromakeyColor.rgb) < chromakeyThreshold) {
+        discard;
+    }
   } else if (iDrawMode == 2) {
     // テクスチャ座標なので Y を反転
     outColor = texture(sCanvasTexture, vec2(vTextureCoord.x, 1.0 - vTextureCoord.y));
@@ -575,6 +616,10 @@ uniform samplerExternalOES sSurfaceTexture;
 // 3 FBO
 uniform int iDrawMode;
 
+// SurfaceTexture 時のみ。クロマキー
+uniform float chromakeyThreshold; // クロマキーのしきい値。0 でクロマキー無効
+uniform vec4 chromakeyColor; // クロマキーにする色
+
 // 出力色
 out vec4 FragColor;
 
@@ -583,6 +628,11 @@ void main() {
 
   if (iDrawMode == 1) {
     outColor = texture(sSurfaceTexture, vTextureCoord);
+    
+    // クロマキーで透過判定になったら discard
+    if (chromakeyThreshold != .0 && length(outColor - chromakeyColor) < chromakeyThreshold) {
+        discard;
+    }
   } else if (iDrawMode == 2) {
     // テクスチャ座標なので Y を反転
     outColor = texture(sCanvasTexture, vec2(vTextureCoord.x, 1.0 - vTextureCoord.y));

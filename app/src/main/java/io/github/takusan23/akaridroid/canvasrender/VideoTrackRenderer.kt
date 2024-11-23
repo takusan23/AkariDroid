@@ -129,7 +129,7 @@ class VideoTrackRenderer(private val context: Context) {
     }
 
     // TODO 違いを書く
-    suspend fun suspendObserveAkariGraphicsProcessorReCreate(canvasRenderItem: List<RenderData.CanvasItem>) {
+    suspend fun awaitSetRenderDataInRecreateAkariGraphicsProcessor(canvasRenderItem: List<RenderData.CanvasItem>) {
         // SurfaceView の Surface 再生成などで AkariGraphicsProcessor 自体が再生成される
         // 再生成されると、OpenGL ES コンテキストに依存している AkariGraphicsEffectShader 等は使えなくなってしまう。 TODO コンテキスト間共有できないか調べる
         // そのため、再生成されたら作り直す必要がある。
@@ -311,10 +311,15 @@ class VideoTrackRenderer(private val context: Context) {
                 }
 
                 itemRender is DrawSurfaceTextureInterface -> {
+                    // TODO 動画しかクロマキーしないため as VideoRenderer しているがどうにかしたい。
+                    val videoChromaKeyOrNull = (itemRender as? VideoRenderer)?.chromaKeyColorOrNull
+
                     akariGraphicsTextureRenderer.drawSurfaceTexture(
                         akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
                         isAwaitTextureUpdate = false,
-                        onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) }
+                        onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) },
+                        chromakeyThreshold = if (videoChromaKeyOrNull != null) VideoRenderer.CHROMAKEY_THRESHOLD else null,
+                        chromaKeyColor = videoChromaKeyOrNull
                     )
                 }
 
