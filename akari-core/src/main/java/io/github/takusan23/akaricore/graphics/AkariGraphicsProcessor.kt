@@ -15,6 +15,9 @@ import kotlinx.coroutines.yield
  * @param outputSurface 描画先。SurfaceView や MediaRecorder
  * @param width 映像の幅。フレームバッファーオブジェクトのために必要です
  * @param height 映像の高さ。フレームバッファーオブジェクトのために必要です
+ * @param isEnableTenBitHdr 10Bit HDR を利用する場合は true。Camera2 API で 10Bit HDR の映像を扱う場合や、デコードする動画が 10Bit HDR の場合。
+ *
+ * TODO なんとかしてテストを書きたい
  */
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class AkariGraphicsProcessor(
