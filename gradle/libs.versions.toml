@@ -1,14 +1,14 @@
 [versions]
-kotlin = "2.0.20"
-androidGradlePlugin = "8.7.1"
+kotlin = "2.0.21"
+androidGradlePlugin = "8.7.2"
 
 kotlinCoroutine = "1.7.3"
 kotlinSerialization = "1.6.3"
 
-androidxComposeBom = "2024.10.00"
-androidxCore = "1.13.1"
+androidxComposeBom = "2024.11.00"
+androidxCore = "1.15.0"
 androidxAppCompat = "1.7.0"
-androidxLifecycle = "2.8.6"
+androidxLifecycle = "2.8.7"
 androidxActivity = "1.9.3"
 androidxDataStore = "1.1.1"
 
@@ -46,7 +46,7 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.8.3" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.8.4" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
