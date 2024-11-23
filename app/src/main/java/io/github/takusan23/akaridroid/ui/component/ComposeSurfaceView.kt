@@ -4,6 +4,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.viewinterop.AndroidView
 
 /**
@@ -22,7 +23,7 @@ fun ComposeSurfaceView(
     onDestroySurface: () -> Unit
 ) {
     AndroidView(
-        modifier = modifier,
+        modifier = modifier.clipToBounds(), // Android 11 以前で AndroidView + SurfaceView すると背景が真っ暗になるので必要
         factory = { context ->
             SurfaceView(context).apply {
                 holder.addCallback(object : SurfaceHolder.Callback {
