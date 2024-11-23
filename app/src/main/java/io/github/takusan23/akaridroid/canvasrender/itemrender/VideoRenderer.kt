@@ -52,17 +52,13 @@ class VideoRenderer(
     // 動画のデコーダーは有限なので、タイムラインで必要になるまで作らない
     override suspend fun enterTimeline() {
         super.enterTimeline()
-        // クロマキーする場合
-        val isEnableChromaKey = video.chromaKeyColor != null
         akariVideoDecoder = AkariVideoDecoder().apply {
             prepare(
                 input = when (video.filePath) {
                     is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
                     is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
                 },
-                outputSurface = akariGraphicsSurfaceTexture.surface,
-                chromakeyThreshold = if (isEnableChromaKey) CHROMAKEY_THRESHOLD else null,
-                chromakeyColor = if (isEnableChromaKey) video.chromaKeyColor!! else null
+                outputSurface = akariGraphicsSurfaceTexture.surface
             )
         }
     }

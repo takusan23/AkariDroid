@@ -23,9 +23,6 @@ class AkariVideoDecoder {
     suspend fun prepare(
         input: AkariCoreInputOutput.Input,
         outputSurface: Surface,
-        // TODO クロマキー実装
-        chromakeyThreshold: Float? = null,
-        chromakeyColor: Int? = null
     ) {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this.mediaExtractor = mediaExtractor
