@@ -4,7 +4,9 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Build
 import android.view.Surface
+import androidx.annotation.RequiresApi
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaMuxerTool
 import kotlinx.coroutines.yield
@@ -26,6 +28,7 @@ class AkariVideoEncoder {
      * @param keyframeInterval キーフレームの間隔
      * @param outputVideoWidth 動画の高さ
      * @param outputVideoHeight 動画の幅
+     * @param tenBitHdrParametersOrNullSdr SDR 動画の場合は null。HDR でエンコードする場合は色域とガンマカーブを指定してください。
      */
     fun prepare(
         output: AkariCoreInputOutput.Output,
@@ -35,7 +38,8 @@ class AkariVideoEncoder {
         frameRate: Int = 30,
         bitRate: Int = 1_000_000,
         keyframeInterval: Int = 1,
-        codecName: String = MediaFormat.MIMETYPE_VIDEO_HEVC
+        codecName: String = MediaFormat.MIMETYPE_VIDEO_HEVC,
+        tenBitHdrParametersOrNullSdr: TenBitHdrParameters? = null
     ) {
         // エンコーダーにセットするMediaFormat
         // コーデックが指定されていればそっちを使う
@@ -44,6 +48,13 @@ class AkariVideoEncoder {
             setInteger(MediaFormat.KEY_FRAME_RATE, frameRate)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, keyframeInterval)
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+
+            // 10Bit HDR のパラメーターをセット
+            if (tenBitHdrParametersOrNullSdr != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                setInteger(MediaFormat.KEY_COLOR_STANDARD, tenBitHdrParametersOrNullSdr.colorStandard)
+                setInteger(MediaFormat.KEY_COLOR_TRANSFER, tenBitHdrParametersOrNullSdr.colorTransfer)
+                setFeatureEnabled(MediaCodecInfo.CodecCapabilities.FEATURE_HdrEditing, true)
+            }
         }
 
         // マルチプレクサ
@@ -106,6 +117,24 @@ class AkariVideoEncoder {
             mediaMuxer.release()
         }
     }
+
+    /**
+     * 10Bit HDR の動画を作成するためのパラメーター。
+     * 色域とガンマカーブを指定してください。
+     *
+     * HLG 形式の HDR の場合は[MediaFormat.COLOR_STANDARD_BT2020]と[MediaFormat.COLOR_TRANSFER_HLG]。
+     * デフォルト引数は HLG。
+     *
+     * 定数自体は Android 7 からありますが、10Bit HDR の動画編集が（MediaCodec が？） 13 以上なので。
+     *
+     * @param colorStandard 色域
+     * @param colorTransfer ガンマカーブ
+     */
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    data class TenBitHdrParameters(
+        val colorStandard: Int = MediaFormat.COLOR_STANDARD_BT2020,
+        val colorTransfer: Int = MediaFormat.COLOR_TRANSFER_HLG
+    )
 
     companion object {
         /** タイムアウト */
