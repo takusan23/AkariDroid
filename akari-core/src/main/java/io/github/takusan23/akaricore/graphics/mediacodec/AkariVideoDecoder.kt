@@ -41,7 +41,8 @@ class AkariVideoDecoder {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
-        videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION)
+        // ミリ秒に
+        videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION) / 1_000
 
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
