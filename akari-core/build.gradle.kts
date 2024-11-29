@@ -68,7 +68,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "io.github.takusan23"
             artifactId = "akaricore"
-            version = "5.0.0-alpha01" // バージョンアップの際は CORE_RELEASE_NOTE.md もう更新
+            version = "5.0.0-alpha02" // バージョンアップの際は CORE_RELEASE_NOTE.md もう更新
 
             // afterEvaluate しないとエラーなる
             afterEvaluate {

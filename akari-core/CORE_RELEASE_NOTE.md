@@ -4,6 +4,18 @@
 ## 5.0.0 時代
 あかりどろいど 4.x に対応します
 
+### akaricore:5.0.0-alpha02
+破壊的変更は以下で、そんなに大変じゃないはずです。  
+- `Kotlin 2.1.0`へ
+- `LoopContinueData#currentFrameMs`が`LoopContinueData#currentFrameNanoSeconds`に変更になりました。ミリ秒からナノ秒に単位が変わっています。  
+  - 修正理由としては`MediaRecorder`の時は`nanoTime()`の時間を渡す必要があるそうで、ナノ秒を取るように修正が必要だった（以前はライブラリの中でナノ秒にしてた）
+
+これ以降は互換性付きの追加です。  
+- `AkariVideoEncoder`で`HDR`の色域、ガンマカーブを指定できるように。`10 ビット HDR`動画のエンコード用。
+- `AkariVideoDecoder#videoDurationMs`が追加されました。動画の時間が取得できます。
+- `AkariVideoEncoder`、`AudioEncodeDecodeProcessor`のエンコーダーで、コンテナフォーマットに書き込む処理を自前で作成できるように。
+  - ちなみに`Android`の`MediaMuxer`を使った実装が最初からあります
+
 ### akaricore:5.0.0-alpha01
 破壊的変更はないです。新規追加のみのはず。
 

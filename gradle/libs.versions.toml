@@ -1,8 +1,8 @@
 [versions]
-kotlin = "2.0.21"
+kotlin = "2.1.0"
 androidGradlePlugin = "8.7.2"
 
-kotlinCoroutine = "1.7.3"
+kotlinCoroutine = "1.9.0"
 kotlinSerialization = "1.6.3"
 
 androidxComposeBom = "2024.11.00"
