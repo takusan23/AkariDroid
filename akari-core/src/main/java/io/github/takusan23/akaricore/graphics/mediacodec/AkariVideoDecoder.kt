@@ -20,6 +20,10 @@ class AkariVideoDecoder {
     /** 前回のシーク位置 */
     private var prevSeekToMs = -1L
 
+    /** 動画の時間（ミリ秒）。[prepare]を呼び出した後利用できます。 */
+    var videoDurationMs: Long = -1
+        private set
+
     suspend fun prepare(
         input: AkariCoreInputOutput.Input,
         outputSurface: Surface,
@@ -27,6 +31,7 @@ class AkariVideoDecoder {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
+        videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION)
 
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {

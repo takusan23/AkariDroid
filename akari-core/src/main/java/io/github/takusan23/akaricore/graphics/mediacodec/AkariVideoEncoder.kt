@@ -15,6 +15,8 @@ import kotlinx.coroutines.yield
 class AkariVideoEncoder {
 
     private var encodeMediaCodec: MediaCodec? = null
+
+    // TODO MediaMuxer 相当の自前実装に切り替えできるようにする
     private var mediaMuxer: MediaMuxer? = null
 
     /**

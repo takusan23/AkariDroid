@@ -77,7 +77,7 @@ class AkariGraphicsProcessor(
                 // presentationTime、多分必要。
                 // 無くても動く時があるが、AkariGraphicsProcessor が描画する場合は必要そう
                 // 時間が当てにならなくなる
-                inputSurface.setPresentationTime(drawInfo.currentFrameMs * 1_000_000)
+                inputSurface.setPresentationTime(drawInfo.currentFrameNanoSeconds)
                 inputSurface.swapBuffers()
                 if (!drawInfo.isRequestNextFrame) break
             }
@@ -121,16 +121,23 @@ class AkariGraphicsProcessor(
 
     /**
      * [drawLoop]でループを続行するかと、現在の動画時間。
-     * [currentFrameMs]がなぜ必要かというと、[AkariGraphicsProcessor]の[inputSurface]に MediaCodec / MediaRecorder を使うと、出力された動画の時間が増えすぎてしまう。
-     * 動画の時間を提供するために必要。
      *
-     * 録画じゃなくてプレビューのみの場合は[currentFrameMs]は 0 固定で良いはず。
+     * [currentFrameNanoSeconds]について
+     * [AkariGraphicsProcessor]の[inputSurface]として[android.media.MediaCodec]/[android.media.MediaRecorder]を使うと、出力された動画の時間が増えすぎてしまう。
+     * 動画フレームの時間を提供するためにこの値を使う。
+     * 録画じゃなくてプレビューのみの場合は[currentFrameNanoSeconds]は 0 固定で良いはず。
+     * また、[android.media.MediaRecorder]の場合は常に[System.nanoTime]の値を渡す必要がありそうです。（要調査）
      *
      * @param isRequestNextFrame 次フレームの作成をするか。しない場合は[drawLoop]を終わります。
-     * @param currentFrameMs ループを開始してからの経過時間（ミリ秒）
+     * @param currentFrameNanoSeconds ループを開始してからの経過時間（ナノ秒）。ミリ秒から変換する場合は、[LoopContinueData.MILLI_SECONDS_TO_NANO_SECONDS] で掛け算する。
      */
     data class LoopContinueData(
         var isRequestNextFrame: Boolean,
-        var currentFrameMs: Long
-    )
+        var currentFrameNanoSeconds: Long
+    ) {
+        companion object {
+            /** ミリ秒からナノ秒に変換する際の掛け算のかけられる数 */
+            const val MILLI_SECONDS_TO_NANO_SECONDS = 1_000_000
+        }
+    }
 }

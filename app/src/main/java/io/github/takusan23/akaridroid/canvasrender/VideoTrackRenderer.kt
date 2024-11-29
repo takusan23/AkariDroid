@@ -223,7 +223,7 @@ class VideoTrackRenderer(private val context: Context) {
             onProgress(currentPositionMs)
 
             // 今の時間と続行するかを入れる
-            loopContinueData.currentFrameMs = currentPositionMs
+            loopContinueData.currentFrameNanoSeconds = currentPositionMs * AkariGraphicsProcessor.LoopContinueData.MILLI_SECONDS_TO_NANO_SECONDS
             loopContinueData.isRequestNextFrame = currentPositionMs <= durationMs
 
             // 描画すべき動画素材の取得
