@@ -68,7 +68,6 @@ class AkariGraphicsProcessor(
      */
     suspend fun drawLoop(draw: suspend AkariGraphicsTextureRenderer.() -> LoopContinueData) {
         withContext(openGlRelatedThreadDispatcher) {
-            // TODO yield() の連続。本当に必要か見る
             while (true) {
                 yield()
                 textureRenderer.prepareDraw()

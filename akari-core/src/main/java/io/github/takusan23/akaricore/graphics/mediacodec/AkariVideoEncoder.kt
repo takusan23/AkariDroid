@@ -8,16 +8,20 @@ import android.os.Build
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
-import io.github.takusan23.akaricore.common.MediaMuxerTool
+import io.github.takusan23.akaricore.muxer.AkariAndroidMuxer
+import io.github.takusan23.akaricore.muxer.AkariEncodeMuxerInterface
 import kotlinx.coroutines.yield
 
-// TODO ドキュメントを書く
+/**
+ * 動画のエンコーダー
+ * 目的としては[io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]が描画した内容を録画する。
+ * これ以外の目的でも（単に Surface を録画する）でも使えるかも。
+ */
 class AkariVideoEncoder {
 
     private var encodeMediaCodec: MediaCodec? = null
 
-    // TODO MediaMuxer 相当の自前実装に切り替えできるようにする
-    private var mediaMuxer: MediaMuxer? = null
+    private var muxerInterface: AkariEncodeMuxerInterface? = null
 
     /**
      * MediaCodec エンコーダーの準備をする
@@ -35,6 +39,38 @@ class AkariVideoEncoder {
     fun prepare(
         output: AkariCoreInputOutput.Output,
         containerFormat: Int = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
+        outputVideoWidth: Int = 1280,
+        outputVideoHeight: Int = 720,
+        frameRate: Int = 30,
+        bitRate: Int = 1_000_000,
+        keyframeInterval: Int = 1,
+        codecName: String = MediaFormat.MIMETYPE_VIDEO_HEVC,
+        tenBitHdrParametersOrNullSdr: TenBitHdrParameters? = null
+    ) = prepare(
+        muxerInterface = AkariAndroidMuxer(output, containerFormat),
+        outputVideoWidth = outputVideoWidth,
+        outputVideoHeight = outputVideoHeight,
+        frameRate = frameRate,
+        bitRate = bitRate,
+        keyframeInterval = keyframeInterval,
+        codecName = codecName,
+        tenBitHdrParametersOrNullSdr = tenBitHdrParametersOrNullSdr,
+    )
+
+    /**
+     * MediaCodec エンコーダーの準備をする
+     *
+     * @param muxerInterface コンテナフォーマットに書き込む実装
+     * @param codecName コーデック名
+     * @param bitRate ビットレート
+     * @param frameRate フレームレート
+     * @param keyframeInterval キーフレームの間隔
+     * @param outputVideoWidth 動画の高さ
+     * @param outputVideoHeight 動画の幅
+     * @param tenBitHdrParametersOrNullSdr SDR 動画の場合は null。HDR でエンコードする場合は色域とガンマカーブを指定してください。
+     */
+    fun prepare(
+        muxerInterface: AkariEncodeMuxerInterface,
         outputVideoWidth: Int = 1280,
         outputVideoHeight: Int = 720,
         frameRate: Int = 30,
@@ -60,7 +96,7 @@ class AkariVideoEncoder {
         }
 
         // マルチプレクサ
-        mediaMuxer = MediaMuxerTool.createMediaMuxer(output, containerFormat)
+        this@AkariVideoEncoder.muxerInterface = muxerInterface
 
         encodeMediaCodec = MediaCodec.createEncoderByType(codecName).apply {
             configure(videoMediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
@@ -73,13 +109,12 @@ class AkariVideoEncoder {
      */
     fun getInputSurface(): Surface = encodeMediaCodec!!.createInputSurface()
 
+    /** エンコーダーを開始する */
     suspend fun start() {
         val encodeMediaCodec = encodeMediaCodec ?: return
-        val mediaMuxer = mediaMuxer ?: return
+        val muxerInterface = muxerInterface ?: return
 
         val bufferInfo = MediaCodec.BufferInfo()
-        var videoTrackIndex = -1
-
         encodeMediaCodec.start()
 
         try {
@@ -93,7 +128,7 @@ class AkariVideoEncoder {
                     if (bufferInfo.size > 0) {
                         if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                             val encodedData = encodeMediaCodec.getOutputBuffer(encoderStatus)!!
-                            mediaMuxer.writeSampleData(videoTrackIndex, encodedData, bufferInfo)
+                            muxerInterface.onOutputData(encodedData, bufferInfo)
                         }
                     }
                     encodeMediaCodec.releaseOutputBuffer(encoderStatus, false)
@@ -102,8 +137,7 @@ class AkariVideoEncoder {
                     // このタイミングでやると固有のパラメーターがセットされたMediaFormatが手に入る(csd-0 とか)
                     // 映像がぶっ壊れている場合（緑で塗りつぶされてるとか）は多分このあたりが怪しい
                     val newFormat = encodeMediaCodec.outputFormat
-                    videoTrackIndex = mediaMuxer.addTrack(newFormat)
-                    mediaMuxer.start()
+                    muxerInterface.onOutputFormat(newFormat)
                 }
                 if (encoderStatus != MediaCodec.INFO_TRY_AGAIN_LATER) {
                     continue
@@ -114,9 +148,8 @@ class AkariVideoEncoder {
             encodeMediaCodec.signalEndOfInputStream()
             encodeMediaCodec.stop()
             encodeMediaCodec.release()
-            // MediaMuxerも終了
-            mediaMuxer.stop()
-            mediaMuxer.release()
+            // コンテナフォーマットに書き込む処理も終了
+            muxerInterface.stop()
         }
     }
 

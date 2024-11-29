@@ -4,7 +4,8 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
-import io.github.takusan23.akaricore.common.MediaMuxerTool
+import io.github.takusan23.akaricore.muxer.AkariAndroidMuxer
+import io.github.takusan23.akaricore.muxer.AkariEncodeMuxerInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -14,13 +15,11 @@ import kotlinx.coroutines.withContext
  */
 object AudioEncodeDecodeProcessor {
 
-    private const val UNDEFINED_TRACK_INDEX = -1
-
     /**
      * デコードする
      *
-     * @param inAudioData AAC ファイル入力
-     * @param outPcmFile PCM ファイル出力
+     * @param input 音声ファイル入力
+     * @param output PCM ファイル出力
      * @param onOutputFormat デコード時にでてくる [MediaFormat]
      */
     suspend fun decode(
@@ -57,9 +56,9 @@ object AudioEncodeDecodeProcessor {
      * エンコードする
      *
      * @param input PCM ファイル入力
-     * @param output AAC ファイル出力
-     * @param codecName コーデック
+     * @param output エンコード出力先ファイル
      * @param containerFormat コンテナフォーマット
+     * @param codecName コーデック
      * @param samplingRate サンプリングレート
      * @param bitRate ビットレート
      */
@@ -71,11 +70,33 @@ object AudioEncodeDecodeProcessor {
         samplingRate: Int = AkariCoreAudioProperties.SAMPLING_RATE,
         bitRate: Int = 192_000,
         channelCount: Int = 2
+    ) = encode(
+        input = input,
+        muxerInterface = AkariAndroidMuxer(output, containerFormat),
+        codecName = codecName,
+        samplingRate = samplingRate,
+        bitRate = bitRate,
+        channelCount = channelCount,
+    )
+
+    /**
+     * エンコードする
+     *
+     * @param input PCM ファイル入力
+     * @param muxerInterface コンテナフォーマットに書き込む実装
+     * @param codecName コーデック
+     * @param samplingRate サンプリングレート
+     * @param bitRate ビットレート
+     */
+    suspend fun encode(
+        input: AkariCoreInputOutput.Input,
+        muxerInterface: AkariEncodeMuxerInterface,
+        codecName: String = MediaFormat.MIMETYPE_AUDIO_AAC,
+        samplingRate: Int = AkariCoreAudioProperties.SAMPLING_RATE,
+        bitRate: Int = 192_000,
+        channelCount: Int = 2
     ) = withContext(Dispatchers.Default) {
         // エンコードする
-        // コンテナフォーマット
-        val mediaMuxer = MediaMuxerTool.createMediaMuxer(output, containerFormat)
-        var trackIndex = UNDEFINED_TRACK_INDEX
         // エンコーダー起動
         val audioEncoder = AudioEncoder().apply {
             prepareEncoder(
@@ -88,19 +109,11 @@ object AudioEncodeDecodeProcessor {
         input.inputStream().buffered().use { inputStream ->
             audioEncoder.startAudioEncode(
                 onRecordInput = { byteArray -> inputStream.read(byteArray) },
-                onOutputBufferAvailable = { byteBuffer, bufferInfo ->
-                    if (trackIndex != UNDEFINED_TRACK_INDEX) {
-                        mediaMuxer.writeSampleData(trackIndex, byteBuffer, bufferInfo)
-                    }
-                },
-                onOutputFormatAvailable = {
-                    trackIndex = mediaMuxer.addTrack(it)
-                    mediaMuxer.start()
-                }
+                onOutputBufferAvailable = { byteBuffer, bufferInfo -> muxerInterface.onOutputData(byteBuffer, bufferInfo) },
+                onOutputFormatAvailable = { muxerInterface.onOutputFormat(it) }
             )
         }
-        mediaMuxer.stop()
-        mediaMuxer.release()
+        muxerInterface.stop()
     }
 
 }

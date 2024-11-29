@@ -8,7 +8,11 @@ import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import kotlinx.coroutines.yield
 
-// todo ドキュメント書く
+/**
+ * 動画のデコーダー
+ * 目的としては動画をデコードして、[io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture]を出力先にし、[io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]で描画する。
+ * これ以外の目的でも（単に動画を再生する）でも使えるかも。
+ */
 class AkariVideoDecoder {
 
     private var decodeMediaCodec: MediaCodec? = null
@@ -24,6 +28,12 @@ class AkariVideoDecoder {
     var videoDurationMs: Long = -1
         private set
 
+    /**
+     * デコーダーの準備をする
+     *
+     * @param input 再生する動画のファイル
+     * @param outputSurface 映像フレームの出力先
+     */
     suspend fun prepare(
         input: AkariCoreInputOutput.Input,
         outputSurface: Surface,
@@ -40,6 +50,12 @@ class AkariVideoDecoder {
         decodeMediaCodec?.start()
     }
 
+    /**
+     * シークする。
+     * これを連続で呼び出しフレームを連続で取り出し再生させる。
+     *
+     * @param seekToMs 動画フレームの時間
+     */
     suspend fun seekTo(seekToMs: Long): Boolean {
         val isSuccessDecodeFrame = when {
             // 現在の再生位置よりも戻る方向に（巻き戻し）した場合
@@ -69,7 +85,20 @@ class AkariVideoDecoder {
         return isSuccessDecodeFrame
     }
 
-    /** @return 次のフレームがない場合は null。そうじゃない場合は動画フレームの時間 */
+    /** 破棄する */
+    fun destroy() {
+        decodeMediaCodec?.stop()
+        decodeMediaCodec?.release()
+        mediaExtractor?.release()
+    }
+
+    /**
+     * 前回の時間よりも次のフレームを取り出す。
+     * シークするとキーフレームまで戻ってしまうので、極力シークを避けるようにしています。
+     *
+     * @param seekToMs 欲しいフレームの時間
+     * @return 次のフレームがない場合は null。そうじゃない場合は動画フレームの時間
+     */
     private suspend fun nextSeekTo(seekToMs: Long): Long? {
         val decodeMediaCodec = decodeMediaCodec!!
         val mediaExtractor = mediaExtractor!!
@@ -161,6 +190,13 @@ class AkariVideoDecoder {
         return returnValue
     }
 
+    /**
+     * 前回の時間よりも前のフレームを取り出す。
+     * キーフレームまで戻るため[nextSeekTo]より時間がかかります。
+     *
+     * @param seekToMs 欲しいフレームの時間
+     * @return フレームの時間
+     */
     private suspend fun prevSeekTo(seekToMs: Long): Long {
         val decodeMediaCodec = decodeMediaCodec!!
         val mediaExtractor = mediaExtractor!!
@@ -223,12 +259,6 @@ class AkariVideoDecoder {
         }
 
         return returnValue
-    }
-
-    fun destroy() {
-        decodeMediaCodec?.stop()
-        decodeMediaCodec?.release()
-        mediaExtractor?.release()
     }
 
     companion object {
