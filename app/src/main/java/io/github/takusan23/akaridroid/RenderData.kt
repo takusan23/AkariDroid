@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
  * @param version [RenderData]のバージョン。破壊的変更があればこれを見る
  * @param durationMs トータル時間
  * @param videoSize 動画の縦横
+ * @param isEnableTenBitHdr 10Bit HDR の編集を有効にする場合。現状 HLG のみ。
  * @param canvasRenderItem 描画するアイテム
  * @param audioRenderItem 音声データ
  */
@@ -17,6 +18,7 @@ data class RenderData(
     val version: Int = VERSION,
     val durationMs: Long = 60_000L,
     val videoSize: Size = Size(1280, 720),
+    val isEnableTenBitHdr: Boolean = false,
     val canvasRenderItem: List<CanvasItem> = emptyList(),
     val audioRenderItem: List<AudioItem> = emptyList()
 ) {
@@ -115,6 +117,7 @@ data class RenderData(
         ) : CanvasItem {
 
             /** 図形タイプ */
+            @Serializable
             enum class ShapeType {
                 /** 四角形 */
                 Rect,

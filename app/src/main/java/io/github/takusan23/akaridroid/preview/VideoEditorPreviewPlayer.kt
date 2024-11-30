@@ -156,10 +156,10 @@ class VideoEditorPreviewPlayer(
     fun setVideoInfo(
         videoWidth: Int,
         videoHeight: Int,
-        durationMs: Long
+        durationMs: Long,
+        isEnableTenBitHdr: Boolean
     ) {
-        // TODO 10Bit HDR のテスト
-        videoRenderer.setVideoParameters(videoWidth, videoHeight, isEnableTenBitHdr = false)
+        videoRenderer.setVideoParameters(videoWidth, videoHeight, isEnableTenBitHdr = isEnableTenBitHdr)
         _playerStatus.update { it.copy(durationMs = durationMs) }
     }
 

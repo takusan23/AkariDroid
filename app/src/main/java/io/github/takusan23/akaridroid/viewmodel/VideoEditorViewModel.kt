@@ -253,10 +253,10 @@ class VideoEditorViewModel(
         viewModelScope.launch {
             // Pair に詰めて distinct で変わったときだけ
             _renderData
-                .map { Pair(it.videoSize, it.durationMs) }
+                .map { Triple(it.videoSize, it.durationMs, it.isEnableTenBitHdr) }
                 .distinctUntilChanged()
-                .collect { (videoSize, durationMs) ->
-                    videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs)
+                .collect { (videoSize, durationMs, isEnableTenBitHdr) ->
+                    videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs, isEnableTenBitHdr)
                     _timeLineData.update { it.copy(durationMs = durationMs) }
                     _touchEditorData.update { it.copy(videoSize = videoSize) }
                 }

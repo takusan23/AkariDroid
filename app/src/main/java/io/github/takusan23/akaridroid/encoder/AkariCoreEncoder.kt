@@ -1,6 +1,8 @@
 package io.github.takusan23.akaridroid.encoder
 
 import android.content.Context
+import android.media.MediaFormat
+import android.os.Build
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
 import io.github.takusan23.akaricore.common.MediaMuxerTool
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
@@ -117,6 +119,12 @@ object AkariCoreEncoder {
                             outputVideoWidth = renderData.videoSize.width,
                             outputVideoHeight = renderData.videoSize.height,
                             containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
+                            tenBitHdrParametersOrNullSdr = if (renderData.isEnableTenBitHdr && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                AkariVideoEncoder.TenBitHdrParameters(
+                                    colorStandard = MediaFormat.COLOR_STANDARD_BT2020,
+                                    colorTransfer = MediaFormat.COLOR_TRANSFER_HLG
+                                )
+                            } else null
                         )
                     }
 
@@ -126,7 +134,8 @@ object AkariCoreEncoder {
                     )
                     videoRenderer.setVideoParameters(
                         outputWidth = renderData.videoSize.width,
-                        outputHeight = renderData.videoSize.height
+                        outputHeight = renderData.videoSize.height,
+                        isEnableTenBitHdr = renderData.isEnableTenBitHdr
                     )
                     videoRenderer.setRenderData(
                         canvasRenderItem = renderData.canvasRenderItem

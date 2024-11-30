@@ -18,7 +18,7 @@
     <string name="video_edit_bottomsheet_menu_title">menu</string>
     <string name="video_edit_bottomsheet_menu_hint">You can add materials to the timeline using the button next to the menu.</string>
     <string name="video_edit_bottomsheet_menu_edit_video_info_title">Edit video information</string>
-    <string name="video_edit_bottomsheet_menu_edit_video_info_description">You can change the video resolution (vertical and horizontal size) here.</string>
+    <string name="video_edit_bottomsheet_menu_edit_video_info_description">You can set the video resolution (width and height), video duration, and whether to enable 10-bit HDR.</string>
     <string name="video_edit_bottomsheet_menu_encode_video_title">Save video</string>
     <string name="video_edit_bottomsheet_menu_encode_video_description">Save (export, encode)</string>
     <string name="video_edit_bottomsheet_menu_open_setting_title">Open settings</string>
@@ -221,4 +221,8 @@ Please note that this is not the time for the video.</string>
     <string name="project_list_bottomsheet_menu_delete_dialog_cancel">cancel</string>
     <string name="project_list_bottomsheet_menu_export_successful">Completed. You can import by clicking the Import button.</string>
     <string name="project_list_bottomsheet_menu_import_successful">The import is complete.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">Video editing features for 10-bit HDR video</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">Now supports editing videos shot in 10-bit HDR. Click here for details.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_title">Enable video editing for 10-bit HDR videos</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">Now supports editing videos shot in 10-bit HDR. You can encode (export) the video as is in HDR format.</string>
 </resources>

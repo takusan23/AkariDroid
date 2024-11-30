@@ -38,7 +38,7 @@ fun VideoInfoEditorBottomSheet(
 
     Column(
         modifier = Modifier.bottomSheetPadding(),
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
         BottomSheetHeader(
@@ -76,5 +76,11 @@ fun VideoInfoEditorBottomSheet(
                 label = { Text(text = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_video_height)) }
             )
         }
+
+        TenBitHdrSettingItem(
+            modifier = Modifier.fillMaxWidth(),
+            isEnableTenBitHdr = renderData.value.isEnableTenBitHdr,
+            onTenBitHdrChange = { isTenBitHdr -> update { it.copy(isEnableTenBitHdr = isTenBitHdr) } }
+        )
     }
 }
