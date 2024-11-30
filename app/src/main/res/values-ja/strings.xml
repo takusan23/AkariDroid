@@ -225,5 +225,15 @@
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">10 ビット HDR 動画の動画編集機能</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">10 ビット HDR で撮影した動画の編集に対応しました。詳しくはこれを押してください。</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_title">10 ビット HDR 動画の動画編集を有効にする</string>
-    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">10 ビット HDR で撮影した動画の編集に対応しました。編集後も HDR 動画のままエンコード（書き出し）が出来ます。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">10 ビット HDR で撮影した動画の編集に対応しました。編集後も HDR 動画のままエンコード（書き出し）が可能です。\n
+簡単に言うと「眩しい動画」のあれです。タイムラインに追加したあと、プレビューで表示される動画が色が白っぽくなった場合は HDR 動画の可能性が高いです。\n
+\n
+HDR 動画を SDR としてエンコードすると色が白っぽくなるため、HDR 動画を扱う場合は有効にしてください。\n
+逆に SDR の動画の場合は色が変わってしまうため本機能を有効にしないでください。\n
+\n
+また、HDR 動画の編集時には以下に注意してください\n
+・現状は HLG 形式の HDR 動画に対応しています。\n
+（色空間が BT.2020、ガンマカーブが HLG）\n
+・HDR 動画に写真や、SDR 動画を表示させると色が変わってしまうため、あまりおすすめしません。\n
+・今のところ HDR 動画をエンコードする際のコーデックは HEVC のみになります。\n</string>
 </resources>

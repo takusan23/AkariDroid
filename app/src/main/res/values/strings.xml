@@ -224,5 +224,15 @@ Please note that this is not the time for the video.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">Video editing features for 10-bit HDR video</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">Now supports editing videos shot in 10-bit HDR. Click here for details.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_title">Enable video editing for 10-bit HDR videos</string>
-    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">Now supports editing videos shot in 10-bit HDR. You can encode (export) the video as is in HDR format.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">Editing videos shot in 10-bit HDR is now supported. After editing, you can encode (export) them as HDR videos.\n
+Simply put, it\'s that "dazzling video." If the video you add to the timeline becomes whitish in the preview, it\'s likely to be an HDR video.\n
+\n
+If you encode HDR video as SDR, the colors will become whitish, so enable this function when working with HDR videos.\n
+Conversely, do not enable this function for SDR videos, as the colors will change.\n
+\n
+Also, please note the following when editing HDR videos.\n
+・Currently, HLG format HDR videos are supported.\n
+(Color space is BT.2020, gamma curve is HLG)\n
+・If you display photos or SDR videos on HDR videos, the colors will change, so we do not recommend it.\n
+・For now, the only codec available for encoding HDR videos is HEVC.\n</string>
 </resources>

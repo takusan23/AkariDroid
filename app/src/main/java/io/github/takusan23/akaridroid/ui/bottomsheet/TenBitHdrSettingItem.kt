@@ -3,6 +3,8 @@ package io.github.takusan23.akaridroid.ui.bottomsheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -29,6 +31,7 @@ import io.github.takusan23.akaridroid.R
  * 10Bit HDR を有効にするスイッチ。
  * 有効にする前にボトムシートが表示される。
  *
+ * @param modifier [Modifier]
  * @param isEnableTenBitHdr 10Bit HDR が有効の場合
  * @param onTenBitHdrChange 10Bit HDR の有効無効が切り替わった時
  */
@@ -68,6 +71,14 @@ fun TenBitHdrSettingItem(
 
                 HorizontalDivider()
 
+                Icon(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    painter = painterResource(R.drawable.android_hdr_description),
+                    contentDescription = null
+                )
+
                 Text(text = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description))
             }
         }
@@ -79,7 +90,7 @@ fun TenBitHdrSettingItem(
  *
  * @param modifier [Modifier]
  * @param isEnableTenBitHdr 10Bit HDR が有効の場合
- * @param onTenBitHdrChange 10Bit HDR の有効無効が切り替わった時
+ * @param onTenBitHdrChange スイッチを押した時
  */
 @Composable
 private fun TenBitHdrSwitchSettingItem(
@@ -88,7 +99,7 @@ private fun TenBitHdrSwitchSettingItem(
     onTenBitHdrChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier.toggleable(
+        modifier = modifier.toggleable(
             value = isEnableTenBitHdr,
             onValueChange = { onTenBitHdrChange(!isEnableTenBitHdr) },
             role = Role.Switch
@@ -97,7 +108,7 @@ private fun TenBitHdrSwitchSettingItem(
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.ic_outline_border_color_24px),
+            painter = painterResource(id = R.drawable.android_hdr_icon),
             contentDescription = null
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -114,6 +125,13 @@ private fun TenBitHdrSwitchSettingItem(
     }
 }
 
+/**
+ * ボトムシート内の 10Bit HDR 切り替えスイッチ
+ *
+ * @param modifier [Modifier]
+ * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
+ * @param onTenBitHdrChange 10Bit HDR の有効無効が切り替わった時
+ */
 @Composable
 private fun TenBitHdrSwitch(
     modifier: Modifier = Modifier,
@@ -121,12 +139,16 @@ private fun TenBitHdrSwitch(
     onEnableChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier,
+        modifier = modifier.toggleable(
+            value = isEnableTenBitHdr,
+            onValueChange = { onEnableChange(!isEnableTenBitHdr) },
+            role = Role.Switch
+        ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.ic_outline_border_color_24px),
+            painter = painterResource(id = R.drawable.android_hdr_icon),
             contentDescription = null
         )
         Text(
@@ -136,7 +158,7 @@ private fun TenBitHdrSwitch(
         )
         Switch(
             checked = isEnableTenBitHdr,
-            onCheckedChange = onEnableChange
+            onCheckedChange = null
         )
     }
 }
