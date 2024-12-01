@@ -371,6 +371,11 @@ class VideoEditorViewModel(
                         }
                 }
         }
+
+        // プロジェクト作成直後は動画情報編集ボトムシートを出す
+        if (savedStateHandle.get<String>("openVideoInfo").toBoolean()) {
+            _bottomSheetRouteData.value = VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)
+        }
     }
 
     override fun onCleared() {

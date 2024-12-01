@@ -66,7 +66,10 @@ fun TenBitHdrSettingItem(
 
                 TenBitHdrSwitch(
                     isEnableTenBitHdr = isEnableTenBitHdr,
-                    onEnableChange = onTenBitHdrChange
+                    onEnableChange = {
+                        onTenBitHdrChange(it)
+                        isShowBottomSheet.value = false
+                    }
                 )
 
                 HorizontalDivider()
@@ -105,7 +108,7 @@ private fun TenBitHdrSwitchSettingItem(
             role = Role.Switch
         ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.android_hdr_icon),
@@ -145,7 +148,7 @@ private fun TenBitHdrSwitch(
             role = Role.Switch
         ),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.android_hdr_icon),

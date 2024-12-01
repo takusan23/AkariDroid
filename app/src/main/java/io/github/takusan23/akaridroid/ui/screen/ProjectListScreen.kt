@@ -36,13 +36,13 @@ import kotlinx.coroutines.launch
  * プロジェクト一覧画面
  *
  * @param viewModel [ProjectListViewModel]
- * @param onOpen プロジェクト選択時。引数はプロジェクト名
+ * @param onOpen プロジェクト選択時。引数はプロジェクト名と、新規作成かどうか
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectListScreen(
     viewModel: ProjectListViewModel = viewModel(),
-    onOpen: (String) -> Unit
+    onOpen: (projectName: String, isCreateNew: Boolean) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -64,7 +64,7 @@ fun ProjectListScreen(
             onCreate = { name ->
                 scope.launch {
                     viewModel.createProject(name)
-                    onOpen(name)
+                    onOpen(name, true)
                 }
             },
             onDelete = { name -> viewModel.deleteProject(name) },
@@ -102,7 +102,7 @@ fun ProjectListScreen(
                 } else {
                     ProjectListItem(
                         projectItem = item,
-                        onClick = { onOpen(it.projectName) },
+                        onClick = { onOpen(it.projectName, false) },
                         onMenuClick = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.ProjectMenu(it.projectName) }
                     )
                 }

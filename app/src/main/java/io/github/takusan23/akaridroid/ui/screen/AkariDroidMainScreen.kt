@@ -18,10 +18,10 @@ fun AkariDroidMainScreen() {
     NavHost(navController = navController, startDestination = NavigationPaths.ProjectList.path) {
         composable(NavigationPaths.ProjectList.path) {
             ProjectListScreen(
-                onOpen = { projectName -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}") }
+                onOpen = { projectName, isCreateNew -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}?openVideoInfo=${isCreateNew}") }
             )
         }
-        composable("${NavigationPaths.VideoEditor.path}/{projectName}") {
+        composable("${NavigationPaths.VideoEditor.path}/{projectName}?openVideoInfo={openVideoInfo}") {
             VideoEditorScreen(
                 onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) },
                 onBack = { navController.popBackStack() }
@@ -57,13 +57,16 @@ fun AkariDroidMainScreen() {
     }
 }
 
-/** 画面遷移先 */
+/** 画面遷移先 TODO Safe Args に移行する */
 enum class NavigationPaths(val path: String) {
 
     /** プロジェクト一覧画面 */
     ProjectList("project_list"),
 
-    /** 動画編集画面。パラメーターを渡すと editor/{projectName} です。 */
+    /**
+     * 動画編集画面。パラメーターを渡すと editor/{projectName} です。
+     * openVideoInfo=true クエリパラメータで動画情報編集ボトムシートを表示させます。
+     */
     VideoEditor("editor"),
 
     /** 設定画面 */
