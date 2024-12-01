@@ -30,7 +30,7 @@ fun VideoEditorBottomSheetRouter(
     onTimeLineReset: () -> Unit,
     onSettingClick: () -> Unit,
     onStartAkaLink: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
 ) {
 
     ModalBottomSheet(onDismissRequest = onClose) {
@@ -38,9 +38,9 @@ fun VideoEditorBottomSheetRouter(
         when (videoEditorBottomSheetRouteRequestData) {
 
             // 編集画面を出す
-            is VideoEditorBottomSheetRouteRequestData.OpenEditor -> when (videoEditorBottomSheetRouteRequestData.renderItem) {
-                is RenderData.AudioItem.Audio -> AudioEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+            is VideoEditorBottomSheetRouteRequestData.OpenEditor -> when (videoEditorBottomSheetRouteRequestData.editRenderItem) {
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Audio -> AudioEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.audio,
                     onUpdate = {
                         onAudioUpdate(it)
                         onClose()
@@ -51,8 +51,8 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Image -> ImageRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Effect -> EffectRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.effect,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -63,8 +63,8 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Text -> TextRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Image -> ImageRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.image,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -75,9 +75,8 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Video -> VideoRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
-                    previewPositionMs = videoEditorBottomSheetRouteRequestData.previewPositionMs,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shader -> ShaderRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.shader,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -88,8 +87,8 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Shape -> ShapeRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shape -> ShapeRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.shape,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -100,8 +99,8 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Shader -> ShaderRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.SwitchAnimation -> SwitchAnimationRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.switchAnimation,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -112,8 +111,9 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Text -> TextRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.text,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()
@@ -124,8 +124,11 @@ fun VideoEditorBottomSheetRouter(
                     }
                 )
 
-                is RenderData.CanvasItem.Effect -> EffectRenderEditBottomSheet(
-                    renderItem = videoEditorBottomSheetRouteRequestData.renderItem,
+                is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Video -> VideoRenderEditBottomSheet(
+                    renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.video,
+                    previewPositionMs = videoEditorBottomSheetRouteRequestData.editRenderItem.previewPositionMs,
+                    isProjectHdr = videoEditorBottomSheetRouteRequestData.editRenderItem.isProjectHdr,
+                    onOpenVideoInfo = onVideoInfoClick,
                     onUpdate = {
                         onCanvasUpdate(it)
                         onClose()

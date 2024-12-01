@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,15 +42,19 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
  *
  * @param renderItem 動画素材の情報
  * @param previewPositionMs プレビューの時間
+ * @param isProjectHdr プロジェクトで 10Bit HDR が有効の場合
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
+ * @param onOpenVideoInfo 動画情報編集ボトムシートを開いて欲しいときに呼ばれる
  */
 @Composable
 fun VideoRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Video,
     previewPositionMs: Long,
+    isProjectHdr: Boolean,
     onUpdate: (RenderData.CanvasItem.Video) -> Unit,
     onDelete: (RenderData.CanvasItem.Video) -> Unit,
+    onOpenVideoInfo: () -> Unit
 ) {
     val context = LocalContext.current
     val videoItem = remember { mutableStateOf(renderItem) }
@@ -79,6 +84,14 @@ fun VideoRenderEditBottomSheet(
 
         Text(text = "${stringResource(id = R.string.video_edit_bottomsheet_video_file_name)} : ${videoFileName.value}")
 
+        // 10Bit HDR の動画なのに 10Bit HDR 動画編集機能がオフの場合
+        if (renderItem.dynamicRange == RenderData.CanvasItem.Video.DynamicRange.HDR_HLG && !isProjectHdr) {
+            ProjectSdrMessageInHdrVideo(
+                modifier = Modifier.padding(vertical = 10.dp),
+                onOpenVideoInfo = onOpenVideoInfo
+            )
+        }
+
         RenderItemChromaKeyEditComponent(
             filePath = videoItem.value.filePath,
             previewPositionMs = videoItem.value.calcVideoFramePositionMs(previewPositionMs),
@@ -101,6 +114,33 @@ fun VideoRenderEditBottomSheet(
             size = videoItem.value.size,
             onUpdate = { size -> update { it.copy(size = size) } }
         )
+    }
+}
+
+/**
+ * プロジェクトで 10Bit HDR が無効の場合で、10Bit HDR 動画を編集しているときに表示するメッセージ
+ *
+ * @param modifier [Modifier]
+ * @param onOpenVideoInfo 動画情報編集ボトムシートを開いて欲しいときに呼ばれる
+ */
+@Composable
+private fun ProjectSdrMessageInHdrVideo(
+    modifier: Modifier = Modifier,
+    onOpenVideoInfo: () -> Unit
+) {
+    OutlinedCard(modifier = modifier) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+
+            Text(text = stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title))
+
+            OutlinedButton(onClick = onOpenVideoInfo) {
+                Text(text = stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button))
+            }
+        }
     }
 }
 

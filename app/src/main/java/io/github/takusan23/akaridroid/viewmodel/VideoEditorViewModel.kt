@@ -374,7 +374,7 @@ class VideoEditorViewModel(
 
         // プロジェクト作成直後は動画情報編集ボトムシートを出す
         if (savedStateHandle.get<String>("openVideoInfo").toBoolean()) {
-            _bottomSheetRouteData.value = VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)
+            openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))
         }
     }
 
@@ -424,12 +424,7 @@ class VideoEditorViewModel(
 
             // 編集画面を開く
             if (openEditItem != null) {
-                openBottomSheet(
-                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
-                        renderItem = openEditItem,
-                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-                    )
-                )
+                openEditRenderItemSheet(openEditItem)
             }
         }
     }
@@ -461,12 +456,7 @@ class VideoEditorViewModel(
 
             // 編集画面を開く
             if (openEditItem != null) {
-                openBottomSheet(
-                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
-                        renderItem = openEditItem,
-                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-                    )
-                )
+                openEditRenderItemSheet(openEditItem)
             }
         }
     }
@@ -511,12 +501,7 @@ class VideoEditorViewModel(
 
             // 編集画面を開く
             if (openEditItem != null) {
-                openBottomSheet(
-                    VideoEditorBottomSheetRouteRequestData.OpenEditor(
-                        renderItem = openEditItem,
-                        previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-                    )
-                )
+                openEditRenderItemSheet(openEditItem)
             }
 
             // 終わったら
@@ -536,6 +521,26 @@ class VideoEditorViewModel(
         } else {
             _bottomSheetRouteData.value = bottomSheetRouteRequestData
         }
+    }
+
+    /** タイムラインの素材を編集するボトムシートを表示させる */
+    fun openEditRenderItemSheet(renderItem: RenderData.RenderItem) {
+        // RenderItem と追加で値を渡したかったのでデータクラスに包む
+        val editRenderItem = when (renderItem) {
+            is RenderData.AudioItem.Audio -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Audio(renderItem)
+            is RenderData.CanvasItem.Effect -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Effect(renderItem)
+            is RenderData.CanvasItem.Image -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Image(renderItem)
+            is RenderData.CanvasItem.Shader -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shader(renderItem)
+            is RenderData.CanvasItem.Shape -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shape(renderItem)
+            is RenderData.CanvasItem.SwitchAnimation -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.SwitchAnimation(renderItem)
+            is RenderData.CanvasItem.Text -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Text(renderItem)
+            is RenderData.CanvasItem.Video -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Video(
+                renderItem,
+                previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs,
+                isProjectHdr = renderData.value.isEnableTenBitHdr
+            )
+        }
+        openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(editRenderItem))
     }
 
     /** ボトムシートを閉じる */
@@ -1047,7 +1052,13 @@ class VideoEditorViewModel(
                 displayTime = displayTime,
                 position = renderData.value.centerPosition(),
                 size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                layerIndex = videoTrackLayerIndex
+                layerIndex = videoTrackLayerIndex,
+                dynamicRange = if (analyzeVideo.tenBitHdrInfoOrSdrNull != null) {
+                    // TODO HDR だからといって HLG 形式とは限らない
+                    RenderData.CanvasItem.Video.DynamicRange.HDR_HLG
+                } else {
+                    RenderData.CanvasItem.Video.DynamicRange.SDR
+                }
             ),
 
             // 音声トラックもあれば追加

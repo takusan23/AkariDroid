@@ -235,4 +235,6 @@ Also, please note the following when editing HDR videos.\n
 (Color space is BT.2020, gamma curve is HLG)\n
 ・If you display photos or SDR videos on HDR videos, the colors will change, so we do not recommend it.\n
 ・For now, the only codec available for encoding HDR videos is HEVC.\n</string>
+    <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">This video is a 10-bit HDR video. Because 10-bit HDR video editing is disabled in this project, the colors will be whitish. To enable 10-bit HDR video editing, open the video information editing screen.</string>
+    <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button">Open the video information editing screen</string>
 </resources>

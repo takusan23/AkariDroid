@@ -59,6 +59,7 @@ fun VideoInfoEditorBottomSheet(
             )
         }
 
+        // TODO 動画解像度の編集、選択肢から選べるようにしたい。打ち込むのめんどい
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(5.dp)

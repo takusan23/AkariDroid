@@ -2,7 +2,9 @@ package io.github.takusan23.akaridroid.tool
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import android.provider.MediaStore
 import io.github.takusan23.akaridroid.tool.data.AvAnalyzeResult
 import io.github.takusan23.akaridroid.tool.data.IoType
@@ -104,6 +106,7 @@ object AvAnalyze {
             val height = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toInt() ?: return@withContext null
             val durationMs = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: return@withContext null
             val hasAudioTrack = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) != null
+            val tenBitHdrInfoOrSdrNull = mediaMetadataRetriever.extractTenBitHdrInfo()
 
             // 縦動画の場合、rotation で開店情報が入っていれば width / height を入れ替える
             val size = when (rotation) {
@@ -114,9 +117,29 @@ object AvAnalyze {
             AvAnalyzeResult.Video(
                 size = size,
                 durationMs = durationMs,
-                hasAudioTrack = hasAudioTrack
+                hasAudioTrack = hasAudioTrack,
+                tenBitHdrInfoOrSdrNull = tenBitHdrInfoOrSdrNull
             )
         }
+    }
+
+    /**
+     * [MediaMetadataRetriever]で動画が 10Bit HDR に対応しているかを返す。
+     * 詳しくはここ
+     * https://cs.android.com/android/platform/superproject/main/+/main:frameworks/av/media/libstagefright/FrameDecoder.cpp
+     *
+     * @return 色域、ガンマカーブをいれた Pair。null の場合は HDR ではない。
+     */
+    private fun MediaMetadataRetriever.extractTenBitHdrInfo(): AvAnalyzeResult.TenBitHdrInfo? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val colorStandard = extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)?.toInt()
+            val colorTransfer = extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)?.toInt()
+            // HDR の場合
+            if (colorStandard == MediaFormat.COLOR_STANDARD_BT2020 && (colorTransfer == MediaFormat.COLOR_TRANSFER_ST2084 || colorTransfer == MediaFormat.COLOR_TRANSFER_HLG)) {
+                return AvAnalyzeResult.TenBitHdrInfo(colorStandard, colorTransfer)
+            }
+        }
+        return null
     }
 
     /** [MediaMetadataRetriever]に[AutoCloseable]が実装されたのは Android 10 以降から。下位互換性つき use { } */

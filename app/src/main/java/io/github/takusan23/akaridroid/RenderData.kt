@@ -100,8 +100,24 @@ data class RenderData(
             val filePath: FilePath,
             val size: Size,
             val displayOffset: DisplayOffset = DisplayOffset(0),
-            val chromaKeyColor: Int? = null
-        ) : CanvasItem
+            val chromaKeyColor: Int? = null,
+            val dynamicRange: DynamicRange = DynamicRange.SDR
+        ) : CanvasItem {
+
+            /** ダイナミックレンジ */
+            @Serializable
+            enum class DynamicRange {
+
+                /** 従来の動画。SDR */
+                @SerialName("sdr")
+                SDR,
+
+                /** HDR 動画。HLG 形式 */
+                @SerialName("hdr_hlg")
+                HDR_HLG
+            }
+
+        }
 
         /** 図形 */
         @Serializable

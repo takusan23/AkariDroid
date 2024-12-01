@@ -145,21 +145,24 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Video(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                     position = RenderData.Position(640f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Video(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
                     position = RenderData.Position(0f, 360f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Text(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
@@ -194,7 +197,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Video(
                     displayTime = RenderData.DisplayTime(startMs = 4_000, durationMs = 10_000),
@@ -202,7 +206,8 @@ class VideoTrackRendererTest {
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
                     size = RenderData.Size(640, 360),
-                    displayOffset = RenderData.DisplayOffset(4_000) // 4秒 スキップ
+                    displayOffset = RenderData.DisplayOffset(4_000), // 4秒 スキップ
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Video(
                     displayTime = RenderData.DisplayTime(startMs = 8_000, durationMs = 10_000),
@@ -210,7 +215,8 @@ class VideoTrackRendererTest {
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
                     size = RenderData.Size(640, 360),
-                    displayOffset = RenderData.DisplayOffset(8_000) // 8秒 スキップ
+                    displayOffset = RenderData.DisplayOffset(8_000), // 8秒 スキップ
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Text(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
@@ -302,14 +308,16 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Video(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000, playbackSpeed = 0.5f),
                     position = RenderData.Position(640f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(640, 360)
+                    size = RenderData.Size(640, 360),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 )
             )
         )
@@ -336,7 +344,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(1280, 720)
+                    size = RenderData.Size(1280, 720),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Shader(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
@@ -371,7 +380,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(1280, 720)
+                    size = RenderData.Size(1280, 720),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Shader(
                     displayTime = RenderData.DisplayTime(startMs = 0, durationMs = 10_000),
@@ -406,7 +416,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(1280, 720)
+                    size = RenderData.Size(1280, 720),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Shader(
                     displayTime = RenderData.DisplayTime(startMs = 1_000, durationMs = 2_000),
@@ -441,7 +452,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(1280, 720)
+                    size = RenderData.Size(1280, 720),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.SwitchAnimation(
                     displayTime = RenderData.DisplayTime(startMs = 1_000, durationMs = 2_000),
@@ -475,7 +487,8 @@ class VideoTrackRendererTest {
                     position = RenderData.Position(0f, 0f),
                     layerIndex = 0,
                     filePath = RenderData.FilePath.File(testToomoMp4.path),
-                    size = RenderData.Size(1280, 720)
+                    size = RenderData.Size(1280, 720),
+                    dynamicRange = RenderData.CanvasItem.Video.DynamicRange.SDR
                 ),
                 RenderData.CanvasItem.Effect(
                     displayTime = RenderData.DisplayTime(startMs = 1_000, durationMs = 2_000),

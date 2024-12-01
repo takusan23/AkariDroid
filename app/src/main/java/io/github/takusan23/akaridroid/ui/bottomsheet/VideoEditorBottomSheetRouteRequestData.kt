@@ -8,13 +8,42 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
     /**
      * [RenderData.RenderItem]に対応する各編集ボトムシートを出す
      *
-     * @param renderItem 編集するアイテム
-     * @param previewPositionMs プレビューの時間
+     * @param editRenderItem 編集するアイテム
      */
-    data class OpenEditor(
-        val renderItem: RenderData.RenderItem,
-        val previewPositionMs: Long
-    ) : VideoEditorBottomSheetRouteRequestData
+    data class OpenEditor(val editRenderItem: EditRenderItemType) : VideoEditorBottomSheetRouteRequestData {
+
+        /** [RenderData.RenderItem]をラップしてるだけ、追加で値を渡したかった。 */
+        sealed interface EditRenderItemType {
+
+            /** 音声 */
+            data class Audio(val audio: RenderData.AudioItem.Audio) : EditRenderItemType
+
+            /** エフェクト */
+            data class Effect(val effect: RenderData.CanvasItem.Effect) : EditRenderItemType
+
+            /** 画像 */
+            data class Image(val image: RenderData.CanvasItem.Image) : EditRenderItemType
+
+            /** シェーダー */
+            data class Shader(val shader: RenderData.CanvasItem.Shader) : EditRenderItemType
+
+            /** 図形 */
+            data class Shape(val shape: RenderData.CanvasItem.Shape) : EditRenderItemType
+
+            /** 切り替えアニメーション */
+            data class SwitchAnimation(val switchAnimation: RenderData.CanvasItem.SwitchAnimation) : EditRenderItemType
+
+            /** テキスト */
+            data class Text(val text: RenderData.CanvasItem.Text) : EditRenderItemType
+
+            /**
+             * 動画
+             * @param previewPositionMs プレビューの時間
+             * @param isProjectHdr プロジェクトで 10Bit HDR が有効の場合
+             */
+            data class Video(val video: RenderData.CanvasItem.Video, val previewPositionMs: Long, val isProjectHdr: Boolean) : EditRenderItemType
+        }
+    }
 
     /**
      * 動画情報の編集画面を開く

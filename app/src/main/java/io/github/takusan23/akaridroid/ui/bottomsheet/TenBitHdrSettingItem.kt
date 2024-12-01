@@ -50,6 +50,7 @@ fun TenBitHdrSettingItem(
         onTenBitHdrChange = { isShowBottomSheet.value = true }
     )
 
+    // このボトムシートからしか使わないはずなので、VideoEditorBottomSheetRouteRequestData 一覧にはない
     if (isShowBottomSheet.value) {
         ModalBottomSheet(onDismissRequest = { isShowBottomSheet.value = false }) {
             Column(
