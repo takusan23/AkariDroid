@@ -4,10 +4,13 @@ import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
 import android.view.Surface
+import javax.microedition.khronos.egl.EGL10
 
 /**
  * MediaCodec で描画する際に OpenGL ES の設定が必要だが、EGL 周りの設定をしてくれるやつ。
  * EGL 1.4 、GLES 3.0 でセットアップする。GL スレッドから呼び出すこと。
+ *
+ * TODO 10Bit HDR （HLG 形式）の描画に対応しているかを確認する方法を用意する
  *
  * @param outputSurface 出力先 [Surface]
  * @param isEnableTenBitHdr 10Bit HDR を利用する場合は true
@@ -68,11 +71,18 @@ internal class AkariGraphicsInputSurface(
         checkEglError("eglCreateContext")
 
         // Create a window surface, and attach it to the Surface we received.
-        // EGL_GL_COLORSPACE_BT2020_HLG_EXT を使うことで OpenGL ES で HDR 表示が可能になる
-        val surfaceAttribs = intArrayOf(
-            EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT,
-            EGL14.EGL_NONE
-        )
+        // EGL_GL_COLORSPACE_BT2020_HLG_EXT を使うことで OpenGL ES で HDR 表示が可能になる（HLG 形式）
+        // TODO 10Bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
+        val surfaceAttribs = if (isAvailableExtension("EGL_EXT_gl_colorspace_bt2020_hlg")) {
+            intArrayOf(
+                EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT,
+                EGL14.EGL_NONE
+            )
+        } else {
+            intArrayOf(
+                EGL14.EGL_NONE
+            )
+        }
         mEGLSurface = EGL14.eglCreateWindowSurface(mEGLDisplay, configs[0], outputSurface, surfaceAttribs, 0)
         checkEglError("eglCreateWindowSurface")
     }
@@ -168,6 +178,19 @@ internal class AkariGraphicsInputSurface(
         if (error != EGL14.EGL_SUCCESS) {
             throw RuntimeException("$msg: EGL error: 0x${Integer.toHexString(error)}")
         }
+    }
+
+    /**
+     * OpenGL ES の拡張機能をサポートしているか。
+     * 例えば 10Bit HDR を描画する機能は新し目の Android にしか無いため
+     *
+     * @param extensionName "EGL_EXT_gl_colorspace_bt2020_hlg" など
+     * @return 拡張機能をサポートしている場合は true
+     */
+    private fun isAvailableExtension(extensionName: String): Boolean {
+        val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+        val eglExtensions = EGL14.eglQueryString(display, EGL10.EGL_EXTENSIONS)
+        return eglExtensions != null && eglExtensions.contains(extensionName)
     }
 
     companion object {

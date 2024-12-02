@@ -16,6 +16,9 @@ import kotlinx.coroutines.yield
  * 動画のエンコーダー
  * 目的としては[io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]が描画した内容を録画する。
  * これ以外の目的でも（単に Surface を録画する）でも使えるかも。
+ *
+ * TODO 10Bit HDR 動画をエンコード出来るようになりましたが、今のところ 10Bit HDR のエンコードに対応しているか見る方法が無い？
+ * TODO FEATURE_HdrEditing が false を返しても実際は HDR 動画がエンコード出来る場合があり、Android 13 以上だったらぶっつけ本番で試してみるしか無い気がしてきた。
  */
 class AkariVideoEncoder {
 
