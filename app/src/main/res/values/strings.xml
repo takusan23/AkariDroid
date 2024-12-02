@@ -222,7 +222,7 @@ Please note that this is not the time for the video.</string>
     <string name="project_list_bottomsheet_menu_export_successful">Completed. You can import by clicking the Import button.</string>
     <string name="project_list_bottomsheet_menu_import_successful">The import is complete.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">Video editing features for 10-bit HDR video</string>
-    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">Now supports editing videos shot in 10-bit HDR. Click here for details.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">Now supports editing videos shot in 10-bit HDR. Click here for details. Should be supported on Android 13 and above?</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_title">Enable video editing for 10-bit HDR videos</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">Editing videos shot in 10-bit HDR is now supported. After editing, you can encode (export) them as HDR videos.\n
 Simply put, it\'s that "dazzling video." If the color of the video displayed in the preview becomes whitish after adding it to the timeline, it is likely to be an HDR video.\n

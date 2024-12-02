@@ -223,7 +223,7 @@
     <string name="project_list_bottomsheet_menu_export_successful">完了しました。取り込みボタンより読み込みができます。</string>
     <string name="project_list_bottomsheet_menu_import_successful">取り込みが完了しました。</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">10 ビット HDR 動画の動画編集機能</string>
-    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">10 ビット HDR で撮影した動画の編集に対応しました。詳しくはこれを押してください。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_description">10 ビット HDR で撮影した動画の編集に対応しました。詳しくはこれを押してください。Android 13 以降で対応しているはず？</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_title">10 ビット HDR 動画の動画編集を有効にする</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">10 ビット HDR で撮影した動画の編集に対応しました。編集後も HDR 動画のままエンコード（書き出し）が可能です。\n
 簡単に言うと「眩しい動画」のあれです。タイムラインに追加したあと、プレビューで表示される動画の色が白っぽくなった場合は HDR 動画の可能性が高いです。\n

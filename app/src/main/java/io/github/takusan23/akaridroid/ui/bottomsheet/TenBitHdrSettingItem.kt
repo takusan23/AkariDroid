@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.bottomsheet
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,7 +48,9 @@ fun TenBitHdrSettingItem(
     TenBitHdrSwitchSettingItem(
         modifier = modifier,
         isEnableTenBitHdr = isEnableTenBitHdr,
-        onTenBitHdrChange = { isShowBottomSheet.value = true }
+        onTenBitHdrChange = { isShowBottomSheet.value = true },
+        // TODO 10Bit HDR 動画編集をサポートしているのが Android 13 以降（Camera2 API がそうだからそのハズ）。本当はエンコーダー、OpenGL ES 共に HDR に対応しているかを見る必要があるがやっていない
+        isEnable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     )
 
     // このボトムシートからしか使わないはずなので、VideoEditorBottomSheetRouteRequestData 一覧にはない
@@ -93,17 +96,20 @@ fun TenBitHdrSettingItem(
  * 設定項目
  *
  * @param modifier [Modifier]
+ * @param isEnable HDR 動画編集に明らかに対応していない場合は false に
  * @param isEnableTenBitHdr 10Bit HDR が有効の場合
  * @param onTenBitHdrChange スイッチを押した時
  */
 @Composable
 private fun TenBitHdrSwitchSettingItem(
     modifier: Modifier = Modifier,
+    isEnable: Boolean = true,
     isEnableTenBitHdr: Boolean,
     onTenBitHdrChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = modifier.toggleable(
+            enabled = isEnable,
             value = isEnableTenBitHdr,
             onValueChange = { onTenBitHdrChange(!isEnableTenBitHdr) },
             role = Role.Switch
@@ -124,7 +130,8 @@ private fun TenBitHdrSwitchSettingItem(
         }
         Switch(
             checked = isEnableTenBitHdr,
-            onCheckedChange = null
+            onCheckedChange = null,
+            enabled = isEnable
         )
     }
 }
