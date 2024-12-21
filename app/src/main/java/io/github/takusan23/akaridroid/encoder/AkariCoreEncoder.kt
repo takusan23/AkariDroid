@@ -197,7 +197,8 @@ object AkariCoreEncoder {
                 containerFormatTrackInputList = listOf(
                     videoTrackFile.toAkariCoreInputOutputData(),
                     audioTrackFile.toAkariCoreInputOutputData()
-                )
+                ),
+                containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
             )
 
             // 動画フォルダへコピーする
