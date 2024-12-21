@@ -234,11 +234,14 @@ Also, please note the following when editing HDR videos.\n
 ・Currently, HLG format HDR videos are supported.\n
 (Color space is BT.2020, gamma curve is HLG)\n
 ・If you display photos or SDR videos on HDR videos, the colors will change, so we do not recommend it.\n
-・For now, the only codec available for encoding HDR videos is HEVC.\n</string>
+・For now, the only codec available for encoding HDR videos is HEVC / AV1.\n</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">This video is a 10-bit HDR video. Because 10-bit HDR video editing is disabled in this project, the colors will be whitish. To enable 10-bit HDR video editing, open the video information editing screen.</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button">Open the video information editing screen</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_low_description">Bitrate 6Mbps</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_medium_description">Bitrate 12Mbps</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_high_description">Bitrate 24Mbps</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message">When encoding 10-bit HDR video, the only codec options currently supported are HEVC/AV1.</string>
+    <string name="video_edit_bottomsheet_encode_hdr_to_sdr_message">This video will be encoded as 10-bit HDR.\n
+If you want to encode as SDR instead of HDR, turn off HDR in the project settings.\n
+Converting to SDR will allow it to be played on more devices, but the colors will change slightly due to the forced conversion.</string>
 </resources>

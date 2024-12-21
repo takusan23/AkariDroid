@@ -184,7 +184,8 @@ object AkariCoreEncoder {
                         input = outPcmFile.toAkariCoreInputOutputData(),
                         output = audioTrackFile.toAkariCoreInputOutputData(),
                         codecName = audioParams.codec.androidMediaCodecName,
-                        bitRate = audioParams.bitrate
+                        bitRate = audioParams.bitrate,
+                        containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
                     )
                 }
             }

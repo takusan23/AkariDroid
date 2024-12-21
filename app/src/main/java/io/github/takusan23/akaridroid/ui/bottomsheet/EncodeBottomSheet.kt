@@ -171,7 +171,7 @@ fun EncodeBottomSheet(
 
             when (currentPage.value) {
                 EncodeBottomSheetPage.Basic -> BasicScreen(
-                    isTenBitHdr = isEnableTenBitHdr,
+                    isEnableTenBitHdr = isEnableTenBitHdr,
                     encoderParameters = encoderParameters.value,
                     onUpdate = { encoderParameters.value = it }
                 )
@@ -310,18 +310,18 @@ private fun AdvancedScreen(
 /**
  * おまかせ設定
  *
- * @param isTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
  * @param encoderParameters [EncoderParameters.AudioVideo]
  * @param onUpdate 更新時に呼ばれる
  */
 @Composable
 private fun BasicScreen(
-    isTenBitHdr: Boolean,
+    isEnableTenBitHdr: Boolean,
     encoderParameters: EncoderParameters.AudioVideo,
     onUpdate: (EncoderParameters.AudioVideo) -> Unit
 ) {
-    val currentMenu = remember(encoderParameters, isTenBitHdr) {
-        getParametersPresetList(isTenBitHdr).firstOrNull { it.first == encoderParameters }?.second
+    val currentMenu = remember(encoderParameters, isEnableTenBitHdr) {
+        getParametersPresetList(isEnableTenBitHdr).firstOrNull { it.first == encoderParameters }?.second
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -332,7 +332,7 @@ private fun BasicScreen(
             iconResId = R.drawable.ic_outline_video_file_24,
             currentMenu = currentMenu?.let { stringResource(id = it) }
         ) {
-            getParametersPresetList(isTenBitHdr).forEachIndexed { index, (parameter, titleResId, descriptionResId) ->
+            getParametersPresetList(isEnableTenBitHdr).forEachIndexed { index, (parameter, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
@@ -347,6 +347,11 @@ private fun BasicScreen(
 
         // おまかせ設定があるよカード
         MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_basic_description))
+
+        // 10Bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
+        if (isEnableTenBitHdr) {
+            MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_hdr_to_sdr_message))
+        }
     }
 }
 
@@ -573,8 +578,10 @@ private fun VideoEncoderSetting(
         }
 
         // 10Bit HDR 動画のエンコードの場合は HEVC / AV1 しか選べない
+        // また、10Bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
         if (isEnableTenBitHdr) {
             MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message))
+            MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_hdr_to_sdr_message))
         }
 
         // ビットレート
@@ -651,4 +658,39 @@ private fun AudioEncoderSamplingRate() {
             fontSize = 20.sp
         )
     }
+}
+
+@Composable
+private fun HdrOrSdrSetting(
+    modifier: Modifier = Modifier,
+    isEnableTenBitHdr: Boolean,
+    onChange: (isEnableTenBitHdr: Boolean) -> Unit
+) {
+    val isOpen = remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text(
+            text = "HDR / SDR 変換",
+            fontSize = 18.sp
+        )
+        Text(text = "よくわからない場合は HDR のままエンコードしてください。色の変化を許容してまで SDR でエンコードする必要がある場合に利用してください。")
+    }
+
+    ExtendMenu(
+        isOpen = isOpen.value,
+        label = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_video_codec),
+        iconResId = R.drawable.android_hdr_icon,
+        currentMenu = "10 ビット HDR を維持する",
+        onOpenChange = { isOpen.value = !isOpen.value }
+    ) {
+        listOf("10 ビット HDR を維持する", "SDR に変換する（おすすめしません）").forEach { menu ->
+            ExtendMenuItem(
+                isSelect = false,
+                title = menu,
+                description = "",
+                onClick = {}
+            )
+        }
+    }
+
 }

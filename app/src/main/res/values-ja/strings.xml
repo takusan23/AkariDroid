@@ -94,8 +94,8 @@
     <string name="video_edit_bottomsheet_encode_video_encoder_video_vp9_title">VP9</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_av1_title">AV1</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_avc_description">再生できる端末が一番多いです。高画質にしたい場合はビットレートを結構上げないといけない。とりあえずこれにしておいけばいいはず。</string>
-    <string name="video_edit_bottomsheet_encode_video_encoder_video_hevc_description">AVC より効率が良いですが、ライセンス料の問題があります。</string>
-    <string name="video_edit_bottomsheet_encode_video_encoder_video_vp9_description">WebM コンテナ用。ロイヤリティーフリーなコーデックです。10 ビット HDR の場合はこちらを選ぶことをおすすめします。</string>
+    <string name="video_edit_bottomsheet_encode_video_encoder_video_hevc_description">AVC より効率が良いですが、ライセンス料の問題があります。10 ビット HDR の場合はこちらを選ぶことをおすすめします。</string>
+    <string name="video_edit_bottomsheet_encode_video_encoder_video_vp9_description">WebM コンテナ用。ロイヤリティーフリーなコーデックです。</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_av1_description">HEVC と同等の性能と言われており、かつロイヤリティフリーです。しかし、ほとんどの端末にハードウェアエンコーダーが搭載されていないため、エンコードに相当な時間がかかります。</string>
     <string name="video_edit_bottomsheet_image_title">画像の編集</string>
     <string name="video_edit_bottomsheet_shape_title">図形の編集</string>
@@ -235,11 +235,14 @@ HDR 動画を SDR としてエンコードすると色が白っぽくなるた�
 ・現状は HLG 形式の HDR 動画に対応しています。\n
 （色空間が BT.2020、ガンマカーブが HLG）\n
 ・HDR 動画に写真や、SDR 動画を表示させると色が変わってしまうため、あまりおすすめしません。\n
-・今のところ HDR 動画をエンコードする際のコーデックは HEVC のみになります。\n</string>
+・今のところ HDR 動画をエンコードする際のコーデックは HEVC / AV1 のみになります。\n</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">この動画は 10 ビット HDR 動画です。このプロジェクトでは 10 ビット HDR 動画編集が無効なため、色が白っぽくなります。10 ビット HDR 動画編集を有効にするには動画情報編集画面を開いてください。</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button">動画情報編集画面を開く</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_low_description">ビットレート 6Mbps</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_medium_description">ビットレート 12Mbps</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_high_description">ビットレート 24Mbps</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message">10 ビット HDR 動画のエンコードをする場合、コーデックの選択肢は現状 HEVC / AV1 のみ対応になります。</string>
+    <string name="video_edit_bottomsheet_encode_hdr_to_sdr_message">この動画は、10 ビット HDR としてエンコードされます。\n
+もし HDR ではなく SDR としてエンコードしたい場合は、プロジェクトの設定から HDR の項目をオフにしてください。\n
+SDR に変換すると、より多くの端末で再生できますが、無理やり変換する都合上、色が少し変化してしまいます。</string>
 </resources>
