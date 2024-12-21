@@ -111,7 +111,7 @@ private fun TenBitHdrSwitchSettingItem(
         modifier = modifier.toggleable(
             enabled = isEnable,
             value = isEnableTenBitHdr,
-            onValueChange = { onTenBitHdrChange(!isEnableTenBitHdr) },
+            onValueChange = { onTenBitHdrChange(it) },
             role = Role.Switch
         ),
         verticalAlignment = Alignment.CenterVertically,
@@ -141,7 +141,7 @@ private fun TenBitHdrSwitchSettingItem(
  *
  * @param modifier [Modifier]
  * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
- * @param onTenBitHdrChange 10Bit HDR の有効無効が切り替わった時
+ * @param onEnableChange 10Bit HDR の有効無効が切り替わった時
  */
 @Composable
 private fun TenBitHdrSwitch(
@@ -152,7 +152,7 @@ private fun TenBitHdrSwitch(
     Row(
         modifier = modifier.toggleable(
             value = isEnableTenBitHdr,
-            onValueChange = { onEnableChange(!isEnableTenBitHdr) },
+            onValueChange = { onEnableChange(it) },
             role = Role.Switch
         ),
         verticalAlignment = Alignment.CenterVertically,
