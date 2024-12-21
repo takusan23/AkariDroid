@@ -93,7 +93,7 @@ The same applies if you need to change the video codec (for advanced users). You
     <string name="video_edit_bottomsheet_encode_video_encoder_video_vp9_title">VP9</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_av1_title">AV1</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_avc_description">It can be played on the most devices. If you want high quality, you have to increase the bitrate considerably. You should leave it at this for now.</string>
-    <string name="video_edit_bottomsheet_encode_video_encoder_video_hevc_description">It is more efficient than AVC, but it is unclear whether it can be used due to patent issues. I\'m not familiar with the law so I don\'t know.</string>
+    <string name="video_edit_bottomsheet_encode_video_encoder_video_hevc_description">It is more efficient than AVC, but has licensing fees issues. This is the recommended choice for 10-bit HDR.</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_vp9_description">For WebM containers. This is a royalty-free codec.</string>
     <string name="video_edit_bottomsheet_encode_video_encoder_video_av1_description">It is said to have the same performance as HEVC, and is royalty-free. However, most devices do not have a hardware encoder, so encoding takes a considerable amount of time.</string>
     <string name="video_edit_bottomsheet_image_title">Edit images</string>
@@ -237,4 +237,8 @@ Also, please note the following when editing HDR videos.\n
 ・For now, the only codec available for encoding HDR videos is HEVC.\n</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">This video is a 10-bit HDR video. Because 10-bit HDR video editing is disabled in this project, the colors will be whitish. To enable 10-bit HDR video editing, open the video information editing screen.</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button">Open the video information editing screen</string>
+    <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_low_description">Bitrate 6Mbps</string>
+    <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_medium_description">Bitrate 12Mbps</string>
+    <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_high_description">Bitrate 24Mbps</string>
+    <string name="video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message">When encoding 10-bit HDR video, the only codec options currently supported are HEVC/AV1.</string>
 </resources>

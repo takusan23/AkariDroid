@@ -129,5 +129,28 @@ sealed interface EncoderParameters {
             audioEncoderParameters = AudioEncoderParameters(codec = AudioCodec.AAC, bitrate = 128_000)
         )
 
+        // --- 10-bit HDR 用、何も考えずに2倍にしている --- //
+
+        /** 10-bit HDR HEVC 低画質 */
+        val TEN_BIT_HDR_LOW_QUALITY = AudioVideo(
+            containerFormat = ContainerFormat.MP4,
+            videoEncoderParameters = VideoEncoderParameters(codec = VideoCodec.HEVC, bitrate = 4_000_000, frameRate = 30, keyframeInterval = 1),
+            audioEncoderParameters = AudioEncoderParameters(codec = AudioCodec.AAC, bitrate = 128_000)
+        )
+
+        /** 10-bit HDR HEVC 中画質 */
+        val TEN_BIT_HDR_MEDIUM_QUALITY = AudioVideo(
+            containerFormat = ContainerFormat.MP4,
+            videoEncoderParameters = VideoEncoderParameters(codec = VideoCodec.HEVC, bitrate = 12_000_000, frameRate = 30, keyframeInterval = 1),
+            audioEncoderParameters = AudioEncoderParameters(codec = AudioCodec.AAC, bitrate = 128_000)
+        )
+
+        /** 10-bit HDR HEVC 高画質。解像度を見ていないので、これを選んで微調整すればいいと思う。 */
+        val TEN_BIT_HDR_HIGH_QUALITY = AudioVideo(
+            containerFormat = ContainerFormat.MP4,
+            videoEncoderParameters = VideoEncoderParameters(codec = VideoCodec.HEVC, bitrate = 24_000_000, frameRate = 30, keyframeInterval = 1),
+            audioEncoderParameters = AudioEncoderParameters(codec = AudioCodec.AAC, bitrate = 128_000)
+        )
+
     }
 }

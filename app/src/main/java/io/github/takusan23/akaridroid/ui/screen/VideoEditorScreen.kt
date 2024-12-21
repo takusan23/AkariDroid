@@ -106,7 +106,7 @@ fun VideoEditorScreen(
                 onBack()
             },
             onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
-            onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize)) },
+            onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize, renderData.value.isEnableTenBitHdr)) },
             onTimeLineReset = { viewModel.resetRenderItemList() },
             onSettingClick = { onNavigate(NavigationPaths.Setting) },
             onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },

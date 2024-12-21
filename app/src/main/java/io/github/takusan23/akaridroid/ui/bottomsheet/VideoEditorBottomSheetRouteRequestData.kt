@@ -61,8 +61,12 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      * 動画を保存、エンコード画面を開く
      *
      * @param videoSize 動画の縦横サイズ
+     * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
      */
-    data class OpenEncode(val videoSize: RenderData.Size) : VideoEditorBottomSheetRouteRequestData
+    data class OpenEncode(
+        val videoSize: RenderData.Size,
+        val isEnableTenBitHdr: Boolean
+    ) : VideoEditorBottomSheetRouteRequestData
 
     /** メニューを開く */
     data object OpenMenu : VideoEditorBottomSheetRouteRequestData

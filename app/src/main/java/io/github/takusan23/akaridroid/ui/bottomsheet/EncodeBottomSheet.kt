@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -62,8 +61,19 @@ private val AudioCodecMenu = listOf(
     Triple(EncoderParameters.AudioCodec.OPUS, R.string.video_edit_bottomsheet_encode_audio_encoder_opus_title, R.string.video_edit_bottomsheet_encode_audio_encoder_opus_description)
 )
 
-/** 映像コーデックの説明 */
-private val VideoCodecMenu = listOfNotNull(
+/**
+ * 映像コーデックの説明を返す
+ * 10Bit HDR が true の場合は、HEVC と AV1 のみ返します。
+ *
+ * @param isTenBitHdr 10Bit HDR が有効の場合は true
+ */
+private fun getVideoCodecMenu(isTenBitHdr: Boolean) = if (isTenBitHdr) listOfNotNull(
+    Triple(EncoderParameters.VideoCodec.HEVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_description),
+    // AV1 エンコードは Android 14 以降のみ
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        Triple(EncoderParameters.VideoCodec.AV1, R.string.video_edit_bottomsheet_encode_video_encoder_video_av1_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_av1_description)
+    } else null
+) else listOfNotNull(
     Triple(EncoderParameters.VideoCodec.AVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_avc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_avc_description),
     Triple(EncoderParameters.VideoCodec.HEVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_description),
     Triple(EncoderParameters.VideoCodec.VP9, R.string.video_edit_bottomsheet_encode_video_encoder_video_vp9_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_vp9_description),
@@ -73,8 +83,17 @@ private val VideoCodecMenu = listOfNotNull(
     } else null
 )
 
-/** エンコード設定のプリセット */
-private val ParametersPresetList = listOf(
+/**
+ * エンコード設定のプリセットを返す
+ *
+ * @param isTenBitHdr 10Bit HDR が有効の場合は true
+ * @return プリセット一覧
+ */
+private fun getParametersPresetList(isTenBitHdr: Boolean) = if (isTenBitHdr) listOf(
+    Triple(EncoderParameters.TEN_BIT_HDR_LOW_QUALITY, R.string.video_edit_bottomsheet_encode_basic_low_title, R.string.video_edit_bottomsheet_encode_basic_ten_bit_hdr_low_description),
+    Triple(EncoderParameters.TEN_BIT_HDR_MEDIUM_QUALITY, R.string.video_edit_bottomsheet_encode_basic_medium_title, R.string.video_edit_bottomsheet_encode_basic_ten_bit_hdr_medium_description),
+    Triple(EncoderParameters.TEN_BIT_HDR_HIGH_QUALITY, R.string.video_edit_bottomsheet_encode_basic_high_title, R.string.video_edit_bottomsheet_encode_basic_ten_bit_hdr_high_description)
+) else listOf(
     Triple(EncoderParameters.LOW_QUALITY, R.string.video_edit_bottomsheet_encode_basic_low_title, R.string.video_edit_bottomsheet_encode_basic_low_description),
     Triple(EncoderParameters.MEDIUM_QUALITY, R.string.video_edit_bottomsheet_encode_basic_medium_title, R.string.video_edit_bottomsheet_encode_basic_medium_description),
     Triple(EncoderParameters.HIGH_QUALITY, R.string.video_edit_bottomsheet_encode_basic_high_title, R.string.video_edit_bottomsheet_encode_basic_high_description)
@@ -98,17 +117,21 @@ private enum class EncodeBottomSheetPage(val labelResId: Int) {
  * TODO バリデーションやってあげたほうが親切かも（コーデックとコンテナ対応しているかとか）
  *
  * @param videoSize 動画の縦横サイズ
+ * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
  * @param onEncode エンコードを押した時に呼ばれる。ファイル名とエンコーダーに渡す設定
  */
 @Composable
 fun EncodeBottomSheet(
     videoSize: RenderData.Size,
+    isEnableTenBitHdr: Boolean,
     onEncode: (String, EncoderParameters) -> Unit
 ) {
     val currentPage = remember { mutableStateOf(EncodeBottomSheetPage.Basic) }
 
     // とりあえず高画質で
-    val encoderParameters = remember { mutableStateOf(EncoderParameters.HIGH_QUALITY) }
+    val encoderParameters = remember(isEnableTenBitHdr) {
+        mutableStateOf(if (isEnableTenBitHdr) EncoderParameters.TEN_BIT_HDR_HIGH_QUALITY else EncoderParameters.HIGH_QUALITY)
+    }
     val fileName = remember { mutableStateOf("あかりどろいど_${System.currentTimeMillis()}") }
 
     Column(
@@ -148,12 +171,14 @@ fun EncodeBottomSheet(
 
             when (currentPage.value) {
                 EncodeBottomSheetPage.Basic -> BasicScreen(
+                    isTenBitHdr = isEnableTenBitHdr,
                     encoderParameters = encoderParameters.value,
                     onUpdate = { encoderParameters.value = it }
                 )
 
                 EncodeBottomSheetPage.Advanced -> AdvancedScreen(
                     videoSize = videoSize,
+                    isEnableTenBitHdr = isEnableTenBitHdr,
                     encoderParameters = encoderParameters.value,
                     onUpdate = { encoderParameters.value = it }
                 )
@@ -236,12 +261,14 @@ private fun FileNameInput(
  * 手動で設定する画面
  *
  * @param videoSize 動画の縦横
+ * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
  * @param encoderParameters [EncoderParameters.AudioVideo]
  * @param onUpdate 更新時に呼ばれる
  */
 @Composable
 private fun AdvancedScreen(
     videoSize: RenderData.Size,
+    isEnableTenBitHdr: Boolean,
     encoderParameters: EncoderParameters.AudioVideo,
     onUpdate: (EncoderParameters.AudioVideo) -> Unit
 ) {
@@ -255,6 +282,7 @@ private fun AdvancedScreen(
         // 映像コーデック設定
         VideoEncoderSetting(
             videoSize = videoSize,
+            isEnableTenBitHdr = isEnableTenBitHdr,
             videoEncoderParameters = encoderParameters.videoEncoderParameters,
             onUpdate = { videoEncoderParameters -> update { it.copy(videoEncoderParameters = videoEncoderParameters) } }
         )
@@ -282,15 +310,19 @@ private fun AdvancedScreen(
 /**
  * おまかせ設定
  *
+ * @param isTenBitHdr 10Bit HDR が有効の場合は true
  * @param encoderParameters [EncoderParameters.AudioVideo]
  * @param onUpdate 更新時に呼ばれる
  */
 @Composable
 private fun BasicScreen(
+    isTenBitHdr: Boolean,
     encoderParameters: EncoderParameters.AudioVideo,
     onUpdate: (EncoderParameters.AudioVideo) -> Unit
 ) {
-    val currentMenu = remember(encoderParameters) { ParametersPresetList.firstOrNull { it.first == encoderParameters }?.second }
+    val currentMenu = remember(encoderParameters, isTenBitHdr) {
+        getParametersPresetList(isTenBitHdr).firstOrNull { it.first == encoderParameters }?.second
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
 
@@ -300,7 +332,7 @@ private fun BasicScreen(
             iconResId = R.drawable.ic_outline_video_file_24,
             currentMenu = currentMenu?.let { stringResource(id = it) }
         ) {
-            ParametersPresetList.forEachIndexed { index, (parameter, titleResId, descriptionResId) ->
+            getParametersPresetList(isTenBitHdr).forEachIndexed { index, (parameter, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
@@ -325,7 +357,6 @@ private fun BasicScreen(
  * @param currentPage 開いているページ [EncodeBottomSheetPage]
  * @param onClick 押した時
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EncodeBottomSheetPageSegmentedButton(
     modifier: Modifier = Modifier,
@@ -403,12 +434,10 @@ private fun ContainerFormatSetting(
             fontSize = 20.sp
         )
 
-        OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                modifier = Modifier.padding(10.dp),
-                text = stringResource(id = R.string.video_edit_bottomsheet_encode_container_format_description),
-            )
-        }
+        MessageCard(
+            modifier = Modifier.fillMaxWidth(),
+            message = stringResource(id = R.string.video_edit_bottomsheet_encode_container_format_description)
+        )
 
         // コンテナフォーマット
         ExtendMenu(
@@ -456,7 +485,7 @@ private fun AudioEncoderSetting(
             fontSize = 20.sp
         )
 
-        // コンテナ
+        // 音声コーデック
         ExtendMenu(
             isOpen = isOpen.value,
             label = stringResource(id = R.string.video_edit_bottomsheet_encode_audio_encoder_audio_codec),
@@ -494,12 +523,14 @@ private fun AudioEncoderSetting(
 /**
  * 映像エンコーダーの設定
  *
+ * @param isEnableTenBitHdr 10Bit HDR をエンコードする場合。今のところ HEVC と AV1 のみ動作確認済みです。
  * @param videoSize 動画の縦横サイズ
  * @param videoEncoderParameters [EncoderParameters.VideoEncoderParameters]
  * @param onUpdate 更新時に呼ばれる
  */
 @Composable
 private fun VideoEncoderSetting(
+    isEnableTenBitHdr: Boolean,
     videoSize: RenderData.Size,
     videoEncoderParameters: EncoderParameters.VideoEncoderParameters,
     onUpdate: (EncoderParameters.VideoEncoderParameters) -> Unit
@@ -528,7 +559,7 @@ private fun VideoEncoderSetting(
             currentMenu = videoEncoderParameters.codec.name,
             onOpenChange = { isOpen.value = !isOpen.value }
         ) {
-            VideoCodecMenu.forEachIndexed { index, (codec, titleResId, descriptionResId) ->
+            getVideoCodecMenu(isTenBitHdr = isEnableTenBitHdr).forEachIndexed { index, (codec, titleResId, descriptionResId) ->
                 if (index != 0) {
                     HorizontalDivider()
                 }
@@ -539,6 +570,11 @@ private fun VideoEncoderSetting(
                     onClick = { update { it.copy(codec = codec) } }
                 )
             }
+        }
+
+        // 10Bit HDR 動画のエンコードの場合は HEVC / AV1 しか選べない
+        if (isEnableTenBitHdr) {
+            MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message))
         }
 
         // ビットレート

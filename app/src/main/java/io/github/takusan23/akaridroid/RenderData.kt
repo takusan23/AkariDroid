@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * @param version [RenderData]のバージョン。破壊的変更があればこれを見る
  * @param durationMs トータル時間
  * @param videoSize 動画の縦横
- * @param isEnableTenBitHdr 10Bit HDR の編集を有効にする場合。現状 HLG のみ。
+ * @param isEnableTenBitHdr 10Bit HDR の編集を有効にする場合。現状 HLG のみなので bool
  * @param canvasRenderItem 描画するアイテム
  * @param audioRenderItem 音声データ
  */
