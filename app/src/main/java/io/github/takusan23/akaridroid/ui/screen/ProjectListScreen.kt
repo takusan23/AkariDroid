@@ -6,8 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,18 +15,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.projectlist.EncodingListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListMenu
+import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListTopAppBar
 import io.github.takusan23.akaridroid.viewmodel.ProjectListViewModel
 import kotlinx.coroutines.launch
 
@@ -37,12 +34,14 @@ import kotlinx.coroutines.launch
  *
  * @param viewModel [ProjectListViewModel]
  * @param onOpen プロジェクト選択時。引数はプロジェクト名と、新規作成かどうか
+ * @param onNavigate 画面遷移時に呼ばれる
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectListScreen(
     viewModel: ProjectListViewModel = viewModel(),
-    onOpen: (projectName: String, isCreateNew: Boolean) -> Unit
+    onOpen: (projectName: String, isCreateNew: Boolean) -> Unit,
+    onNavigate: (NavigationPaths) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -75,9 +74,9 @@ fun ProjectListScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(text = stringResource(id = R.string.app_name)) },
-                scrollBehavior = scrollBehavior
+            ProjectListTopAppBar(
+                scrollBehavior = scrollBehavior,
+                onSettingClick = { onNavigate(NavigationPaths.Setting) }
             )
         }
     ) { innerPadding ->

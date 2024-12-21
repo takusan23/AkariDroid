@@ -18,7 +18,8 @@ fun AkariDroidMainScreen() {
     NavHost(navController = navController, startDestination = NavigationPaths.ProjectList.path) {
         composable(NavigationPaths.ProjectList.path) {
             ProjectListScreen(
-                onOpen = { projectName, isCreateNew -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}?openVideoInfo=${isCreateNew}") }
+                onOpen = { projectName, isCreateNew -> navController.navigate("${NavigationPaths.VideoEditor.path}/${projectName}?openVideoInfo=${isCreateNew}") },
+                onNavigate = { navigationPaths -> navController.navigate(navigationPaths.path) }
             )
         }
         composable("${NavigationPaths.VideoEditor.path}/{projectName}?openVideoInfo={openVideoInfo}") {

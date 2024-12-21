@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.component
+package io.github.takusan23.akaridroid.ui.component.about
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement

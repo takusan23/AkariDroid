@@ -25,11 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.tool.CodeNames
-import io.github.takusan23.akaridroid.ui.component.AdvDateView
-import io.github.takusan23.akaridroid.ui.component.AdvHiroin
-import io.github.takusan23.akaridroid.ui.component.AdvMenuBar
-import io.github.takusan23.akaridroid.ui.component.AdvRouteSelect
-import io.github.takusan23.akaridroid.ui.component.AdvTextArea
+import io.github.takusan23.akaridroid.ui.component.about.AdvDateView
+import io.github.takusan23.akaridroid.ui.component.about.AdvHiroin
+import io.github.takusan23.akaridroid.ui.component.about.AdvMenuBar
+import io.github.takusan23.akaridroid.ui.component.about.AdvRouteSelect
+import io.github.takusan23.akaridroid.ui.component.about.AdvTextArea
 import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
 
 private const val GitHubUrl = "https://github.com/takusan23/AkariDroid"
