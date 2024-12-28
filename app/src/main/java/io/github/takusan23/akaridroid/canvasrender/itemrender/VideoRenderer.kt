@@ -105,8 +105,10 @@ class VideoRenderer(
 
         // 行列の適用は多分順番がある
         // テクスチャ座標は反転してるので負の値
+        // 回転は最後かな？
         Matrix.translateM(mvpMatrix, 0, transX, -transY, 1f)
         Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
+        Matrix.rotateM(mvpMatrix, 0, video.rotation.toFloat(), 0f, 0f, 1f)
     }
 
     companion object {

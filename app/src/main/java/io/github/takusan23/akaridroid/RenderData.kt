@@ -101,7 +101,8 @@ data class RenderData(
             val size: Size,
             val displayOffset: DisplayOffset = DisplayOffset(0),
             val chromaKeyColor: Int? = null,
-            val dynamicRange: DynamicRange = DynamicRange.SDR
+            val dynamicRange: DynamicRange = DynamicRange.SDR,
+            val rotation: Int = 0
         ) : CanvasItem {
 
             /** ダイナミックレンジ */

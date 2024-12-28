@@ -35,6 +35,7 @@ import io.github.takusan23.akaridroid.ui.component.ChromaKeyColorDialog
 import io.github.takusan23.akaridroid.ui.component.ColorItem
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
+import io.github.takusan23.akaridroid.ui.component.RenderItemRotationEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
 
 /**
@@ -113,6 +114,11 @@ fun VideoRenderEditBottomSheet(
         RenderItemSizeEditComponent(
             size = videoItem.value.size,
             onUpdate = { size -> update { it.copy(size = size) } }
+        )
+
+        RenderItemRotationEditComponent(
+            rotation = videoItem.value.rotation,
+            onUpdate = { rotation -> update { it.copy(rotation = rotation) } }
         )
     }
 }

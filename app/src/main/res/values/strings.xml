@@ -244,4 +244,6 @@ Also, please note the following when editing HDR videos.\n
     <string name="video_edit_bottomsheet_encode_hdr_to_sdr_message">This video will be encoded as 10-bit HDR.\n
 If you want to encode as SDR instead of HDR, turn off the HDR option in Edit Video Info.\n
 Converting to SDR will allow it to be played on more devices, but the colors will change slightly due to the forced conversion.</string>
+    <string name="edit_renderitem_rotation_title">rotate</string>
+    <string name="edit_renderitem_rotation_degree">degree</string>
 </resources>
