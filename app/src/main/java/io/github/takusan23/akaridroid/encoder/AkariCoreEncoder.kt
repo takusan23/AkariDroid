@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.encoder
 
 import android.content.Context
+import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.os.Build
 import io.github.takusan23.akaricore.audio.AudioEncodeDecodeProcessor
@@ -121,6 +122,7 @@ object AkariCoreEncoder {
                             containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
                             tenBitHdrParametersOrNullSdr = if (renderData.isEnableTenBitHdr && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                 AkariVideoEncoder.TenBitHdrParameters(
+                                    codecProfile = MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
                                     colorStandard = MediaFormat.COLOR_STANDARD_BT2020,
                                     colorTransfer = MediaFormat.COLOR_TRANSFER_HLG
                                 )

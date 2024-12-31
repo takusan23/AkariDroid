@@ -160,7 +160,7 @@ class VideoTrackRenderer(private val context: Context) {
      * そのため、再生成されたら作り直す必要がある。
      * 再生成されたことを検知するため常に呼び出し元には戻らない関数になります。
      */
-    suspend fun repeatSetRenderDataInRecreateAkariGraphicsProcessor(canvasRenderItem: List<RenderData.CanvasItem>) {
+    suspend fun foreverSetRenderDataInRecreateAkariGraphicsProcessor(canvasRenderItem: List<RenderData.CanvasItem>) {
         // setRenderData でセットしたので初回は skip
         akariGraphicsProcessorFlow.drop(1).collectLatest { akariGraphicsProcessor ->
             akariGraphicsProcessor ?: return@collectLatest
@@ -297,7 +297,7 @@ class VideoTrackRenderer(private val context: Context) {
         scope.cancel()
     }
 
-    /** [setRenderData]と[repeatSetRenderDataInRecreateAkariGraphicsProcessor]の共通部分 */
+    /** [setRenderData]と[foreverSetRenderDataInRecreateAkariGraphicsProcessor]の共通部分 */
     private suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>, akariGraphicsProcessor: AkariGraphicsProcessor) {
 
         // 前の呼び出しから消えた素材はリソース開放させる
