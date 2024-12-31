@@ -109,7 +109,7 @@ class VideoTrackRenderer(private val context: Context) {
      *
      * @param outputWidth 幅
      * @param outputHeight 高さ
-     * @param isEnableTenBitHdr 10Bit HDR を利用する場合は true。10Bit HDR の動画を扱う場合。
+     * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true。10-bit HDR の動画を扱う場合。
      */
     fun setVideoParameters(
         outputWidth: Int,

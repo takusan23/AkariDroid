@@ -3,6 +3,7 @@ package io.github.takusan23.akaricore.graphics.mediacodec
 import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.os.Build
 import android.view.Surface
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
@@ -33,16 +34,23 @@ class AkariVideoDecoder {
      *
      * @param input 再生する動画のファイル
      * @param outputSurface 映像フレームの出力先
+     * @param isSdrToneMapping 10-bit HDR の動画を SDR に変換したい場合は true。トーンマッピングと呼ばれているものです。
      */
     suspend fun prepare(
         input: AkariCoreInputOutput.Input,
         outputSurface: Surface,
+        isSdrToneMapping: Boolean = false
     ) {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
         // ミリ秒に
         videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION) / 1_000
+
+        // HDR を SDR にする場合（トーンマッピングする場合）
+        if (isSdrToneMapping && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            mediaFormat.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_SDR_VIDEO)
+        }
 
         val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {

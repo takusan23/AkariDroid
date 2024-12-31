@@ -43,7 +43,7 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
  *
  * @param renderItem 動画素材の情報
  * @param previewPositionMs プレビューの時間
- * @param isProjectHdr プロジェクトで 10Bit HDR が有効の場合
+ * @param isProjectHdr プロジェクトで 10-bit HDR が有効の場合
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
  * @param onOpenVideoInfo 動画情報編集ボトムシートを開いて欲しいときに呼ばれる
@@ -85,7 +85,7 @@ fun VideoRenderEditBottomSheet(
 
         Text(text = "${stringResource(id = R.string.video_edit_bottomsheet_video_file_name)} : ${videoFileName.value}")
 
-        // 10Bit HDR の動画なのに 10Bit HDR 動画編集機能がオフの場合
+        // 10-bit HDR の動画なのに 10-bit HDR 動画編集機能がオフの場合
         if (renderItem.dynamicRange == RenderData.CanvasItem.Video.DynamicRange.HDR_HLG && !isProjectHdr) {
             ProjectSdrMessageInHdrVideo(
                 modifier = Modifier.padding(vertical = 10.dp),
@@ -124,7 +124,7 @@ fun VideoRenderEditBottomSheet(
 }
 
 /**
- * プロジェクトで 10Bit HDR が無効の場合で、10Bit HDR 動画を編集しているときに表示するメッセージ
+ * プロジェクトで 10-bit HDR が無効の場合で、10-bit HDR 動画を編集しているときに表示するメッセージ
  *
  * @param modifier [Modifier]
  * @param onOpenVideoInfo 動画情報編集ボトムシートを開いて欲しいときに呼ばれる

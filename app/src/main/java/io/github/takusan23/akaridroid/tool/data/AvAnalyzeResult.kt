@@ -15,7 +15,7 @@ sealed interface AvAnalyzeResult {
     )
 
     /**
-     * 10Bit HDR 動画の場合は、色域とガンマカーブ。
+     * 10-bit HDR 動画の場合は、色域とガンマカーブ。
      * HLG の場合は BT.2020 / HLG になると思う。
      *
      * @param colorStandard 色域
@@ -50,7 +50,7 @@ sealed interface AvAnalyzeResult {
      * @param size サイズ
      * @param durationMs 長さ
      * @param hasAudioTrack 音声トラックがあれば true
-     * @param tenBitHdrInfoOrSdrNull SDR 動画の場合は null。10Bit HDR 動画の場合は色域とガンマカーブ
+     * @param tenBitHdrInfoOrSdrNull SDR 動画の場合は null。10-bit HDR 動画の場合は色域とガンマカーブ
      */
     data class Video(
         val size: Size,

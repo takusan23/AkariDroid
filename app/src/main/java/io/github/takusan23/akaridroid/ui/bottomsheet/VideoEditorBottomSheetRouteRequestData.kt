@@ -39,7 +39,7 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
             /**
              * 動画
              * @param previewPositionMs プレビューの時間
-             * @param isProjectHdr プロジェクトで 10Bit HDR が有効の場合
+             * @param isProjectHdr プロジェクトで 10-bit HDR が有効の場合
              */
             data class Video(val video: RenderData.CanvasItem.Video, val previewPositionMs: Long, val isProjectHdr: Boolean) : EditRenderItemType
         }
@@ -61,7 +61,7 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      * 動画を保存、エンコード画面を開く
      *
      * @param videoSize 動画の縦横サイズ
-     * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
+     * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
      */
     data class OpenEncode(
         val videoSize: RenderData.Size,

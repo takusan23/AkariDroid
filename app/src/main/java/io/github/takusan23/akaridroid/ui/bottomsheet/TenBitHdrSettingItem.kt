@@ -29,12 +29,12 @@ import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 
 /**
- * 10Bit HDR を有効にするスイッチ。
+ * 10-bit HDR を有効にするスイッチ。
  * 有効にする前にボトムシートが表示される。
  *
  * @param modifier [Modifier]
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合
- * @param onTenBitHdrChange 10Bit HDR の有効無効が切り替わった時
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合
+ * @param onTenBitHdrChange 10-bit HDR の有効無効が切り替わった時
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +49,7 @@ fun TenBitHdrSettingItem(
         modifier = modifier,
         isEnableTenBitHdr = isEnableTenBitHdr,
         onTenBitHdrChange = { isShowBottomSheet.value = true },
-        // TODO 10Bit HDR 動画編集をサポートしているのが Android 13 以降（Camera2 API がそうだからそのハズ）。本当はエンコーダー、OpenGL ES 共に HDR に対応しているかを見る必要があるがやっていない
+        // TODO 10-bit HDR 動画編集をサポートしているのが Android 13 以降（Camera2 API がそうだからそのハズ）。本当はエンコーダー、OpenGL ES 共に HDR に対応しているかを見る必要があるがやっていない
         isEnable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     )
 
@@ -97,7 +97,7 @@ fun TenBitHdrSettingItem(
  *
  * @param modifier [Modifier]
  * @param isEnable HDR 動画編集に明らかに対応していない場合は false に
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合
  * @param onTenBitHdrChange スイッチを押した時
  */
 @Composable
@@ -137,11 +137,11 @@ private fun TenBitHdrSwitchSettingItem(
 }
 
 /**
- * ボトムシート内の 10Bit HDR 切り替えスイッチ
+ * ボトムシート内の 10-bit HDR 切り替えスイッチ
  *
  * @param modifier [Modifier]
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
- * @param onEnableChange 10Bit HDR の有効無効が切り替わった時
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
+ * @param onEnableChange 10-bit HDR の有効無効が切り替わった時
  */
 @Composable
 private fun TenBitHdrSwitch(

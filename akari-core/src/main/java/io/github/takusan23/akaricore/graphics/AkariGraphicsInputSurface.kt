@@ -10,10 +10,10 @@ import javax.microedition.khronos.egl.EGL10
  * MediaCodec で描画する際に OpenGL ES の設定が必要だが、EGL 周りの設定をしてくれるやつ。
  * EGL 1.4 、GLES 3.0 でセットアップする。GL スレッドから呼び出すこと。
  *
- * TODO 10Bit HDR （HLG 形式）の描画に対応しているかを確認する方法を用意する
+ * TODO 10-bit HDR （HLG 形式）の描画に対応しているかを確認する方法を用意する
  *
  * @param outputSurface 出力先 [Surface]
- * @param isEnableTenBitHdr 10Bit HDR を利用する場合は true
+ * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true
  */
 internal class AkariGraphicsInputSurface(
     private val outputSurface: Surface,
@@ -24,7 +24,7 @@ internal class AkariGraphicsInputSurface(
     private var mEGLSurface = EGL14.EGL_NO_SURFACE
 
     init {
-        // 10Bit HDR のためには HLG の表示が必要。
+        // 10-bit HDR のためには HLG の表示が必要。
         // それには OpenGL ES 3.0 でセットアップし、10Bit に設定する必要がある。
         if (isEnableTenBitHdr) {
             eglSetupForTenBitHdr()
@@ -33,7 +33,7 @@ internal class AkariGraphicsInputSurface(
         }
     }
 
-    /** 10Bit HDR version. Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
+    /** 10-bit HDR version. Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
     private fun eglSetupForTenBitHdr() {
         mEGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         if (mEGLDisplay == EGL14.EGL_NO_DISPLAY) {
@@ -72,7 +72,7 @@ internal class AkariGraphicsInputSurface(
 
         // Create a window surface, and attach it to the Surface we received.
         // EGL_GL_COLORSPACE_BT2020_HLG_EXT を使うことで OpenGL ES で HDR 表示が可能になる（HLG 形式）
-        // TODO 10Bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
+        // TODO 10-bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
         val surfaceAttribs = if (isAvailableExtension("EGL_EXT_gl_colorspace_bt2020_hlg")) {
             intArrayOf(
                 EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT,
@@ -182,7 +182,7 @@ internal class AkariGraphicsInputSurface(
 
     /**
      * OpenGL ES の拡張機能をサポートしているか。
-     * 例えば 10Bit HDR を描画する機能は新し目の Android にしか無いため
+     * 例えば 10-bit HDR を描画する機能は新し目の Android にしか無いため
      *
      * @param extensionName "EGL_EXT_gl_colorspace_bt2020_hlg" など
      * @return 拡張機能をサポートしている場合は true

@@ -63,9 +63,9 @@ private val AudioCodecMenu = listOf(
 
 /**
  * 映像コーデックの説明を返す
- * 10Bit HDR が true の場合は、HEVC と AV1 のみ返します。
+ * 10-bit HDR が true の場合は、HEVC と AV1 のみ返します。
  *
- * @param isTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isTenBitHdr 10-bit HDR が有効の場合は true
  */
 private fun getVideoCodecMenu(isTenBitHdr: Boolean) = if (isTenBitHdr) listOfNotNull(
     Triple(EncoderParameters.VideoCodec.HEVC, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_title, R.string.video_edit_bottomsheet_encode_video_encoder_video_hevc_description),
@@ -86,7 +86,7 @@ private fun getVideoCodecMenu(isTenBitHdr: Boolean) = if (isTenBitHdr) listOfNot
 /**
  * エンコード設定のプリセットを返す
  *
- * @param isTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isTenBitHdr 10-bit HDR が有効の場合は true
  * @return プリセット一覧
  */
 private fun getParametersPresetList(isTenBitHdr: Boolean) = if (isTenBitHdr) listOf(
@@ -117,7 +117,7 @@ private enum class EncodeBottomSheetPage(val labelResId: Int) {
  * TODO バリデーションやってあげたほうが親切かも（コーデックとコンテナ対応しているかとか）
  *
  * @param videoSize 動画の縦横サイズ
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
  * @param onEncode エンコードを押した時に呼ばれる。ファイル名とエンコーダーに渡す設定
  */
 @Composable
@@ -261,7 +261,7 @@ private fun FileNameInput(
  * 手動で設定する画面
  *
  * @param videoSize 動画の縦横
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
  * @param encoderParameters [EncoderParameters.AudioVideo]
  * @param onUpdate 更新時に呼ばれる
  */
@@ -310,7 +310,7 @@ private fun AdvancedScreen(
 /**
  * おまかせ設定
  *
- * @param isEnableTenBitHdr 10Bit HDR が有効の場合は true
+ * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
  * @param encoderParameters [EncoderParameters.AudioVideo]
  * @param onUpdate 更新時に呼ばれる
  */
@@ -348,7 +348,7 @@ private fun BasicScreen(
         // おまかせ設定があるよカード
         MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_basic_description))
 
-        // 10Bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
+        // 10-bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
         if (isEnableTenBitHdr) {
             MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_hdr_to_sdr_message))
         }
@@ -528,7 +528,7 @@ private fun AudioEncoderSetting(
 /**
  * 映像エンコーダーの設定
  *
- * @param isEnableTenBitHdr 10Bit HDR をエンコードする場合。今のところ HEVC と AV1 のみ動作確認済みです。
+ * @param isEnableTenBitHdr 10-bit HDR をエンコードする場合。今のところ HEVC と AV1 のみ動作確認済みです。
  * @param videoSize 動画の縦横サイズ
  * @param videoEncoderParameters [EncoderParameters.VideoEncoderParameters]
  * @param onUpdate 更新時に呼ばれる
@@ -577,8 +577,8 @@ private fun VideoEncoderSetting(
             }
         }
 
-        // 10Bit HDR 動画のエンコードの場合は HEVC / AV1 しか選べない
-        // また、10Bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
+        // 10-bit HDR 動画のエンコードの場合は HEVC / AV1 しか選べない
+        // また、10-bit HDR 動画だけど、無理やり SDR にしたい場合はプロジェクトの設定を開いてね
         if (isEnableTenBitHdr) {
             MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_video_encoder_ten_bit_hdr_message))
             MessageCard(message = stringResource(id = R.string.video_edit_bottomsheet_encode_hdr_to_sdr_message))

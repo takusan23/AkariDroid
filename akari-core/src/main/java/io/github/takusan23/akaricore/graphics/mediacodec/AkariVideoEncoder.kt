@@ -17,7 +17,7 @@ import kotlinx.coroutines.yield
  * 目的としては[io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor]が描画した内容を録画する。
  * これ以外の目的でも（単に Surface を録画する）でも使えるかも。
  *
- * TODO 10Bit HDR 動画をエンコード出来るようになりましたが、今のところ 10Bit HDR のエンコードに対応しているか見る方法が無い？
+ * TODO 10-bit HDR 動画をエンコード出来るようになりましたが、今のところ 10-bit HDR のエンコードに対応しているか見る方法が無い？
  * TODO FEATURE_HdrEditing が false を返しても実際は HDR 動画がエンコード出来る場合があり、Android 13 以上だったらぶっつけ本番で試してみるしか無い気がしてきた。
  */
 class AkariVideoEncoder {
@@ -90,8 +90,9 @@ class AkariVideoEncoder {
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, keyframeInterval)
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
 
-            // 10Bit HDR のパラメーターをセット
+            // 10-bit HDR のパラメーターをセット
             if (tenBitHdrParametersOrNullSdr != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                setInteger(MediaFormat.KEY_PROFILE, tenBitHdrParametersOrNullSdr.codecProfile)
                 setInteger(MediaFormat.KEY_COLOR_STANDARD, tenBitHdrParametersOrNullSdr.colorStandard)
                 setInteger(MediaFormat.KEY_COLOR_TRANSFER, tenBitHdrParametersOrNullSdr.colorTransfer)
                 setFeatureEnabled(MediaCodecInfo.CodecCapabilities.FEATURE_HdrEditing, true)
@@ -157,19 +158,21 @@ class AkariVideoEncoder {
     }
 
     /**
-     * 10Bit HDR の動画を作成するためのパラメーター。
+     * 10-bit HDR の動画を作成するためのパラメーター。
      * 色域とガンマカーブを指定してください。
      *
-     * HLG 形式の HDR の場合は[MediaFormat.COLOR_STANDARD_BT2020]と[MediaFormat.COLOR_TRANSFER_HLG]。
+     * HLG 形式の HDR の場合は[MediaFormat.COLOR_STANDARD_BT2020]、[MediaFormat.COLOR_TRANSFER_HLG]、[MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10]。
      * デフォルト引数は HLG。
      *
-     * 定数自体は Android 7 からありますが、10Bit HDR の動画編集が（MediaCodec が？） 13 以上なので。
+     * 定数自体は Android 7 からありますが、10-bit HDR の動画編集が（MediaCodec が？） 13 以上なので。
      *
+     * @param codecProfile コーデックのプロファイル。[MediaFormat.KEY_PROFILE]に渡す値です。
      * @param colorStandard 色域
      * @param colorTransfer ガンマカーブ
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     data class TenBitHdrParameters(
+        val codecProfile: Int = MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
         val colorStandard: Int = MediaFormat.COLOR_STANDARD_BT2020,
         val colorTransfer: Int = MediaFormat.COLOR_TRANSFER_HLG
     )
