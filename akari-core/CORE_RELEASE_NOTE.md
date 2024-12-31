@@ -4,6 +4,26 @@
 ## 5.0.0 時代
 あかりどろいど 4.x に対応します
 
+### akaricore:5.0.0
+あかりどろいど`4.0.0`をリリースしたのでこっちも`alpha`を外します。  
+引数の追加のみで、破壊的変更はないです。
+
+`akaricore:5.0.0-alpha02`からの変更点は以下です。  
+- `10 ビット HDR`のエンコーダーをセットアップ時に渡す`TenBitHdrParameters`に`MediaFormat.KEY_PROFILE`へ渡す値をセットできるようになりました
+  - `HLG`で`HEVC`の場合は`HEVCProfileMain10`です
+- 動画のデコーダーに`SDR`へトーンマッピングをするかを渡せるようになりました
+  - `HDR`から`SDR`にしたい場合は`true`。ただしすべての端末で利用できるわけではないようです。
+
+`akaricore:4.1.1`からの変更点は`alpha01 / alpha02`を見てもらえれば、、、  
+とは行かないのでざっくりいうと`10 ビット HDR`動画を扱える環境の追加です。`HDR`には`Canvas`ではなく`OpenGL ES`を使う必要があります。多分。   
+- `OpenGL`の複雑さを隠ぺいして描画のための口を用意した`AkariGraphicsProcessor`
+- `AkariGraphicsProcessor`を録画するための`MediaCodec`をいい感じにした`AkariVideoEncoder`
+- `OpenGL ES`でカメラ映像、動画のフレームをテクスチャとして使える`SurfaceTexture`をいい感じにした`AkariGraphicsSurfaceTexture`
+- `AkariGraphicsSurfaceTexture`へ動画のフレームを提供するための動画デコーダー。`AkariVideoDecoder`
+
+などを追加しました。今までの`Canvas`で動画を作るやつも残しておくと思います。  
+（ただし関数の中身が↑の二重実装になっているため`AkariGraphicsProcessor`を使ったものに置き換える予定です。影響はないはず）
+
 ### akaricore:5.0.0-alpha02
 破壊的変更は以下で、そんなに大変じゃないはずです。  
 - `Kotlin 2.1.0`へ
@@ -11,7 +31,7 @@
   - 修正理由としては`MediaRecorder`の時は`nanoTime()`の時間を渡す必要があるそうで、ナノ秒を取るように修正が必要だった（以前はライブラリの中でナノ秒にしてた）
 
 これ以降は互換性付きの追加です。  
-- `AkariVideoEncoder`で`HDR`の色域、ガンマカーブを指定できるように。`10 ビット HDR`動画のエンコード用。
+- `AkariVideoEncoder`で`HDR`の色空間、ガンマカーブを指定できるように。`10 ビット HDR`動画のエンコード用。
 - `AkariVideoDecoder#videoDurationMs`が追加されました。動画の時間が取得できます。
 - `AkariVideoEncoder`、`AudioEncodeDecodeProcessor`のエンコーダーで、コンテナフォーマットに書き込む処理を自前で作成できるように。
   - ちなみに`Android`の`MediaMuxer`を使った実装が最初からあります
@@ -24,7 +44,7 @@
 `OpenGL ES`の方が早い処理に関しては`Canvas + Bitmap`ではなく直で`OpenGL ES`へ描画する用設計されたもので、極力`OpenGL ES`のつらみがでないようにした。  
 これにより動画とエフェクトに関しては直で`OpenGL ES`へ描画出来るようになり、おおよそリアルタイムな描画が可能になった。
 
-また、書き直しにより`Canvas`では出来なかった（ハズ。未検証）、`10Bit HDR`に対応出来るようになりました。多分動いています。
+また、書き直しにより`Canvas`では出来なかった（ハズ。未検証）、`10 ビット HDR`に対応出来るようになりました。多分動いています。
 
 ## 4.0.0 時代
 あかりどろいど 3.x に対応します

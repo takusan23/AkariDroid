@@ -13,7 +13,7 @@
 更新するかは分からんしまだ不十分すぎる。。
 
 ```kotlin
-implementation("io.github.takusan23:akaricore:2.0.0-alpha01")
+implementation("io.github.takusan23:akaricore:5.0.0")
 ```
 
 # つかいかた
