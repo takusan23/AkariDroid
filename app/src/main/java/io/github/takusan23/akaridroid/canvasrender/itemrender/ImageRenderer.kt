@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import com.bumptech.glide.Glide
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,7 @@ class ImageRenderer(
     /** Canvas に描画する際に使う Paint */
     private val paint = Paint()
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return image == renderItem
     }
 

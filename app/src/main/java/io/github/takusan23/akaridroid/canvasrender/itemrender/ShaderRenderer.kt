@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 
 /** ユーザーが入力したフラグメントシェーダーで、動画フレームにエフェクトを適用する */
 class ShaderRenderer(private val shader: RenderData.CanvasItem.Shader) : BaseShaderRenderer() {
@@ -20,7 +21,7 @@ class ShaderRenderer(private val shader: RenderData.CanvasItem.Shader) : BaseSha
     override val displayTime: RenderData.DisplayTime
         get() = shader.displayTime
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return shader == renderItem
     }
 

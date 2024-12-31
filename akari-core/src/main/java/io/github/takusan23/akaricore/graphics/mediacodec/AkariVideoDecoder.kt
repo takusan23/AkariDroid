@@ -34,7 +34,7 @@ class AkariVideoDecoder {
      *
      * @param input 再生する動画のファイル
      * @param outputSurface 映像フレームの出力先
-     * @param isSdrToneMapping 10-bit HDR の動画を SDR に変換したい場合は true。トーンマッピングと呼ばれているものです。
+     * @param isSdrToneMapping 10-bit HDR の動画を SDR に変換したい場合は true。トーンマッピングと呼ばれているものです。すべての端末で利用できるわけではないようです。
      */
     suspend fun prepare(
         input: AkariCoreInputOutput.Input,

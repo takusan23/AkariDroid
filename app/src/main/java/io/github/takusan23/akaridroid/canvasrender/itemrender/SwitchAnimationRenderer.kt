@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 
 /**
  * 各動画フレームにフラグメントシェーダーで切り替えアニメーションを付ける。
@@ -27,7 +28,7 @@ class SwitchAnimationRenderer(private val switchAnimation: RenderData.CanvasItem
     override val displayTime: RenderData.DisplayTime
         get() = switchAnimation.displayTime
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return switchAnimation == renderItem
     }
 

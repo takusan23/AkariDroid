@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 
@@ -20,7 +21,7 @@ class ShapeRenderer(
         color = Color.parseColor(shape.color)
     }
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return shape == renderItem
     }
 

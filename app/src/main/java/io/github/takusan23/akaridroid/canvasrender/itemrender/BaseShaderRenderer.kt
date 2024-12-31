@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawFragmentShaderInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.GlTimelineLifecycleInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
@@ -54,7 +55,7 @@ abstract class BaseShaderRenderer : GlTimelineLifecycleInterface(), DrawFragment
         akariGraphicsEffectShader = null
     }
 
-    abstract override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean
+    abstract override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {
         return currentPositionMs in displayTime

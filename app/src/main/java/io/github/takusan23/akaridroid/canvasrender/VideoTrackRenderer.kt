@@ -51,12 +51,12 @@ class VideoTrackRenderer(private val context: Context) {
     private val surfaceVariantFlow = MutableStateFlow<SurfaceVariant?>(null)
 
     /** パラメーターあとから変更したいので Flow */
-    private val videoParametersFlow = MutableStateFlow<VideoParameters?>(null)
+    private val videoTrackPrepareDataFlow = MutableStateFlow<VideoTrackRendererPrepareData?>(null)
 
-    /** [surfaceVariantFlow]と[videoParametersFlow]から[AkariGraphicsProcessor]を作る */
+    /** [surfaceVariantFlow]と[videoTrackPrepareDataFlow]から[AkariGraphicsProcessor]を作る */
     private val akariGraphicsProcessorFlow = combine(
         surfaceVariantFlow,
-        videoParametersFlow,
+        videoTrackPrepareDataFlow,
         ::Pair
     ).let { combineFlow ->
         var currentAkariGraphicsProcessor: AkariGraphicsProcessor? = null
@@ -73,9 +73,9 @@ class VideoTrackRenderer(private val context: Context) {
             currentAkariGraphicsProcessor = null
 
             val surfaceVariant = next.first
-            val videoParameters = next.second
-            if (surfaceVariant != null && videoParameters != null) {
-                val (outputWidth, outputHeight, isEnableTenBitHdr) = videoParameters
+            val videoTrackRendererPrepareData = next.second
+            if (surfaceVariant != null && videoTrackRendererPrepareData != null) {
+                val (outputWidth, outputHeight, isEnableTenBitHdr) = videoTrackRendererPrepareData
 
                 // SurfaceHolder の場合は AkariGraphicsProcessor の glViewport に合わせる
                 if (surfaceVariant is SurfaceVariant.SurfaceHolder) {
@@ -116,7 +116,7 @@ class VideoTrackRenderer(private val context: Context) {
         outputHeight: Int,
         isEnableTenBitHdr: Boolean = false
     ) {
-        videoParametersFlow.value = VideoParameters(outputWidth, outputHeight, isEnableTenBitHdr)
+        videoTrackPrepareDataFlow.value = VideoTrackRendererPrepareData(outputWidth, outputHeight, isEnableTenBitHdr)
     }
 
     /**
@@ -171,7 +171,7 @@ class VideoTrackRenderer(private val context: Context) {
     suspend fun draw(durationMs: Long, currentPositionMs: Long) {
         // AkariGraphicsProcessor が生成されるまで待つ
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
-        val videoParameters = videoParametersFlow.filterNotNull().first()
+        val videoParameters = videoTrackPrepareDataFlow.filterNotNull().first()
 
         // 描画すべき動画素材を取得
         val displayPositionItemList = withContext(Dispatchers.Default) {
@@ -185,7 +185,7 @@ class VideoTrackRenderer(private val context: Context) {
             drawItemRendererToAkariGraphicsProcessor(
                 durationMs = durationMs,
                 currentPositionMs = currentPositionMs,
-                videoParameters = videoParameters,
+                videoTrackPrepareData = videoParameters,
                 akariGraphicsTextureRenderer = this,
                 displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
             )
@@ -210,7 +210,7 @@ class VideoTrackRenderer(private val context: Context) {
     ) {
         // AkariGraphicsProcessor が生成されるまで待つ
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
-        val videoParameters = videoParametersFlow.filterNotNull().first()
+        val videoTrackPrepareData = videoTrackPrepareDataFlow.filterNotNull().first()
 
         // 1フレームの時間
         // 60fps なら 16ms、30fps なら 33ms
@@ -235,7 +235,7 @@ class VideoTrackRenderer(private val context: Context) {
             drawItemRendererToAkariGraphicsProcessor(
                 durationMs = durationMs,
                 currentPositionMs = currentPositionMs,
-                videoParameters = videoParameters,
+                videoTrackPrepareData = videoTrackPrepareData,
                 akariGraphicsTextureRenderer = this,
                 displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
             )
@@ -264,7 +264,7 @@ class VideoTrackRenderer(private val context: Context) {
     ) {
         // AkariGraphicsProcessor が生成されるまで待つ
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
-        val videoParameters = videoParametersFlow.filterNotNull().first()
+        val videoTrackPrepareData = videoTrackPrepareDataFlow.filterNotNull().first()
 
         // エンコードするわけじゃないので、常に true / 0
         val loopContinueData = AkariGraphicsProcessor.LoopContinueData(true, 0)
@@ -282,7 +282,7 @@ class VideoTrackRenderer(private val context: Context) {
             drawItemRendererToAkariGraphicsProcessor(
                 durationMs = durationMs,
                 currentPositionMs = currentPositionMs,
-                videoParameters = videoParameters,
+                videoTrackPrepareData = videoTrackPrepareData,
                 akariGraphicsTextureRenderer = this,
                 displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
             )
@@ -299,10 +299,11 @@ class VideoTrackRenderer(private val context: Context) {
 
     /** [setRenderData]と[foreverSetRenderDataInRecreateAkariGraphicsProcessor]の共通部分 */
     private suspend fun setRenderData(canvasRenderItem: List<RenderData.CanvasItem>, akariGraphicsProcessor: AkariGraphicsProcessor) {
+        val videoTrackPrepareData = videoTrackPrepareDataFlow.filterNotNull().first()
 
         // 前の呼び出しから消えた素材はリソース開放させる
         itemRenderList.forEach { renderItem ->
-            if (canvasRenderItem.none { renderItem.isEquals(it) }) {
+            if (canvasRenderItem.none { renderItem.isReuse(it, videoTrackPrepareData) }) {
                 when (renderItem) {
                     is TimelineLifecycleRenderer -> renderItem.leaveTimeline()
                     is GlTimelineLifecycleInterface -> akariGraphicsProcessor.withOpenGlThread { renderItem.leaveTimelineGl() }
@@ -312,14 +313,14 @@ class VideoTrackRenderer(private val context: Context) {
 
         itemRenderList = canvasRenderItem.map { renderItem ->
             // データが変化していない場合は使い回す
-            itemRenderList.firstOrNull { it.isEquals(renderItem) } ?: when (renderItem) { // 無ければ作る
+            itemRenderList.firstOrNull { it.isReuse(renderItem, videoTrackPrepareData) } ?: when (renderItem) { // 無ければ作る
                 is RenderData.CanvasItem.Effect -> EffectRenderer(renderItem)
                 is RenderData.CanvasItem.Image -> ImageRenderer(context, renderItem)
                 is RenderData.CanvasItem.Shader -> ShaderRenderer(renderItem)
                 is RenderData.CanvasItem.Shape -> ShapeRenderer(renderItem)
                 is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderer(renderItem)
                 is RenderData.CanvasItem.Text -> TextRenderer(context, renderItem)
-                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, texId) }
+                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, videoTrackPrepareData, texId) }
             }
         }
     }
@@ -328,7 +329,7 @@ class VideoTrackRenderer(private val context: Context) {
     private suspend fun drawItemRendererToAkariGraphicsProcessor(
         durationMs: Long,
         currentPositionMs: Long,
-        videoParameters: VideoParameters,
+        videoTrackPrepareData: VideoTrackRendererPrepareData,
         akariGraphicsTextureRenderer: AkariGraphicsTextureRenderer,
         displayPositionItemList: List<RendererInterface>
     ) {
@@ -347,7 +348,7 @@ class VideoTrackRenderer(private val context: Context) {
                     akariGraphicsTextureRenderer.drawSurfaceTexture(
                         akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
                         isAwaitTextureUpdate = false,
-                        onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoParameters.outputWidth, videoParameters.outputHeight) },
+                        onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoTrackPrepareData.outputWidth, videoTrackPrepareData.outputHeight) },
                         chromakeyThreshold = if (videoChromaKeyOrNull != null) VideoRenderer.CHROMAKEY_THRESHOLD else null,
                         chromaKeyColor = videoChromaKeyOrNull
                     )
@@ -356,8 +357,8 @@ class VideoTrackRenderer(private val context: Context) {
                 itemRender is DrawFragmentShaderInterface -> {
                     if (itemRender.akariGraphicsEffectShader != null) {
                         itemRender.preEffect(
-                            width = videoParameters.outputWidth,
-                            height = videoParameters.outputHeight,
+                            width = videoTrackPrepareData.outputWidth,
+                            height = videoTrackPrepareData.outputHeight,
                             durationMs = durationMs,
                             currentPositionMs = currentPositionMs
                         )
@@ -433,12 +434,6 @@ class VideoTrackRenderer(private val context: Context) {
 
         return displayPositionItemList
     }
-
-    private data class VideoParameters(
-        val outputWidth: Int,
-        val outputHeight: Int,
-        val isEnableTenBitHdr: Boolean = false
-    )
 
     /**
      * Surface / SurfaceHolder どっちも受け付けできるように。

@@ -7,6 +7,7 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawSurfaceTextureInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
@@ -33,6 +34,7 @@ fun RenderData.CanvasItem.Video.calcVideoFramePositionMs(currentPositionMs: Long
 class VideoRenderer(
     private val context: Context,
     private val video: RenderData.CanvasItem.Video,
+    private val videoTrackRendererPrepareData: VideoTrackRendererPrepareData,
     texId: Int
 ) : TimelineLifecycleRenderer(), DrawSurfaceTextureInterface, PreDrawInterface, ProcessorDestroyInterface {
 
@@ -58,7 +60,15 @@ class VideoRenderer(
                     is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
                     is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
                 },
-                outputSurface = akariGraphicsSurfaceTexture.surface
+                outputSurface = akariGraphicsSurfaceTexture.surface,
+                isSdrToneMapping = if (videoTrackRendererPrepareData.isEnableTenBitHdr) {
+                    // 映像トラックで 10-bit HDR が有効
+                    false
+                } else {
+                    // 映像トラックで 10-bit HDR が無効。
+                    // 動画が HDR の場合はトーンマッピングする
+                    video.dynamicRange != RenderData.CanvasItem.Video.DynamicRange.SDR
+                }
             )
         }
     }
@@ -82,8 +92,10 @@ class VideoRenderer(
         akariVideoDecoder.seekTo(framePositionMs)
     }
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
-        return renderItem == video
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
+        // もし 10-bit HDR の有効無効が切り替わったとき、デコーダーを作り直しトーンマッピングの設定をし直すため、
+        // VideoTrackRendererPrepareData も比較する
+        return renderItem == video && videoTrackRendererPrepareData == this@VideoRenderer.videoTrackRendererPrepareData
     }
 
     override suspend fun isDisplayPosition(currentPositionMs: Long): Boolean {

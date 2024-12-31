@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.canvasrender.itemrender
 
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 
 /** エフェクトをかける。モザイクとか、モノクロとか、2値化とか */
 class EffectRenderer(private val effect: RenderData.CanvasItem.Effect) : BaseShaderRenderer() {
@@ -26,7 +27,7 @@ class EffectRenderer(private val effect: RenderData.CanvasItem.Effect) : BaseSha
     override val displayTime: RenderData.DisplayTime
         get() = effect.displayTime
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return effect == renderItem
     }
 

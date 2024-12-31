@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
 import io.github.takusan23.akaridroid.tool.FontManager
@@ -29,7 +30,7 @@ class TextRenderer(
         strokeWidth = 5f
     }
 
-    override suspend fun isEquals(renderItem: RenderData.CanvasItem): Boolean {
+    override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {
         return text == renderItem
     }
 
