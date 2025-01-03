@@ -102,25 +102,61 @@ class VideoRenderer(
         return currentPositionMs in video.displayTime
     }
 
+    private var rotation = 0f
+
     override fun draw(mvpMatrix: FloatArray, width: Int, height: Int) {
         val (x, y) = video.position
-        val (videoWidth, videoHeight) = video.size
+        val (resizeWidth, resizeHeight) = video.size
+        val videoWidth = akariVideoDecoder?.videoWidth ?: 1280
+        val videoHeight = akariVideoDecoder?.videoHeight ?: 720
 
-        // scale 0..1 の範囲にする
-        val scaleX = videoWidth / width.toFloat()
-        val scaleY = videoHeight / height.toFloat()
+        // scale は 0..1 の範囲にする
+        val scaleX = resizeWidth / videoWidth.toFloat()
+        val scaleY = resizeHeight / videoHeight.toFloat()
+
         // translate は -1..1 の範囲にする
-        val halfWidth = videoWidth / 2
-        val halfHeight = videoHeight / 2
+        val halfWidth = resizeWidth / 2
+        val halfHeight = resizeHeight / 2
         val transX = (((x + halfWidth) / width) * 2) - 1
         val transY = (((y + halfHeight) / height) * 2) - 1
 
         // 行列の適用は多分順番がある
         // テクスチャ座標は反転してるので負の値
-        // 回転は最後かな？
+        // 回転する前に移動しないと、画面を中心に回転することになる
         Matrix.translateM(mvpMatrix, 0, transX, -transY, 1f)
-        Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
+
+        // 回転を適用する方法
+        // https://stackoverflow.com/questions/63261779/
+        // 正方形の画面の場合は、ただ回転させるだけで良いのだが、正方形じゃない図形の回転はひと手間必要
+        //
+        // 1. 画面（今回は保存する動画のサイズ）のサイズが正方形になるようスケール
+        // 2. 回転
+        // 3. 今度は動画素材、動画自身で再度スケールしアスペクト比を戻す
+        //
+        // 例 16:9 で 16:9 の動画を表示する場合
+        // Matrix.scaleM(mvpMatrix, 0, 1f, 1.7f, 1f)
+        // Matrix.rotateM(mvpMatrix, 0, 90f, 0f, 0f, 1f)
+        // Matrix.scaleM(mvpMatrix, 0, 1f, 0.56f, 1f)
+
+        // 回転する前に、図形（動画）が正方形になるように
+        if (height < width) {
+            Matrix.scaleM(mvpMatrix, 0, 1f, width / height.toFloat(), 1f)
+        } else {
+            Matrix.scaleM(mvpMatrix, 0, height / width.toFloat(), 1f, 1f)
+        }
+
+        // 回転
         Matrix.rotateM(mvpMatrix, 0, video.rotation.toFloat(), 0f, 0f, 1f)
+
+        // 正方形にしてしまったので、元のアスペクト比に戻す
+        if (resizeHeight < resizeWidth) {
+            Matrix.scaleM(mvpMatrix, 0, 1f, resizeHeight / resizeWidth.toFloat(), 1f)
+        } else {
+            Matrix.scaleM(mvpMatrix, 0, resizeWidth / resizeHeight.toFloat(), 1f, 1f)
+        }
+
+        // リサイズを適用
+        Matrix.scaleM(mvpMatrix, 0, scaleX, scaleY, 1f)
     }
 
     companion object {

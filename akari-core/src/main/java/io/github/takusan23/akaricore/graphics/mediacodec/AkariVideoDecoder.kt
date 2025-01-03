@@ -29,6 +29,14 @@ class AkariVideoDecoder {
     var videoDurationMs: Long = -1
         private set
 
+    /** 動画の縦のサイズ。[prepare]を呼び出した後利用できます。 */
+    var videoHeight: Int = -1
+        private set
+
+    /** 動画の横のサイズ。[prepare]を呼び出した後利用できます。 */
+    var videoWidth: Int = -1
+        private set
+
     /**
      * デコーダーの準備をする
      *
@@ -44,8 +52,11 @@ class AkariVideoDecoder {
         val (mediaExtractor, index, mediaFormat) = MediaExtractorTool.extractMedia(input, MediaExtractorTool.ExtractMimeType.EXTRACT_MIME_VIDEO)!!
         this.mediaExtractor = mediaExtractor
         mediaExtractor.selectTrack(index)
+
         // ミリ秒に
         videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION) / 1_000
+        videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
+        videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
 
         // HDR を SDR にする場合（トーンマッピングする場合）
         if (isSdrToneMapping && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
