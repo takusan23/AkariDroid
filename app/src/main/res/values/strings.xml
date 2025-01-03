@@ -227,7 +227,7 @@ Please note that this is not the time for the video.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_enable_description">Editing of videos shot in 10-bit HDR is now supported. After editing, you can encode (export) as HDR video.\n
 Simply put, it\'s that "dazzling video".\n
 \n
-When editing videos shot in HDR, you can enable this function and save it to maintain the original brightness and vividness.\n
+When editing videos shot in HDR, you can enable this function and encode (export) them to preserve the original brightness and vividness.\n
 \n
 If you disable this function, HDR videos will also be converted to SDR videos.\n
 In that case, you can use the function (tone mapping) that converts to similar colors if it is supported, but not all devices support it.\n
