@@ -107,8 +107,10 @@ class VideoRenderer(
     override fun draw(mvpMatrix: FloatArray, width: Int, height: Int) {
         val (x, y) = video.position
         val (resizeWidth, resizeHeight) = video.size
+
         val videoWidth = akariVideoDecoder?.videoWidth ?: 1280
         val videoHeight = akariVideoDecoder?.videoHeight ?: 720
+
 
         // scale は 0..1 の範囲にする
         val scaleX = resizeWidth / videoWidth.toFloat()

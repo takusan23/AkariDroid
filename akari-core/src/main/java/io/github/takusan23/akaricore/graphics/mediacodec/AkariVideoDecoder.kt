@@ -55,8 +55,14 @@ class AkariVideoDecoder {
 
         // ミリ秒に
         videoDurationMs = mediaFormat.getLong(MediaFormat.KEY_DURATION) / 1_000
-        videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
-        videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+        val _videoHeight = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT)
+        val _videoWidth = mediaFormat.getInteger(MediaFormat.KEY_WIDTH)
+        val sizePair = when (runCatching { mediaFormat.getInteger(MEDIA_FORMAT_KEY_ROTATE) }.getOrNull() ?: 0) {
+            90, 270 -> _videoHeight to _videoWidth
+            else -> _videoWidth to _videoHeight
+        }
+        videoWidth = sizePair.first
+        videoHeight = sizePair.second
 
         // HDR を SDR にする場合（トーンマッピングする場合）
         if (isSdrToneMapping && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -284,6 +290,9 @@ class AkariVideoDecoder {
     companion object {
         /** MediaCodec タイムアウト */
         private const val TIMEOUT_US = 0L
+
+        /** 動画の回転情報。縦動画の場合は 90 って入っている */
+        private const val MEDIA_FORMAT_KEY_ROTATE = "rotation-degrees"
     }
 
 }
