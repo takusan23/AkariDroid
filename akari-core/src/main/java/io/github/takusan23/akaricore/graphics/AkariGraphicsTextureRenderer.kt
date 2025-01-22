@@ -42,14 +42,12 @@ class AkariGraphicsTextureRenderer internal constructor(
     private var surfaceTextureTextureId = 0
     private var canvasTextureTextureId = 0
 
-    // フレームバッファオブジェクト
-    private var fboTextureId = 0
-    private var framebuffer = 0
-    private var depthBuffer = 0
-
     // Canvas 描画のため Bitmap
     private val canvasBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     private val canvas = Canvas(canvasBitmap)
+
+    // フレームバッファーオブジェクトを交互に使うやつ（ピンポンする）
+    private var fboPingPongManager: FboPingPongManager? = null
 
     init {
         mTriangleVertices.put(mTriangleVerticesData).position(0)
@@ -186,6 +184,8 @@ class AkariGraphicsTextureRenderer internal constructor(
      * GL スレッドから呼び出すこと。
      */
     fun applyEffect(effectShader: AkariGraphicsEffectShader) {
+        pingPongFrameBufferObject()
+
         // FBO のテクスチャユニットを渡して描画
         effectShader.applyEffect(width, height, 2) // GLES20.GL_TEXTURE2
 
@@ -287,7 +287,12 @@ class AkariGraphicsTextureRenderer internal constructor(
         checkGlError("glEnable GLES20.GL_BLEND")
 
         // フレームバッファオブジェクトの用意
-        prepareFbo()
+        // ピンポンするため2つ（交互に利用。読み取り、書き込みを交互にする）
+        val fbo1 = generateFrameBufferObject()
+        val fbo2 = generateFrameBufferObject()
+
+        // FBO テクスチャ ID を交互にするクラス
+        fboPingPongManager = FboPingPongManager(fbo1, fbo2)
     }
 
     /**
@@ -295,14 +300,11 @@ class AkariGraphicsTextureRenderer internal constructor(
      * GL スレッドから呼び出すこと。
      */
     internal fun prepareDraw() {
-        // 描画先をフレームバッファオブジェクトに
-        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, framebuffer)
-        checkGlError("glBindFramebuffer")
+        pingPongFrameBufferObject()
 
         // FBO のクリア？
         // 多分必要
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
-
         // drawCanvas / drawSurfaceTexture どっちも呼び出さない場合 glUseProgram 誰もしないので
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
@@ -332,11 +334,13 @@ class AkariGraphicsTextureRenderer internal constructor(
      * フレームバッファオブジェクトのテクスチャを描画します。これでオフスクリーンで描画されてた内容が画面に表示されるはず。
      */
     internal fun drawEnd() {
+        pingPongFrameBufferObject()
+
         // 多分 applyEffect すると glUseProgram
         GLES20.glUseProgram(mProgram)
         checkGlError("glUseProgram")
 
-        // 描画先をデフォルトの FBO にして、Surface に描画されるように
+        // pingPongFrameBufferObject() したけど、最後なので描画先をデフォルトの FBO にして、Surface に描画されるように
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
         checkGlError("glBindFramebuffer")
 
@@ -371,7 +375,15 @@ class AkariGraphicsTextureRenderer internal constructor(
 
     /** 破棄時に呼び出す */
     internal fun destroy() {
-        //
+        // フレームバッファーオブジェクトの破棄
+        // TODO 他のテクスチャも破棄しないといけない気がする
+        fboPingPongManager?.getTextureIdList()?.forEach { textureId ->
+            GLES20.glDeleteTextures(1, intArrayOf(textureId), 0)
+        }
+        fboPingPongManager?.getFrameBufferObjectList()?.forEach { frameBuffer ->
+            GLES20.glDeleteFramebuffers(1, intArrayOf(frameBuffer), 0)
+        }
+        checkGlError("destroy getTextureIdList / getFrameBufferObjectList")
     }
 
     private fun checkGlError(op: String) {
@@ -382,15 +394,42 @@ class AkariGraphicsTextureRenderer internal constructor(
     }
 
     /**
+     * [prepareDraw]、[applyEffect]、[drawEnd]の際にフレームバッファーオブジェクトを入れ替えるので
+     *
+     * [drawCanvas]と[drawSurfaceTexture]で呼び出さないのは、フレームバッファーオブジェクトのテクスチャを参照しないから。
+     * 一方[applyEffect]は、[drawCanvas]や[drawSurfaceTexture]で書き込んだフレームバッファーオブジェクトを読み取って、
+     * エフェクトを適用するので、描画先を入れ替える必要がある。
+     *
+     * [prepareDraw]は一応リセットを兼ねて（[GLES20.glClear]）、
+     * [drawEnd]はフレームバッファーオブジェクトに書き込んだ内容を最後入れ替えて、画面に表示するため。
+     */
+    private fun pingPongFrameBufferObject() {
+        // フレームバッファーオブジェクトを入れ替え
+        val nextFbo = fboPingPongManager?.pingPong() ?: return
+
+        // 描画先をフレームバッファオブジェクトに
+        GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, nextFbo.writeFrameBuffer)
+        checkGlError("glBindFramebuffer")
+
+        // フレームバッファーオブジェクトのテクスチャ指定
+        // FBO 用に GLES20.GL_TEXTURE2
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, nextFbo.readTextureId)
+        checkGlError("glBindFramebuffer")
+    }
+
+    /**
      * フレームバッファオブジェクトの用意。やってる中身は grafika と同じ。
      * OpenGL ES の SurfaceView / MediaCodec のサイズと同じ大きさで FBO のテクスチャを作ります
      * [android.view.SurfaceHolder.setFixedSize]や[android.media.MediaFormat.KEY_WIDTH]参照
+     *
+     * @return フレームバッファーオブジェクトとテクスチャ ID
      */
-    private fun prepareFbo() {
+    private fun generateFrameBufferObject(): FrameBufferObject {
         // フレームバッファオブジェクトの保存先になるテクスチャを作成
         val textures = IntArray(1)
         GLES20.glGenTextures(1, textures, 0)
-        fboTextureId = textures.first()
+        val fboTextureId = textures.first()
         checkGlError("fbo glGenTextures")
         GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, fboTextureId)
@@ -410,7 +449,7 @@ class AkariGraphicsTextureRenderer internal constructor(
         val frameBuffers = IntArray(1)
         GLES20.glGenFramebuffers(1, frameBuffers, 0)
         checkGlError("fbo glGenFramebuffers")
-        framebuffer = frameBuffers.first()
+        val framebuffer = frameBuffers.first()
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, framebuffer)
         checkGlError("fbo glBindFramebuffer ")
 
@@ -418,7 +457,7 @@ class AkariGraphicsTextureRenderer internal constructor(
         val depthBuffers = IntArray(1)
         GLES20.glGenRenderbuffers(1, depthBuffers, 0)
         checkGlError("fbo glGenRenderbuffers")
-        depthBuffer = depthBuffers.first()
+        val depthBuffer = depthBuffers.first()
         GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthBuffer)
         checkGlError("fbo glBindRenderbuffer")
 
@@ -441,6 +480,9 @@ class AkariGraphicsTextureRenderer internal constructor(
         // デフォルトのフレームバッファに戻す
         // 描画の際には glBindFramebuffer で FBO に描画できる
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
+
+        // 返す
+        return FrameBufferObject(textureId = fboTextureId, frameBuffer = framebuffer)
     }
 
     /**
@@ -511,6 +553,69 @@ class AkariGraphicsTextureRenderer internal constructor(
         val a = (this shr 24 and 0xff) / 255.0f
         return floatArrayOf(r, g, b, a)
     }
+
+    /**
+     * 2つのフレームバッファーオブジェクトを交互に使うやつ
+     * [pingPong]で交互に取得できます。
+     *
+     * @param fbo1 ひとつめ
+     * @param fbo2 ふたつめ
+     */
+    class FboPingPongManager(
+        private val fbo1: FrameBufferObject,
+        private val fbo2: FrameBufferObject
+    ) {
+
+        private var first = true
+
+        /**
+         * 交互に FBO のテクスチャ ID を取得する
+         * @return [NextFbo]
+         */
+        fun pingPong(): NextFbo {
+            // 交互にする
+            // フレームバッファーオブジェクトに書き込むとテクスチャとしてフラグメントシェーダーから利用できる
+            val nextFbo = if (first) {
+                NextFbo(fbo1.textureId, fbo2.frameBuffer)
+            } else {
+                NextFbo(fbo2.textureId, fbo1.frameBuffer)
+            }
+            first = !first
+            return nextFbo
+        }
+
+        /** [fbo1]、[fbo2]のテクスチャ ID を返す。破棄用 */
+        fun getTextureIdList(): List<Int> {
+            return listOf(fbo1.textureId, fbo2.textureId)
+        }
+
+        /** [fbo1]、[fbo2]のフレームバッファーオブジェクトを返す。破棄用 */
+        fun getFrameBufferObjectList(): List<Int> {
+            return listOf(fbo1.frameBuffer, fbo2.frameBuffer)
+        }
+    }
+
+    /**
+     * ピンポンした FBO
+     *
+     * @param readTextureId [GLES20.glBindTexture]して、フラグメントシェーダーから FBO を読み出す
+     * @param writeFrameBuffer [GLES20.glBindFramebuffer]して、描画内容を FBO に書き込む
+     */
+    data class NextFbo(
+        val readTextureId: Int,
+        val writeFrameBuffer: Int
+    )
+
+    /**
+     * フレームバッファーオブジェクト
+     *
+     * @param textureId 紐付けしたテクスチャ ID
+     * @param frameBuffer 紐付けしたフレームバッファーオブジェクト
+     */
+    data class FrameBufferObject(
+        val textureId: Int,
+        val frameBuffer: Int
+    )
 
     companion object {
         private const val FLOAT_SIZE_BYTES = 4
