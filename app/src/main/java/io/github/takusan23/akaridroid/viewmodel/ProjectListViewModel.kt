@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
+import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRequestData
+import io.github.takusan23.akaridroid.ui.component.projectlist.data.ProjectListDialogRequestData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,9 +25,17 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
         get() = application.applicationContext
 
     private val _projectListFlow = MutableStateFlow(emptyList<ProjectItem>())
+    private val _bottomSheetRequestFlow = MutableStateFlow<ProjectListBottomSheetRequestData?>(null)
+    private val _dialogRequestFlow = MutableStateFlow<ProjectListDialogRequestData?>(null)
 
     /** プロジェクト一覧 */
     val projectListFlow = _projectListFlow.asStateFlow()
+
+    /** 表示するボトムシート */
+    val bottomSheetRequestFlow = _bottomSheetRequestFlow.asStateFlow()
+
+    /** 表示するダイアログ */
+    val dialogRequestFlow = _dialogRequestFlow.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -63,16 +73,24 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
      * プロジェクトを持ち出す
      *
      * @param name 名前
-     * @param portableName zip ファイル名
      * @param zipUri zip ファイルの保存先
      */
-    fun exportPortableProject(name: String, portableName: String, zipUri: Uri) {
+    fun exportPortableProject(name: String, zipUri: Uri) {
         viewModelScope.launch {
             // TODO 下位互換性
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ProjectFolderManager.exportPortableProject(context, name, portableName, zipUri)
 
-                // TODO Snackbar
+                // 作業中はダイアログを出す
+                ProjectFolderManager.exportPortableProject(
+                    context = context,
+                    name = name,
+                    zipUri = zipUri,
+                    onUpdateProgress = { current, total -> showDialog(ProjectListDialogRequestData.ProjectExportDialog(current, total)) }
+                )
+
+                // 終わり
+                // TODO Snackbar とか欲しいかも
+                closeDialog()
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, context.getString(R.string.project_list_bottomsheet_menu_export_successful), Toast.LENGTH_SHORT).show()
                 }
@@ -87,14 +105,49 @@ class ProjectListViewModel(private val application: Application) : AndroidViewMo
      */
     fun importPortableProject(zipUri: Uri) {
         viewModelScope.launch {
-            ProjectFolderManager.importPortableProject(context, zipUri)
 
-            // TODO Snackbar
+            // 作業中はダイアログを出す
+            ProjectFolderManager.importPortableProject(
+                context = context,
+                zipUri = zipUri,
+                onUpdateProgress = { current, total -> showDialog(ProjectListDialogRequestData.ProjectImportDialog(current, total)) }
+            )
+
+            // TODO Snackbar とか欲しいかも
+            closeDialog()
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, context.getString(R.string.project_list_bottomsheet_menu_import_successful), Toast.LENGTH_SHORT).show()
             }
             loadProjectList()
         }
+    }
+
+    /**
+     * ダイアログを表示させる
+     *
+     * @param dialogRequestData 表示したいダイアログ
+     */
+    fun showDialog(dialogRequestData: ProjectListDialogRequestData) {
+        _dialogRequestFlow.value = dialogRequestData
+    }
+
+    /** ダイアログを閉じる */
+    fun closeDialog() {
+        _dialogRequestFlow.value = null
+    }
+
+    /**
+     * ボトムシートを表示させる
+     *
+     * @param bottomSheetRequestData 表示させたいボトムシート
+     */
+    fun showBottomSheet(bottomSheetRequestData: ProjectListBottomSheetRequestData) {
+        _bottomSheetRequestFlow.value = bottomSheetRequestData
+    }
+
+    /** ボトムシートを閉じる */
+    fun closeBottomSheet() {
+        _bottomSheetRequestFlow.value = null
     }
 
     /** プロジェクト一覧を取得する */

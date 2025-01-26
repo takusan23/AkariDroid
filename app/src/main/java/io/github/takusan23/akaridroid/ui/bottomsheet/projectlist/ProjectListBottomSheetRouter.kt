@@ -11,17 +11,17 @@ import androidx.compose.runtime.Composable
  * @param requestData 表示したいボトムシート
  * @param onDismiss 閉じたい時
  * @param onCreate プロジェクト作成時
- * @param onDelete プロジェクト削除時
- * @param onExport プロジェクトエクスポート時。名前とポータブルプロジェクトの名前とエクスポート先 Uri
+ * @param onDeleteMenuClick プロジェクト削除メニューを押したとき
+ * @param onExportMenuClick エクスポートメニューを押したとき。名前とエクスポート先 Uri
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectListBottomSheetRouter(
     requestData: ProjectListBottomSheetRequestData,
     onDismiss: () -> Unit,
-    onCreate: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    onExport: (name: String, portableName: String, Uri) -> Unit
+    onCreate: (name: String) -> Unit,
+    onDeleteMenuClick: (name: String) -> Unit,
+    onExportMenuClick: (name: String, Uri) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
 
@@ -35,12 +35,12 @@ fun ProjectListBottomSheetRouter(
 
             is ProjectListBottomSheetRequestData.ProjectMenu -> ProjectMenuBottomSheet(
                 name = requestData.name,
-                onDelete = {
-                    onDelete(it)
+                onDeleteMenuClick = {
+                    onDeleteMenuClick(it)
                     onDismiss()
                 },
-                onExport = { name, portableName, uri ->
-                    onExport(name, portableName, uri)
+                onExportMenuClick = { name, uri ->
+                    onExportMenuClick(name, uri)
                     onDismiss()
                 }
             )

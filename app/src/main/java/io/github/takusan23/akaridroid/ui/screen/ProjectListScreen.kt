@@ -9,7 +9,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -23,9 +22,11 @@ import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.projectlist.ProjectListBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.projectlist.EncodingListItem
+import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListDialogRouter
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListMenu
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListTopAppBar
+import io.github.takusan23.akaridroid.ui.component.projectlist.data.ProjectListDialogRequestData
 import io.github.takusan23.akaridroid.viewmodel.ProjectListViewModel
 import kotlinx.coroutines.launch
 
@@ -55,19 +56,29 @@ fun ProjectListScreen(
     val encodeStatus = encoderService.value?.encodeStatusFlow?.collectAsStateWithLifecycle()
 
     // ボトムシート
-    val bottomSheetRequestData = remember { mutableStateOf<ProjectListBottomSheetRequestData?>(null) }
+    val bottomSheetRequestData = viewModel.bottomSheetRequestFlow.collectAsStateWithLifecycle()
     if (bottomSheetRequestData.value != null) {
         ProjectListBottomSheetRouter(
             requestData = bottomSheetRequestData.value!!,
-            onDismiss = { bottomSheetRequestData.value = null },
+            onDismiss = { viewModel.closeBottomSheet() },
             onCreate = { name ->
                 scope.launch {
                     viewModel.createProject(name)
                     onOpen(name, true)
                 }
             },
-            onDelete = { name -> viewModel.deleteProject(name) },
-            onExport = { name, portableName, uri -> viewModel.exportPortableProject(name, portableName, uri) }
+            onDeleteMenuClick = { name -> viewModel.showDialog(ProjectListDialogRequestData.ProjectDeleteDialog(name)) },
+            onExportMenuClick = { name, uri -> viewModel.exportPortableProject(name, uri) }
+        )
+    }
+
+    // ダイアログ
+    val dialogRequestData = viewModel.dialogRequestFlow.collectAsStateWithLifecycle()
+    if (dialogRequestData.value != null) {
+        ProjectListDialogRouter(
+            dialogRequestData = dialogRequestData.value!!,
+            onDismiss = { viewModel.closeDialog() },
+            onDelete = { name -> viewModel.deleteProject(name) }
         )
     }
 
@@ -80,12 +91,12 @@ fun ProjectListScreen(
             )
         }
     ) { innerPadding ->
-        LazyColumn(Modifier.padding(innerPadding)) {
+        LazyColumn(contentPadding = innerPadding) {
 
             item {
                 ProjectListMenu(
                     modifier = Modifier.padding(10.dp),
-                    onCreate = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.CreateNewProject },
+                    onCreate = { viewModel.showBottomSheet(ProjectListBottomSheetRequestData.CreateNewProject) },
                     onImport = { uri -> viewModel.importPortableProject(uri) }
                 )
             }
@@ -102,7 +113,7 @@ fun ProjectListScreen(
                     ProjectListItem(
                         projectItem = item,
                         onClick = { onOpen(it.projectName, false) },
-                        onMenuClick = { bottomSheetRequestData.value = ProjectListBottomSheetRequestData.ProjectMenu(it.projectName) }
+                        onMenuClick = { viewModel.showBottomSheet(ProjectListBottomSheetRequestData.ProjectMenu(it.projectName)) }
                     )
                 }
                 HorizontalDivider()

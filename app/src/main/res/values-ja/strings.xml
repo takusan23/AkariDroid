@@ -217,9 +217,9 @@
     <string name="project_list_bottomsheet_menu_delete_description">プロジェクトを削除します</string>
     <string name="project_list_bottomsheet_menu_export_title">(実験的) ポータブルプロジェクト（仮）</string>
     <string name="project_list_bottomsheet_menu_export_description">他の端末で動画編集の続きが出来るようになります。端末の中にある画像、動画データをコピーするため容量を消費します。</string>
-    <string name="project_list_bottomsheet_menu_delete_dialog_title">本当に削除しますか？</string>
-    <string name="project_list_bottomsheet_menu_delete_dialog_confirm">削除</string>
-    <string name="project_list_bottomsheet_menu_delete_dialog_cancel">キャンセル</string>
+    <string name="project_list_dialog_delete_title">本当に削除しますか？</string>
+    <string name="project_list_dialog_delete_confirm">削除</string>
+    <string name="project_list_dialog_delete_cancel">キャンセル</string>
     <string name="project_list_bottomsheet_menu_export_successful">完了しました。取り込みボタンより読み込みができます。</string>
     <string name="project_list_bottomsheet_menu_import_successful">取り込みが完了しました。</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_title">10 ビット HDR 動画の動画編集機能</string>
@@ -252,4 +252,8 @@ HDR 動画を扱う場合、できればこの機能を有効にし HDR 動画�
 SDR に変換すると、より多くの端末で再生できますが、無理やり変換する都合上、色が少し変化してしまいます。</string>
     <string name="edit_renderitem_rotation_title">回転</string>
     <string name="edit_renderitem_rotation_degree">度</string>
+    <string name="project_list_dialog_export_title">プロジェクトをエクスポートしています</string>
+    <string name="project_list_dialog_export_description">他の端末で開けるように Zip ファイルに詰め込んでいます。しばらく時間がかかります。</string>
+    <string name="project_list_dialog_import_title">プロジェクトをインポートしています</string>
+    <string name="project_list_dialog_import_description">Zip ファイルにある素材を解凍して取り出しています。しばらく時間がかかります。</string>
 </resources>

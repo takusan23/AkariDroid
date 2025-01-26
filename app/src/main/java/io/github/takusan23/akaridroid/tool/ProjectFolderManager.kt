@@ -158,18 +158,26 @@ object ProjectFolderManager {
      * TODO 実験的
      * TODO Android 7 以前のサポート
      * TODO 時間がかかるので snackbar か何かを出す
+     * TODO これアプリケーションIDも何もかもが一致している必要がある
      * ポータブルプロジェクトを作る。
      * 持ち出せるよう、端末依存の[RenderData.FilePath.Uri]を全て別のファイルにコピーし[RenderData.FilePath.File]にパスを書き直す。
      * フォルダごと移動させたあと[readRenderData]で出来るはず。
+     *
+     * @param context [Context]
+     * @param name プロジェクト名
+     * @param zipUri zip ファイルの保存先。[Uri]
+     * @param onUpdateProgress zip 圧縮の進捗。現在の進捗と合計ファイル数。
      */
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun exportPortableProject(
         context: Context,
         name: String,
-        portableName: String,
-        zipUri: Uri
+        zipUri: Uri,
+        onUpdateProgress: (current: Int, total: Int) -> Unit
     ) = withContext(Dispatchers.IO) {
         val renderData = readRenderData(context, name) ?: return@withContext
+        // 保存先のファイル名を出す
+        val portableName = UriTool.getFileName(context, zipUri)!!
         // 拡張子 zip を消す
         val portableNameWithoutExtension = portableName.fileNameWithoutExtension
         val portableProjectPath = context.getExternalFilesDir(null)!!.resolve(portableNameWithoutExtension).toPath()
@@ -198,11 +206,22 @@ object ProjectFolderManager {
             }
             val allFileList = (audioFileList + videoFileList).distinct()
 
+            // 進捗用。+1 は JSON 用
+            val allFileListSize = allFileList.size + 1
+            var progressCount = 0
+
+            /** 進捗を[onUpdateProgress]で報告する */
+            fun updateProgress() {
+                onUpdateProgress(progressCount++, allFileListSize)
+            }
+
             // zip に入れる
             // もとの FilePath と zip 解凍後のパス
             val zipEntryPathList = allFileList.associateWith { filePath ->
                 // 展開後のパスを想定する
                 val fileName = zipOutputStream.createZipEntryAndCopy(context, filePath)
+                // 進捗を報告
+                updateProgress()
                 portableProjectPath.resolve(fileName).pathString
             }
 
@@ -231,6 +250,7 @@ object ProjectFolderManager {
             val jsonString = jsonSerialization.encodeToString(portableRenderData)
             zipOutputStream.putNextEntry(ZipEntry(RENDER_DATA_JSON_FILE_NAME))
             zipOutputStream.write(jsonString.toByteArray())
+            updateProgress()
             zipOutputStream.closeEntry()
         }
     }
@@ -240,26 +260,52 @@ object ProjectFolderManager {
      * TODO 時間がかかるので snackbar か何かを出す
      *
      * @param zipUri 選択した zip ファイルの[Uri]
+     * @param onUpdateProgress zip 解凍の進捗。現在の進捗と合計ファイル数。
      */
-    suspend fun importPortableProject(context: Context, zipUri: Uri) = withContext(Dispatchers.IO) {
+    suspend fun importPortableProject(
+        context: Context,
+        zipUri: Uri,
+        onUpdateProgress: (current: Int, total: Int) -> Unit
+    ) = withContext(Dispatchers.IO) {
         val zipFileName = UriTool.getFileName(context, zipUri)!!
         // zip じゃない場合は何もしない
         if (!zipFileName.endsWith(".zip")) return@withContext
 
         val projectFolder = getProjectFolder(context, zipFileName.fileNameWithoutExtension)
+
+        // TODO ファイル数を出す。本当は ZipFile#getSize() を使えばいいが、File API だけなので
+        // TODO でもこれのせいで余計な時間がかかっている。。。
+        onUpdateProgress(0, 0)
+        val totalCount = ZipInputStream(context.contentResolver.openInputStream(zipUri)).use { zipInputStream ->
+            var count = 0
+            while (isActive) {
+                val entry = zipInputStream.nextEntry ?: break
+                count++
+                zipInputStream.closeEntry()
+            }
+            count
+        }
+
+        // 進捗用。+1 は JSON 用
+        val allFileListSize = totalCount
+        var progressCount = 0
+
+        /** 進捗を[onUpdateProgress]で報告する */
+        fun updateProgress() {
+            onUpdateProgress(progressCount++, allFileListSize)
+        }
+
         // 解凍していく
         ZipInputStream(context.contentResolver.openInputStream(zipUri)).use { zipInputStream ->
-            // 展開する
-            var currentZipEntry: ZipEntry?
             while (isActive) {
                 // もうない場合
-                currentZipEntry = zipInputStream.nextEntry
-                if (currentZipEntry == null) break
+                val zipEntry = zipInputStream.nextEntry ?: break
                 // ファイルを作り取り出す
-                val copyFile = projectFolder.resolve(currentZipEntry.name).apply { createNewFile() }
+                val copyFile = projectFolder.resolve(zipEntry.name).apply { createNewFile() }
                 copyFile.outputStream().use { outputStream ->
                     zipInputStream.copyTo(outputStream)
                 }
+                updateProgress()
             }
         }
     }
