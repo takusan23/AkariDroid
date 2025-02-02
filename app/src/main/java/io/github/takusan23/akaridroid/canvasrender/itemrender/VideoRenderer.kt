@@ -102,8 +102,6 @@ class VideoRenderer(
         return currentPositionMs in video.displayTime
     }
 
-    private var rotation = 0f
-
     override fun draw(mvpMatrix: FloatArray, width: Int, height: Int) {
         val (x, y) = video.position
         val (resizeWidth, resizeHeight) = video.size

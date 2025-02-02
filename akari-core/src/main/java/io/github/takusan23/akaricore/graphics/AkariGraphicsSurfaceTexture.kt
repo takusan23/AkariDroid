@@ -22,7 +22,12 @@ import kotlinx.coroutines.flow.first
 class AkariGraphicsSurfaceTexture(private val initTexName: Int) {
 
     private val surfaceTexture = SurfaceTexture(initTexName)
+
+    /** [SurfaceTexture.setOnFrameAvailableListener]が呼ばれたら true。[awaitUpdateTexImage]や[checkAndUpdateTexImage]を呼んだら false になる。 */
     private val _isAvailableFrameFlow = MutableStateFlow(false)
+
+    /** [SurfaceTexture.setOnFrameAvailableListener]が呼ばれたら true。false にはならない。 */
+    private val _isAlreadyOnceAvailableFrameFlow = MutableStateFlow(false)
 
     /** [SurfaceTexture.detachFromGLContext]したら false */
     private var isAttach = true
@@ -36,6 +41,7 @@ class AkariGraphicsSurfaceTexture(private val initTexName: Int) {
     init {
         surfaceTexture.setOnFrameAvailableListener {
             // StateFlow はスレッドセーフが約束されているので
+            _isAlreadyOnceAvailableFrameFlow.value = true
             _isAvailableFrameFlow.value = true
         }
     }
@@ -110,5 +116,16 @@ class AkariGraphicsSurfaceTexture(private val initTexName: Int) {
         GLES20.glDeleteTextures(1, textures, 0)
         surface.release()
         surfaceTexture.release()
+    }
+
+    /**
+     * [SurfaceTexture.setOnFrameAvailableListener]が一回は呼ばれるまで待つ。
+     * テクスチャと行列が利用できるのがコールバック後。
+     *
+     * TODO この呼び出しの後に [checkAndUpdateTexImage] を呼び出すとテクスチャと行列が取れるようになる。
+     * TODO [checkAndUpdateTexImage]も suspend fun にしてこれを呼び出したい。
+     */
+    suspend fun awaitAlreadyFrameAvailableCallback() {
+        _isAlreadyOnceAvailableFrameFlow.first { it /* == true */ }
     }
 }

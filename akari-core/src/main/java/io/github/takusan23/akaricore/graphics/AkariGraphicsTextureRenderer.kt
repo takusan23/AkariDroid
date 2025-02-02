@@ -130,6 +130,10 @@ class AkariGraphicsTextureRenderer internal constructor(
         // 映像を OpenGL ES で使う準備
         akariSurfaceTexture.detachGl()
         akariSurfaceTexture.attachGl(surfaceTextureTextureId)
+
+        // 映像が到着するまで待つ
+        akariSurfaceTexture.awaitAlreadyFrameAvailableCallback()
+
         if (isAwaitTextureUpdate) {
             akariSurfaceTexture.awaitUpdateTexImage()
         } else {
