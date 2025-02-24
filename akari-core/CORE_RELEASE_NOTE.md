@@ -4,6 +4,11 @@
 ## 5.0.0 時代
 あかりどろいど 4.x に対応します
 
+### akaricore:5.0.2
+`AkariGraphicsSurfaceTexture`で、最初のフレームが来るまで待つ関数を追加しました。  
+`AkariGraphicsSurfaceTexture#awaitAlreadyFrameAvailableCallback`  
+映像が`SurfaceTexture`に到着する前に行列を取得しようとすると、逆さまになったりするので。
+
 ### akaricore:5.0.1
 `AkariGraphicsProcessor`の内部でフレームバッファーオブジェクトを2つ作成し、交互に利用するように修正しました。  
 これにより、一部の端末（`Mali GPU`かな？）でブラーエフェクトがちらつく、黒い箇所がある問題が解決するはず。  
