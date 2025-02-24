@@ -7,29 +7,21 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.media.Image
 import android.media.ImageReader
-import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
-import android.media.MediaMuxer
 import androidx.core.graphics.blue
 import androidx.core.graphics.get
 import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
-import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
-import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -43,19 +35,19 @@ import kotlin.time.Duration.Companion.milliseconds
 class AkariGraphicsProcessorInstrumentedTest {
 
     @Test
-    fun test_キャンバスを描画できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
-        ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
+    fun test_キャンバスを描画できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        ImageReader.newInstance(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
             val graphicsProcessor = AkariGraphicsProcessor(
                 outputSurface = imageReader.surface,
-                width = WIDTH,
-                height = HEIGHT,
+                width = CommonTestTool.TEST_VIDEO_WIDTH,
+                height = CommonTestTool.TEST_VIDEO_HEIGHT,
                 isEnableTenBitHdr = false
             ).apply { prepare() }
 
             // デモ Bitmap
             // 塗りつぶしてるだけなのは sameAs でピクセル単位の一致を期待しているため
             // 余計なことするとピクセル単位でズレてしまいそうな気がする
-            val fillRedBitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888).apply {
+            val fillRedBitmap = Bitmap.createBitmap(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, Bitmap.Config.ARGB_8888).apply {
                 Canvas(this).apply {
                     drawColor(Color.RED)
                 }
@@ -77,8 +69,8 @@ class AkariGraphicsProcessorInstrumentedTest {
     }
 
     @Test
-    fun test_動画を作成できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
-        val createVideoFile = createTestVideo(3_000) {
+    fun test_動画を作成できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val createVideoFile = CommonTestTool.createTestVideo(3_000) {
             drawCanvas {
                 drawColor(Color.RED)
             }
@@ -104,10 +96,10 @@ class AkariGraphicsProcessorInstrumentedTest {
     }
 
     @Test
-    fun test_動画をデコードしてフレームを描画できる() = runTest(timeout = (DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+    fun test_動画をデコードしてフレームを描画できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
 
         // 何色か用意する
-        val createVideoFile = createTestVideo(4_000) { currentPositionMs ->
+        val createVideoFile = CommonTestTool.createTestVideo(4_000) { currentPositionMs ->
             drawCanvas {
                 drawColor(
                     when (currentPositionMs) {
@@ -120,12 +112,12 @@ class AkariGraphicsProcessorInstrumentedTest {
             }
         }
 
-        ImageReader.newInstance(WIDTH, HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
+        ImageReader.newInstance(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
 
             val graphicsProcessor = AkariGraphicsProcessor(
                 outputSurface = imageReader.surface,
-                width = WIDTH,
-                height = HEIGHT,
+                width = CommonTestTool.TEST_VIDEO_WIDTH,
+                height = CommonTestTool.TEST_VIDEO_HEIGHT,
                 isEnableTenBitHdr = false
             ).apply { prepare() }
 
@@ -164,66 +156,6 @@ class AkariGraphicsProcessorInstrumentedTest {
         }
     }
 
-    /** 適当な動画を生成する */
-    private suspend fun createTestVideo(
-        durationMs: Long,
-        onDrawRequest: suspend AkariGraphicsTextureRenderer.(currentPositionMs: Long) -> Unit
-    ): File {
-        val resultFile = getTestExternalFilesDir().resolve("encode_test_${System.currentTimeMillis()}.mp4")
-        val akariVideoEncoder = AkariVideoEncoder().apply {
-            prepare(
-                output = resultFile.toAkariCoreInputOutputData(),
-                containerFormat = MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
-                outputVideoWidth = WIDTH,
-                outputVideoHeight = HEIGHT,
-                frameRate = VIDEO_FPS,
-                bitRate = 1_000_000,
-                keyframeInterval = 1,
-                codecName = MediaFormat.MIMETYPE_VIDEO_AVC,
-                tenBitHdrParametersOrNullSdr = null
-            )
-        }
-        val graphicsProcessor = AkariGraphicsProcessor(
-            outputSurface = akariVideoEncoder.getInputSurface(),
-            width = WIDTH,
-            height = HEIGHT,
-            isEnableTenBitHdr = false
-        ).apply { prepare() }
-
-
-        coroutineScope {
-            val encoderJob = launch {
-                akariVideoEncoder.start()
-            }
-            val graphicsJob = launch {
-                val loopContinueData = AkariGraphicsProcessor.LoopContinueData(isRequestNextFrame = true, currentFrameNanoSeconds = 0)
-                var currentMs = 0L
-                graphicsProcessor.drawLoop {
-                    onDrawRequest(this, currentMs)
-
-                    loopContinueData.isRequestNextFrame = currentMs <= durationMs
-                    loopContinueData.currentFrameNanoSeconds = currentMs * AkariGraphicsProcessor.LoopContinueData.MILLI_SECONDS_TO_NANO_SECONDS
-
-                    currentMs += VIDEO_FRAME_MS
-                    loopContinueData
-                }
-            }
-
-            // graphicsJob が終わったらエンコーダーも止める
-            graphicsJob.join()
-            encoderJob.cancel()
-        }
-        graphicsProcessor.destroy()
-
-        return resultFile
-    }
-
-    /** インストルメントテストで使うファイルの保存先 */
-    private fun getTestExternalFilesDir(): File {
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        return appContext.getExternalFilesDir(null)!!
-    }
-
     /** [Image]から[Bitmap]を作る */
     private suspend fun Image.toRgbaBitmap() = withContext(Dispatchers.IO) {
         val image = this@toRgbaBitmap
@@ -239,19 +171,9 @@ class AkariGraphicsProcessorInstrumentedTest {
         val readBitmap = Bitmap.createBitmap(width + rowPadding / pixelStride, height, Bitmap.Config.ARGB_8888)
         readBitmap.copyPixelsFromBuffer(buffer)
         // 余分な Padding を消す
-        val editBitmap = Bitmap.createBitmap(readBitmap, 0, 0, WIDTH, HEIGHT)
+        val editBitmap = Bitmap.createBitmap(readBitmap, 0, 0, CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT)
         readBitmap.recycle()
         image.close()
         return@withContext editBitmap
-    }
-
-    companion object {
-        /** runTest デフォルトタイムアウト */
-        private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
-
-        private const val WIDTH = 1280
-        private const val HEIGHT = 720
-        private const val VIDEO_FPS = 30
-        private const val VIDEO_FRAME_MS = 1000 / VIDEO_FPS // 30fps は 33ms 毎にフレームがある（1000 / 30 = 33.3..）
     }
 }

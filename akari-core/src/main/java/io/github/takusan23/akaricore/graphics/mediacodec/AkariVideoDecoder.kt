@@ -81,6 +81,7 @@ class AkariVideoDecoder {
      * これを連続で呼び出しフレームを連続で取り出し再生させる。
      *
      * @param seekToMs 動画フレームの時間
+     * @return フレームが取得できた場合は true
      */
     suspend fun seekTo(seekToMs: Long): Boolean {
         val isSuccessDecodeFrame = when {

@@ -56,10 +56,18 @@ implementation("io.github.takusan23:akaricore:5.0.1")
 
 ## 動画用
 
-- CanvasVideoProcessor
-  - `Canvas`で毎フレーム書いて、それを動画にする
-- VideoFrameBitmapExtractor
-  - 動画から連続したフレームを高速に取り出す
+- AkariVideoEncoder
+  - `MediaCodec`を使ったエンコーダー
+  - 後述する AkariGraphicsProcessor で生成したフレームをエンコードするのに使ったり
+- AkariVideoDecoder
+  - `MediaCodec`を使ったデコーダー
+  - 後述する SurfaceTexture で動画フレームを使いたい時にこれでデコードする
+- AkariGraphicsProcessor
+  - `OpenGL ES`で動画のフレームを生成するやつ
+  - Canvas や SurfaceTexture を描画する
+- AkariGraphicsSurfaceTexture
+  - `Android`の`SurfaceTexture`を使いやすくしたもの
+  - 動画の映像トラックや、カメラ映像を AkariGraphicsProcessor (OpenGL ES) で描画する
 
 ## 音声用
 

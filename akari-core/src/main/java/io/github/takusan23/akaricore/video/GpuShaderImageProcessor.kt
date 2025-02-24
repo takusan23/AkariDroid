@@ -1,14 +1,11 @@
 package io.github.takusan23.akaricore.video
 
 import android.graphics.Bitmap
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.media.ImageReader
-import io.github.takusan23.akaricore.video.GpuShaderImageProcessor.Companion.FRAGMENT_SHADER_TEXTURE_RENDER
-import io.github.takusan23.akaricore.video.gl.InputSurface
-import io.github.takusan23.akaricore.video.gl.ShaderImageRenderer
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.withContext
+import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
+import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 
 /**
  * OpenGL ES の GLSL、フラグメントシェーダーで画像を加工する。
@@ -19,33 +16,24 @@ import kotlinx.coroutines.withContext
  *
  * # フラグメントシェーダーについて
  * OpenGL ES バージョンは 2.0 です。in / out は 3.0 の機能なので注意です。
- * テクスチャ（画像）を表示するだけのサンプルはこちらです。[FRAGMENT_SHADER_TEXTURE_RENDER]
- * 以下の uniform 変数が利用できます。
- * （というか必須なので、フラグメントシェーダーで使っていない場合はエラーになるかも）
+ * 3.0 を使いたい場合は[AkariGraphicsProcessor]をそのまま使うことをおすすめします。こっちは残してあるだけなので。
  *
- * ## uniform sampler2D s_texture;
- * [drawShader]の引数[Bitmap]は、この s_texture でテクスチャとして利用できます。
- * texture2D() に入れて使ってください。
- *
- * ## uniform vec2 v_resolution;
- * これは画面の width / height を入れている vec2 です。vec2(width, height) です。
- * 座標の正規化に使ってください。
- *
+ * # Uniform 変数について
+ * [AkariGraphicsEffectShader]と同じです。
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class GpuShaderImageProcessor {
 
-    /** OpenGL 用に用意した描画用スレッド。Kotlin coroutines では Dispatcher を切り替えて使う */
-    private val openGlRendererThreadDispatcher = newSingleThreadContext("openGlRendererThreadDispatcher")
+    /** Canvas で Bitmap 書くときの */
+    private val paint = Paint()
 
     /** OpenGL ES で描画した画面を Bitmap として取り出すための ImageReader。glReadPixels でもいいけど、Android はこれがあるので。 */
     private var imageReader: ImageReader? = null
 
-    /** ImageReader と OpenGL ES と繋ぐやつ */
-    private var inputSurface: InputSurface? = null
+    /** OpenGL ES で描画するやつ */
+    private var akariGraphicsProcessor: AkariGraphicsProcessor? = null
 
-    /** フラグメントシェーダーを受け取って、OpenGL ES で描画するやつ */
-    private var shaderImageRenderer: ShaderImageRenderer? = null
+    /** フラグメントシェーダーでエフェクトをかける */
+    private var akariGraphicsEffectShader: AkariGraphicsEffectShader? = null
 
     // ImageReader は、1280x720 とかのきれいな数字の場合は動くが、半端な数字を入れた途端、出力された映像がぐちゃぐちゃになる。
     // それを回避するため、半端な数字が来た場合は、一番近い数字に丸める。
@@ -61,7 +49,7 @@ class GpuShaderImageProcessor {
      * @param height [ImageReader]の高さ。[drawShader]で渡す[Bitmap]と同じでいいはず。
      */
     suspend fun prepare(
-        fragmentShaderCode: String,
+        fragmentShaderCode: String = FRAGMENT_SHADER_TEXTURE_RENDER,
         width: Int,
         height: Int
     ) {
@@ -75,34 +63,41 @@ class GpuShaderImageProcessor {
         val nearestSize = nearestImageReaderAvailableSize(fixWidth, fixHeight)
 
         // 縦横同じだが、後で戻す
-        imageReader = ImageReader.newInstance(nearestSize, nearestSize, PixelFormat.RGBA_8888, 2)
-        inputSurface = InputSurface(outputSurface = imageReader!!.surface)
+        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
-        // 画像にエフェクトをかけるための TextureRenderer
-        shaderImageRenderer = ShaderImageRenderer(
-            fragmentShaderCode = fragmentShaderCode,
-            width = nearestSize,
-            height = nearestSize
+        akariGraphicsProcessor = AkariGraphicsProcessor(
+            outputSurface = imageReader!!.surface,
+            width = width,
+            height = height,
+            isEnableTenBitHdr = false
+        ).apply { prepare() }
+
+        akariGraphicsEffectShader = AkariGraphicsEffectShader(
+            vertexShaderCode = AkariGraphicsEffectShader.VERTEX_SHADER_GLSL100,
+            fragmentShaderCode = fragmentShaderCode
         )
-
-        // OpenGL の関数を呼ぶ際は、描画用スレッドに切り替えてから
-        withContext(openGlRendererThreadDispatcher) {
-            inputSurface?.makeCurrent()
-            shaderImageRenderer?.createRenderer()
+        akariGraphicsProcessor!!.withOpenGlThread {
+            akariGraphicsEffectShader!!.prepareShader()
         }
     }
 
-    /** [ShaderImageRenderer.addCustomFloatUniformHandle]を呼び出す */
+    /** Uniform 変数を登録する */
     suspend fun addCustomFloatUniformHandle(uniformName: String) {
-        withContext(openGlRendererThreadDispatcher) {
-            shaderImageRenderer?.addCustomFloatUniformHandle(uniformName)
+        val akariGraphicsProcessor = akariGraphicsProcessor!!
+        val akariGraphicsEffectShader = akariGraphicsEffectShader!!
+
+        akariGraphicsProcessor.withOpenGlThread {
+            akariGraphicsEffectShader.findFloatUniformLocation(uniformName)
         }
     }
 
-    /** [ShaderImageRenderer.setCustomFloatUniform]を呼び出す */
+    /** Uniform 変数を更新する */
     suspend fun setCustomFloatUniform(uniformName: String, value: Float) {
-        withContext(openGlRendererThreadDispatcher) {
-            shaderImageRenderer?.setCustomFloatUniform(uniformName, value)
+        val akariGraphicsProcessor = akariGraphicsProcessor!!
+        val akariGraphicsEffectShader = akariGraphicsEffectShader!!
+
+        akariGraphicsProcessor.withOpenGlThread {
+            akariGraphicsEffectShader.setFloatUniform(uniformName, value)
         }
     }
 
@@ -112,17 +107,19 @@ class GpuShaderImageProcessor {
      * @param bitmap [Bitmap]
      * @return 加工された[Bitmap]
      */
-    suspend fun drawShader(
-        bitmap: Bitmap
-    ): Bitmap? {
+    suspend fun drawShader(bitmap: Bitmap): Bitmap? {
+        val akariGraphicsProcessor = akariGraphicsProcessor!!
+        val akariGraphicsEffectShader = akariGraphicsEffectShader!!
         val originWidth = originWidth!!
         val originHeight = originHeight!!
 
         // 描画する
         // GL スレッドで
-        withContext(openGlRendererThreadDispatcher) {
-            shaderImageRenderer?.draw(bitmap)
-            inputSurface?.swapBuffers()
+        akariGraphicsProcessor.drawOneshot {
+            drawCanvas {
+                drawBitmap(bitmap, 0f, 0f, paint)
+            }
+            applyEffect(akariGraphicsEffectShader)
         }
 
         // ImageReader で受け取る
@@ -134,11 +131,10 @@ class GpuShaderImageProcessor {
     }
 
     /** 破棄する */
-    fun destroy() {
-        openGlRendererThreadDispatcher.close()
+    suspend fun destroy() {
+        akariGraphicsProcessor?.destroy()
+        akariGraphicsEffectShader?.destroy()
         imageReader?.close()
-        inputSurface?.destroy()
-        shaderImageRenderer?.destroy()
     }
 
     companion object {
@@ -146,17 +142,17 @@ class GpuShaderImageProcessor {
         /** 画像を表示するだけの、最低限のシェーダー */
         const val FRAGMENT_SHADER_TEXTURE_RENDER = """precision mediump float;
 
-uniform sampler2D s_texture;
-uniform vec2 v_resolution;
+uniform sampler2D sVideoFrameTexture;
+uniform vec2 vResolution;
 
 void main() {
     vec4 fragCoord = gl_FragCoord;
     // 正規化する
-    vec2 uv = fragCoord.xy / v_resolution.xy;
+    vec2 uv = fragCoord.xy / vResolution.xy;
     // 反転しているので
     uv = vec2(uv.x, 1.-uv.y);
     // 色を出す
-    vec4 color = texture2D(s_texture, uv);
+    vec4 color = texture2D(sVideoFrameTexture, uv);
     gl_FragColor = color;
 }
 """

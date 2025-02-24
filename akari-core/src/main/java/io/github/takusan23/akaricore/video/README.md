@@ -2,6 +2,9 @@
 
 動画から画像としてフレームを取り出す、画像をフレームとして動画を作る処理があります。
 
+あかりどろいどでは graphics パッケージにある AkariGraphicsProcessor を使ってるので優先度低なクラスたちです。  
+できれば AkariGraphicsProcessor を使った処理に移行すべき...かも。
+
 # 用意されてる関数
 
 - CanvasVideoProcessor
