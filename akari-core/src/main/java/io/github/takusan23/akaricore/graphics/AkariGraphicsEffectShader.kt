@@ -3,7 +3,6 @@ package io.github.takusan23.akaricore.graphics
 import android.opengl.GLES20
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader.Companion.VERTEX_SHADER_GLSL100
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader.Companion.VERTEX_SHADER_GLSL300
-import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 

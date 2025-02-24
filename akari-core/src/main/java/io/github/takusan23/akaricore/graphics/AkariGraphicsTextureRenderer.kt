@@ -7,7 +7,6 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLUtils
 import android.opengl.Matrix
-import io.github.takusan23.akaricore.video.gl.GlslSyntaxErrorException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
