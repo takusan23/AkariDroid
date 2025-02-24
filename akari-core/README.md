@@ -16,6 +16,31 @@
 implementation("io.github.takusan23:akaricore:5.0.1")
 ```
 
+# 何ができるの
+- `MediaCodec`を利用した映像、音声のデコード（`audio`、`muxer`、`graphics`パッケージ）
+- `OpenGL ES`を利用して高速に描画する（`graphics`パッケージ）
+  - カメラや動画のフレームを描画する機能
+  - `Canvas`で描いた内容を`OpenGL ES`へ転写する機能
+- `Canvas`から動画を作る機能、動画フレームをできる限り高速で取り出す機能（`video`パッケージ）
+  - あかりどろいどでは`graphics`パッケージに取って代わられたので使ってません
+
+例えば、動画プレイヤーの映像を`OpenGL ES`で使えるようにして、エフェクトを適用したり、上から`Canvas`を重ねたりしたあと、動画ファイルに保存（もしくは画面に表示）が出来ます。  
+これで動画編集が出来ているわけですね。
+
+![Imgur](https://i.imgur.com/SYryBpw.png)
+
+# 使ってるところ
+使ってる実装を見るのが早そう
+
+- あかりどろいど
+  - https://github.com/takusan23/AkariDroid/blob/master/app/src/main/java/io/github/takusan23/akaridroid/canvasrender/VideoTrackRenderer.kt
+  - https://github.com/takusan23/AkariDroid/blob/master/app/src/main/java/io/github/takusan23/akaridroid/audiorender/AudioRender.kt
+  - https://github.com/takusan23/AkariDroid/blob/master/app/src/main/java/io/github/takusan23/akaridroid/encoder/AkariCoreEncoder.kt
+- ちがうアプリ
+  - https://github.com/takusan23/DougaUnDroid/blob/master/app/src/main/java/io/github/takusan23/dougaundroid/processor/VideoProcessor.kt
+  - https://github.com/takusan23/DougaUnDroid/blob/master/app/src/main/java/io/github/takusan23/dougaundroid/processor/AudioProcessor.kt
+  - https://github.com/takusan23/KomaDroid/blob/master/app/src/main/java/io/github/takusan23/komadroid/KomaDroidCameraManager.kt
+
 # つかいかた
 本当に`MediaCodec`を代わりに叩くくらいの関数しか無い。  
 今度真面目に書く

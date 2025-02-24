@@ -39,10 +39,6 @@ https://takusan.negitoro.dev/posts/akari_droid_tutorial_video_side_blur/
 外部連携機能があります。これを使うと、あかりどろいどでは作れない素材を、他のアプリで作って追加出来ます。  
 詳しくは AKALINK_README.md へ
 
-## ライブラリ
-動画編集の、`MediaCodec`を代わりに叩いてちょっとだけ使いやすくしたものを`akari-core`ライブラリとして公開しています。  
-詳しくは`akari-core/README.md`へ。
-
 ## あかりどろいど ビルド方法
 それなりの性能のパソコンがあればいいはず。
 
@@ -57,4 +53,14 @@ https://takusan.negitoro.dev/posts/akari_droid_tutorial_video_side_blur/
 
 ## ソースコードの構成
 `app`モジュールと、`akari-core`モジュールで出来ています。  
-`akari-core`がライブラリの部分で、`app`が実際のアプリです。`akari-core`を取り込んで使ってます。
+
+![Imgur](https://i.imgur.com/3hplNnZ.png)
+
+`akari-core`が`MediaCodec`と`OpenGL ES`を使って映像、音声の作成を担当しているライブラリで、それを`app`が取り込んでエンコードやプレビューの表示で使っています。  
+`app`が実際のアプリで、`Jetpack Compose`で`UI`が作られています。
+
+## ライブラリ
+動画編集の、`MediaCodec`を代わりに叩いてちょっとだけ使いやすくしたものを`akari-core`ライブラリとして`MavenCentral`へ公開しています。  
+私が他に作っているアプリでこれを参照したくて公開しているので、多分使いやすくないです。
+
+詳しくは`akari-core/README.md`へ。
