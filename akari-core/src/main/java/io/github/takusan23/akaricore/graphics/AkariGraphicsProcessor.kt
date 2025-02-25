@@ -12,16 +12,14 @@ import kotlinx.coroutines.yield
  * OpenGL ES の上に構築された、映像フレームを作るやつ
  * SurfaceView を使う場合、[android.view.SurfaceHolder.setFixedSize]で[width]、[height]を入れておく必要があります。glViewport と違うとズレてしまうので。
  *
- * @param outputSurface 描画先。SurfaceView や MediaRecorder
+ * @param renderingMode OpenGL ES の描画先。Surface なら[AkariGraphicsProcessorRenderingMode.SurfaceRendering]、Surface 無しのオフスクリーンレンダリングなら[AkariGraphicsProcessorRenderingMode.OffscreenRendering]
  * @param width 映像の幅。フレームバッファーオブジェクトのために必要です
  * @param height 映像の高さ。フレームバッファーオブジェクトのために必要です
  * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true。Camera2 API で 10-bit HDR の映像を扱う場合や、デコードする動画が 10-bit HDR の場合。
- *
- * TODO なんとかしてテストを書きたい
  */
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class AkariGraphicsProcessor(
-    outputSurface: Surface,
+    renderingMode: AkariGraphicsProcessorRenderingMode,
     private val width: Int,
     private val height: Int,
     isEnableTenBitHdr: Boolean
@@ -29,8 +27,21 @@ class AkariGraphicsProcessor(
     /** OpenGL 描画用スレッドの Kotlin Coroutine Dispatcher */
     private val openGlRelatedThreadDispatcher = newSingleThreadContext("openGlRelatedThreadDispatcher")
 
-    private val inputSurface = AkariGraphicsInputSurface(outputSurface, isEnableTenBitHdr)
+    private val inputSurface = AkariGraphicsInputSurface(renderingMode, isEnableTenBitHdr)
     private val textureRenderer = AkariGraphicsTextureRenderer(width, height, isEnableTenBitHdr)
+
+    @Deprecated("後方互換用。AkariGraphicsProcessorRenderingMode を引数に取る方を使ってください。")
+    constructor(
+        outputSurface: Surface,
+        width: Int,
+        height: Int,
+        isEnableTenBitHdr: Boolean
+    ) : this(
+        AkariGraphicsProcessorRenderingMode.SurfaceRendering(outputSurface),
+        width,
+        height,
+        isEnableTenBitHdr
+    )
 
     /** [AkariGraphicsTextureRenderer]等の用意をします */
     suspend fun prepare() {
@@ -49,6 +60,8 @@ class AkariGraphicsProcessor(
     /**
      * GL スレッドで呼び出される。
      * [AkariGraphicsEffectShader]を作る際などで使う。
+     *
+     * TODO return で返してあげたほうが使いやすいかも
      */
     suspend fun withOpenGlThread(action: suspend () -> Unit) {
         withContext(openGlRelatedThreadDispatcher) {

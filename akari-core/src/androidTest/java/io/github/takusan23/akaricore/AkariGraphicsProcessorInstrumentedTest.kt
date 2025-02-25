@@ -8,6 +8,7 @@ import android.graphics.PixelFormat
 import android.media.Image
 import android.media.ImageReader
 import android.media.MediaMetadataRetriever
+import android.opengl.GLES30
 import androidx.core.graphics.blue
 import androidx.core.graphics.get
 import androidx.core.graphics.green
@@ -15,6 +16,7 @@ import androidx.core.graphics.red
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessorRenderingMode
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.nio.ByteBuffer
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
@@ -154,6 +157,84 @@ class AkariGraphicsProcessorInstrumentedTest {
 
             graphicsProcessor.destroy()
         }
+    }
+
+    @Test
+    fun test_オフスクリーンレンダリングができる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        val offscreenAkariGraphicsProcessor = AkariGraphicsProcessor(
+            renderingMode = AkariGraphicsProcessorRenderingMode.OffscreenRendering(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT),
+            width = CommonTestTool.TEST_VIDEO_WIDTH,
+            height = CommonTestTool.TEST_VIDEO_HEIGHT,
+            isEnableTenBitHdr = false
+        ).apply { prepare() }
+
+        // 赤色で塗りつぶした Bitmap をオフスクリーンレンダリング
+        val fillRedColorBitmap = Bitmap.createBitmap(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, Bitmap.Config.ARGB_8888).apply {
+            Canvas(this).apply {
+                drawColor(Color.RED)
+            }
+        }
+        offscreenAkariGraphicsProcessor.drawOneshot {
+            drawCanvas {
+                drawBitmap(fillRedColorBitmap, 0f, 0f, Paint())
+            }
+        }
+
+        // glReadPixels で赤色が描画出来ているか
+        // glReadPixels は上下反転するが、単色で塗りつぶしているだけなので特に見ていない
+        val byteBuffer = ByteBuffer.allocate(CommonTestTool.TEST_VIDEO_WIDTH * CommonTestTool.TEST_VIDEO_HEIGHT * 4).apply {
+            position(0)
+        }
+        // GL スレッドで
+        offscreenAkariGraphicsProcessor.withOpenGlThread {
+            GLES30.glReadPixels(0, 0, CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, byteBuffer)
+        }
+
+        // Bitmap を作って一致すること
+        val glReadPixelsBitmap = Bitmap.createBitmap(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, Bitmap.Config.ARGB_8888)
+        glReadPixelsBitmap.copyPixelsFromBuffer(byteBuffer)
+
+        assertTrue("オフスクリーンレンダリングした Bitmap と一致しません") { glReadPixelsBitmap.sameAs(fillRedColorBitmap) }
+        offscreenAkariGraphicsProcessor.destroy()
+    }
+
+    @Test
+    fun test_10ビットHDRで描画できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
+        // TODO 古い端末は OpenGL ES で HLG ( 10 ビット HDR ) が使えないのでテストが多分通らない
+        val offscreenAkariGraphicsProcessor = AkariGraphicsProcessor(
+            renderingMode = AkariGraphicsProcessorRenderingMode.OffscreenRendering(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT),
+            width = CommonTestTool.TEST_VIDEO_WIDTH,
+            height = CommonTestTool.TEST_VIDEO_HEIGHT,
+            isEnableTenBitHdr = true // TODO PQ 版も作る
+        ).apply { prepare() }
+
+        // 真っ白
+        // 10ビットなので多分 8 ビットで 0xFF だったのが 10 ビットで 0b11_1111_1111 になるはず。
+        offscreenAkariGraphicsProcessor.drawOneshot {
+            drawCanvas {
+                drawColor(Color.WHITE)
+            }
+        }
+
+        // glReadPixels
+        val byteBuffer = ByteBuffer.allocate(CommonTestTool.TEST_VIDEO_WIDTH * CommonTestTool.TEST_VIDEO_HEIGHT * 4).apply {
+            position(0)
+        }
+        offscreenAkariGraphicsProcessor.withOpenGlThread {
+            // OpenGL ES の EGL で RGB 10 ビット、Alpha 2 ビット使っているので GL_UNSIGNED_INT_2_10_10_10_REV
+            GLES30.glReadPixels(0, 0, CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_INT_2_10_10_10_REV, byteBuffer)
+        }
+
+        // RGB が各 10 ビットなのでちょっと変わってる
+        val red10bit = (byteBuffer[0].toInt() shr 20) and 0b11_1111_1111
+        val green10bit = (byteBuffer[0].toInt() shr 10) and 0b11_1111_1111
+        val blue10bit = byteBuffer[0].toInt() and 0b11_1111_1111
+        // 白なので 10 ビット全て立ってるはず
+        assertEquals(0b11_1111_1111, red10bit, "10ビットの色が一致しませんでした")
+        assertEquals(0b11_1111_1111, green10bit, "10ビットの色が一致しませんでした")
+        assertEquals(0b11_1111_1111, blue10bit, "10ビットの色が一致しませんでした")
+
+        offscreenAkariGraphicsProcessor.destroy()
     }
 
     /** [Image]から[Bitmap]を作る */
