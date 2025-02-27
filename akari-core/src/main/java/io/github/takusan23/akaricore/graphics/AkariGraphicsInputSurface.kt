@@ -3,38 +3,42 @@ package io.github.takusan23.akaricore.graphics
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingMode
 import javax.microedition.khronos.egl.EGL10
 
 /**
  * MediaCodec で描画する際に OpenGL ES の設定が必要だが、EGL 周りの設定をしてくれるやつ。
  * EGL 1.4 、GLES 3.0 でセットアップする。GL スレッドから呼び出すこと。
  *
- * TODO 10-bit HDR （HLG 形式）の描画に対応しているかを確認する方法を用意する
- * TODO HLG だけじゃなく PQ にも対応する。多分定数入れ替えるだけ。
+ * TODO 10-bit HDR （HLG / PQ）の描画に対応しているかを確認する方法を用意する
  *
  * @param renderingMode OpenGL ES の描画先
- * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true
+ * @param dynamicRangeType SDR か 10-bit HDR か
  */
 internal class AkariGraphicsInputSurface(
     renderingMode: AkariGraphicsProcessorRenderingMode,
-    private val isEnableTenBitHdr: Boolean
+    dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
 ) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
     private var mEGLContext = EGL14.EGL_NO_CONTEXT
     private var mEGLSurface = EGL14.EGL_NO_SURFACE
 
     init {
-        // 10-bit HDR のためには HLG の表示が必要。
-        // それには OpenGL ES 3.0 でセットアップし、10Bit に設定する必要がある。
-        if (isEnableTenBitHdr) {
-            eglSetupForTenBitHdr(renderingMode)
+        // 10-bit HDR
+        // OpenGL ES 3.0 でセットアップし、10-bit HLG か PQ に設定する必要がある。
+        if (dynamicRangeType.isHdr) {
+            eglSetupForTenBitHdr(renderingMode, dynamicRangeType)
         } else {
             eglSetupForSdr(renderingMode)
         }
     }
 
     /** 10-bit HDR version. Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
-    private fun eglSetupForTenBitHdr(renderingMode: AkariGraphicsProcessorRenderingMode) {
+    private fun eglSetupForTenBitHdr(
+        renderingMode: AkariGraphicsProcessorRenderingMode,
+        dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
+    ) {
         mEGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         if (mEGLDisplay == EGL14.EGL_NO_DISPLAY) {
             throw RuntimeException("unable to get EGL14 display")
@@ -70,13 +74,18 @@ internal class AkariGraphicsInputSurface(
         )
         checkEglError("eglCreateContext")
 
-        // EGL_GL_COLORSPACE_BT2020_HLG_EXT を使うことで OpenGL ES で HDR 表示が可能になる（HLG 形式）
+        // EGL_GL_COLORSPACE_BT2020_HLG_EXT や PQ_EXT で 10-bit HDR を OpenGL ES で描画できる
         // TODO 10-bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
-        // TODO HLG だけじゃなく PQ も対応する
-        val appendSurfaceAttribs = if (isAvailableExtension("EGL_EXT_gl_colorspace_bt2020_hlg")) {
-            intArrayOf(EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT)
-        } else {
-            intArrayOf()
+        val appendSurfaceAttribs = when {
+            dynamicRangeType == AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_HLG) -> intArrayOf(
+                EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT
+            )
+
+            dynamicRangeType == AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_PQ && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_PQ) -> intArrayOf(
+                EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_PQ_EXT
+            )
+
+            else -> intArrayOf() // SDR か、OpenGL ES が 10-bit HDR 対応してないとき
         }
         // 描画先
         // Create a window surface, and attach it to the Surface we received.
@@ -227,9 +236,14 @@ internal class AkariGraphicsInputSurface(
     companion object {
         private const val EGL_RECORDABLE_ANDROID = 0x3142
 
-        // HDR 表示に必要
+        // 10-bit HDR 表示に必要
         private const val EGL_GL_COLORSPACE_KHR = 0x309D
         private const val EGL_GL_COLORSPACE_BT2020_HLG_EXT = 0x3540
+        private const val EGL_GL_COLORSPACE_BT2020_PQ_EXT = 0x3340
+
+        // 10-bit HDR 確認用
+        private const val EGL_EXT_GL_COLORSPACE_BT2020_HLG = "EGL_EXT_gl_colorspace_bt2020_hlg"
+        private const val EGL_EXT_GL_COLORSPACE_BT2020_PQ = "EGL_EXT_gl_colorspace_bt2020_pq"
 
     }
 

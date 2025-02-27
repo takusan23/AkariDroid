@@ -2,6 +2,8 @@ package io.github.takusan23.akaricore.graphics
 
 import android.opengl.GLES20
 import android.view.Surface
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingMode
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
@@ -15,20 +17,20 @@ import kotlinx.coroutines.yield
  * @param renderingMode OpenGL ES の描画先。Surface なら[AkariGraphicsProcessorRenderingMode.SurfaceRendering]、Surface 無しのオフスクリーンレンダリングなら[AkariGraphicsProcessorRenderingMode.OffscreenRendering]
  * @param width 映像の幅。フレームバッファーオブジェクトのために必要です
  * @param height 映像の高さ。フレームバッファーオブジェクトのために必要です
- * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true。Camera2 API で 10-bit HDR の映像を扱う場合や、デコードする動画が 10-bit HDR の場合。
+ * @param dynamicRangeType SDR か 10-bit HDR ( HLG / PQ ) かどっちか。[AkariGraphicsProcessorDynamicRangeMode]
  */
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class AkariGraphicsProcessor(
     renderingMode: AkariGraphicsProcessorRenderingMode,
     private val width: Int,
     private val height: Int,
-    isEnableTenBitHdr: Boolean
+    dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
 ) {
     /** OpenGL 描画用スレッドの Kotlin Coroutine Dispatcher */
     private val openGlRelatedThreadDispatcher = newSingleThreadContext("openGlRelatedThreadDispatcher")
 
-    private val inputSurface = AkariGraphicsInputSurface(renderingMode, isEnableTenBitHdr)
-    private val textureRenderer = AkariGraphicsTextureRenderer(width, height, isEnableTenBitHdr)
+    private val inputSurface = AkariGraphicsInputSurface(renderingMode, dynamicRangeType)
+    private val textureRenderer = AkariGraphicsTextureRenderer(width, height, dynamicRangeType.isHdr)
 
     @Deprecated("後方互換用。AkariGraphicsProcessorRenderingMode を引数に取る方を使ってください。")
     constructor(
@@ -37,10 +39,10 @@ class AkariGraphicsProcessor(
         height: Int,
         isEnableTenBitHdr: Boolean
     ) : this(
-        AkariGraphicsProcessorRenderingMode.SurfaceRendering(outputSurface),
-        width,
-        height,
-        isEnableTenBitHdr
+        renderingMode = AkariGraphicsProcessorRenderingMode.SurfaceRendering(outputSurface),
+        width = width,
+        height = height,
+        dynamicRangeType = if (isEnableTenBitHdr) AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG else AkariGraphicsProcessorDynamicRangeMode.SDR
     )
 
     /** [AkariGraphicsTextureRenderer]等の用意をします */

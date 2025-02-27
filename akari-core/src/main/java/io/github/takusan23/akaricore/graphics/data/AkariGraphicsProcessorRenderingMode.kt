@@ -1,8 +1,8 @@
-package io.github.takusan23.akaricore.graphics
+package io.github.takusan23.akaricore.graphics.data
 
 import android.view.Surface
 
-/** [AkariGraphicsTextureRenderer] の描画モード */
+/** [io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer] の描画モード */
 sealed interface AkariGraphicsProcessorRenderingMode {
 
     /**

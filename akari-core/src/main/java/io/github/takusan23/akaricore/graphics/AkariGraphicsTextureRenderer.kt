@@ -446,7 +446,7 @@ class AkariGraphicsTextureRenderer internal constructor(
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-        checkGlError("fbo glTexParameter");
+        checkGlError("fbo glTexParameter")
 
         // フレームバッファオブジェクトを作り、テクスチャをバインドする
         val frameBuffers = IntArray(1)
