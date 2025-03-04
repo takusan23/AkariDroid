@@ -176,6 +176,9 @@ data class RenderData(
                 @SerialName("fade_in_out")
                 FADE_IN_OUT,
 
+                @SerialName("fade_in_out_white")
+                FADE_IN_OUT_WHITE,
+
                 @SerialName("slide")
                 SLIDE,
 

@@ -15,6 +15,7 @@ class SwitchAnimationRenderer(private val switchAnimation: RenderData.CanvasItem
     override val fragmentShader: String
         get() = when (switchAnimation.animationType) {
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> FRAGMENT_SHADER_FADE_IN_OUT
+            RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT_WHITE -> FRAGMENT_SHADER_WHITE_FADE_IN_OUT
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.SLIDE -> FRAGMENT_SHADER_SLIDE
             RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> FRAGMENT_SHADER_BLUR
         }
@@ -60,8 +61,38 @@ void main() {
         
         // 0.0 ~ 1.0 を、0.0 ~ 0.1 にしたあと、1.0 ~ 0.0 にするやつ
         // 0.5 で 1.0 になって、それ以降は減っていく
-        float timeOutIn = abs(1.0 - (f_time * 2.0));
-        color.rgb *= timeOutIn;
+        float progress = abs(1.0 - (f_time * 2.0));
+        color.rgb = mix(vec3(0.), color.rgb, progress);
+    }
+    
+    gl_FragColor = color;
+}
+"""
+
+        /** フェードアウトしてフェードインするやつ。白色版 */
+        private const val FRAGMENT_SHADER_WHITE_FADE_IN_OUT = """#version 100
+precision mediump float;
+
+uniform sampler2D sVideoFrameTexture;
+uniform vec2 vResolution;
+uniform vec4 vCropLocation;
+uniform float f_time;
+
+void main() {
+    vec4 fragCoord = gl_FragCoord;
+    // 正規化する
+    vec2 uv = fragCoord.xy / vResolution.xy;
+    // 色を出す
+    vec4 color = texture2D(sVideoFrameTexture, uv);
+    
+    // 範囲内
+    if (vCropLocation[0] < uv.x && vCropLocation[1] > uv.x && vCropLocation[2] < uv.y && vCropLocation[3] > uv.y) {
+        
+        // f_time を 2 倍することで、0から2までの範囲にする
+        // 0.5 までは、2倍した値を 1 から引けば 0.8  ... 0.0 となっていく
+        // それ以降は、 -0.2 ... -1.0 とかになるので、abs で絶対値にする
+        float progress = abs(1.0 - (f_time * 2.0));
+        color.rgb = mix(vec3(1.), color.rgb, progress);
     }
     
     gl_FragColor = color;

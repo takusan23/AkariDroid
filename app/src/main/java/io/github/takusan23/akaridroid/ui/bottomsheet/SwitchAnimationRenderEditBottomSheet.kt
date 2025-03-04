@@ -61,6 +61,7 @@ fun SwitchAnimationRenderEditBottomSheet(
                 context.getString(
                     when (it) {
                         RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out
+                        RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT_WHITE -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out_white
                         RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.SLIDE -> R.string.video_edit_bottomsheet_switch_animation_type_slide
                         RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> R.string.video_edit_bottomsheet_switch_animation_type_blur
                     }

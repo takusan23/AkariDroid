@@ -256,4 +256,5 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="project_list_dialog_export_description">他の端末で開けるように Zip ファイルに詰め込んでいます。しばらく時間がかかります。</string>
     <string name="project_list_dialog_import_title">プロジェクトをインポートしています</string>
     <string name="project_list_dialog_import_description">Zip ファイルにある素材を解凍して取り出しています。しばらく時間がかかります。</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out_white">フェードアウト、フェードイン（白）</string>
 </resources>

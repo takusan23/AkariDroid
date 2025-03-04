@@ -255,4 +255,5 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="project_list_dialog_export_description">I put it in a zip file so that it can be opened on other devices. This will take a while.</string>
     <string name="project_list_dialog_import_title">Importing projects</string>
     <string name="project_list_dialog_import_description">The materials in the zip file are extracted. This will take a while.</string>
+    <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out_white">Fade out, fade in (white)</string>
 </resources>
