@@ -6,6 +6,8 @@ import android.graphics.PixelFormat
 import android.media.ImageReader
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 
 /**
  * OpenGL ES の GLSL、フラグメントシェーダーで画像を加工する。
@@ -66,10 +68,12 @@ class GpuShaderImageProcessor {
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
         akariGraphicsProcessor = AkariGraphicsProcessor(
-            outputSurface = imageReader!!.surface,
-            width = width,
-            height = height,
-            isEnableTenBitHdr = false
+            renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                surface = imageReader!!.surface,
+                width = width,
+                height = height
+            ),
+            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
         ).apply { prepare() }
 
         akariGraphicsEffectShader = AkariGraphicsEffectShader(

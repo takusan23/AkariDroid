@@ -18,7 +18,7 @@ import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
@@ -42,10 +42,12 @@ class AkariGraphicsProcessorInstrumentedTest {
     fun test_キャンバスを描画できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         ImageReader.newInstance(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
             val graphicsProcessor = AkariGraphicsProcessor(
-                outputSurface = imageReader.surface,
-                width = CommonTestTool.TEST_VIDEO_WIDTH,
-                height = CommonTestTool.TEST_VIDEO_HEIGHT,
-                isEnableTenBitHdr = false
+                renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                    surface = imageReader.surface,
+                    width = CommonTestTool.TEST_VIDEO_WIDTH,
+                    height = CommonTestTool.TEST_VIDEO_HEIGHT
+                ),
+                dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
             ).apply { prepare() }
 
             // デモ Bitmap
@@ -119,10 +121,12 @@ class AkariGraphicsProcessorInstrumentedTest {
         ImageReader.newInstance(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, PixelFormat.RGBA_8888, 2).use { imageReader ->
 
             val graphicsProcessor = AkariGraphicsProcessor(
-                outputSurface = imageReader.surface,
-                width = CommonTestTool.TEST_VIDEO_WIDTH,
-                height = CommonTestTool.TEST_VIDEO_HEIGHT,
-                isEnableTenBitHdr = false
+                renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                    surface = imageReader.surface,
+                    width = CommonTestTool.TEST_VIDEO_WIDTH,
+                    height = CommonTestTool.TEST_VIDEO_HEIGHT
+                ),
+                dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
             ).apply { prepare() }
 
             // OpenGL ES で映像をテクスチャとして利用する SurfaceTexture をラップしたもの
@@ -163,9 +167,10 @@ class AkariGraphicsProcessorInstrumentedTest {
     @Test
     fun test_オフスクリーンレンダリングができる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
         val offscreenAkariGraphicsProcessor = AkariGraphicsProcessor(
-            renderingMode = AkariGraphicsProcessorRenderingMode.OffscreenRendering(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT),
-            width = CommonTestTool.TEST_VIDEO_WIDTH,
-            height = CommonTestTool.TEST_VIDEO_HEIGHT,
+            renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering(
+                width = CommonTestTool.TEST_VIDEO_WIDTH,
+                height = CommonTestTool.TEST_VIDEO_HEIGHT
+            ),
             dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
         ).apply { prepare() }
 
@@ -204,9 +209,10 @@ class AkariGraphicsProcessorInstrumentedTest {
 
         suspend fun hdrDrawTest(dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode) {
             val offscreenAkariGraphicsProcessor = AkariGraphicsProcessor(
-                renderingMode = AkariGraphicsProcessorRenderingMode.OffscreenRendering(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT),
-                width = CommonTestTool.TEST_VIDEO_WIDTH,
-                height = CommonTestTool.TEST_VIDEO_HEIGHT,
+                renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering(
+                    width = CommonTestTool.TEST_VIDEO_WIDTH,
+                    height = CommonTestTool.TEST_VIDEO_HEIGHT
+                ),
                 dynamicRangeType = dynamicRangeType
             ).apply { prepare() }
 

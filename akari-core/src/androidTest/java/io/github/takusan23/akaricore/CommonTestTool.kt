@@ -6,6 +6,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -65,12 +67,13 @@ object CommonTestTool {
             )
         }
         val graphicsProcessor = AkariGraphicsProcessor(
-            outputSurface = akariVideoEncoder.getInputSurface(),
-            width = TEST_VIDEO_WIDTH,
-            height = TEST_VIDEO_HEIGHT,
-            isEnableTenBitHdr = false
+            renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                surface = akariVideoEncoder.getInputSurface(),
+                width = TEST_VIDEO_WIDTH,
+                height = TEST_VIDEO_HEIGHT
+            ),
+            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
         ).apply { prepare() }
-
 
         coroutineScope {
             val encoderJob = launch {

@@ -84,6 +84,7 @@ class VideoTrackRenderer(private val context: Context) {
 
                 // OpenGL ES の上に構築された動画フレーム描画システム
                 // prepare() 後に emit() する
+                // TODO 10-bit HDR PQ に対応する際は strings.xml も更新する
                 val newAkariGraphicsProcessor = AkariGraphicsProcessor(
                     outputSurface = surfaceVariant.surface,
                     width = outputWidth,

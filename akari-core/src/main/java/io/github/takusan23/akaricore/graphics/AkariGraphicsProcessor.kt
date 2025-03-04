@@ -3,7 +3,7 @@ package io.github.takusan23.akaricore.graphics
 import android.opengl.GLES20
 import android.view.Surface
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.newSingleThreadContext
@@ -14,23 +14,19 @@ import kotlinx.coroutines.yield
  * OpenGL ES の上に構築された、映像フレームを作るやつ
  * SurfaceView を使う場合、[android.view.SurfaceHolder.setFixedSize]で[width]、[height]を入れておく必要があります。glViewport と違うとズレてしまうので。
  *
- * @param renderingMode OpenGL ES の描画先。Surface なら[AkariGraphicsProcessorRenderingMode.SurfaceRendering]、Surface 無しのオフスクリーンレンダリングなら[AkariGraphicsProcessorRenderingMode.OffscreenRendering]
- * @param width 映像の幅。フレームバッファーオブジェクトのために必要です
- * @param height 映像の高さ。フレームバッファーオブジェクトのために必要です
+ * @param renderingPrepareData OpenGL ES の描画先と映像の縦横サイズ。Surface なら[AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering]、Surface 無しのオフスクリーンレンダリングなら[AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering]
  * @param dynamicRangeType SDR か 10-bit HDR ( HLG / PQ ) かどっちか。[AkariGraphicsProcessorDynamicRangeMode]
  */
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class AkariGraphicsProcessor(
-    renderingMode: AkariGraphicsProcessorRenderingMode,
-    private val width: Int,
-    private val height: Int,
+    private val renderingPrepareData: AkariGraphicsProcessorRenderingPrepareData,
     dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
 ) {
     /** OpenGL 描画用スレッドの Kotlin Coroutine Dispatcher */
     private val openGlRelatedThreadDispatcher = newSingleThreadContext("openGlRelatedThreadDispatcher")
 
-    private val inputSurface = AkariGraphicsInputSurface(renderingMode, dynamicRangeType)
-    private val textureRenderer = AkariGraphicsTextureRenderer(width, height, dynamicRangeType.isHdr)
+    private val inputSurface = AkariGraphicsInputSurface(renderingPrepareData, dynamicRangeType)
+    private val textureRenderer = AkariGraphicsTextureRenderer(renderingPrepareData.width, renderingPrepareData.height, dynamicRangeType.isHdr)
 
     @Deprecated("後方互換用。AkariGraphicsProcessorRenderingMode を引数に取る方を使ってください。")
     constructor(
@@ -39,9 +35,7 @@ class AkariGraphicsProcessor(
         height: Int,
         isEnableTenBitHdr: Boolean
     ) : this(
-        renderingMode = AkariGraphicsProcessorRenderingMode.SurfaceRendering(outputSurface),
-        width = width,
-        height = height,
+        renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(outputSurface, width, height),
         dynamicRangeType = if (isEnableTenBitHdr) AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG else AkariGraphicsProcessorDynamicRangeMode.SDR
     )
 
@@ -50,7 +44,7 @@ class AkariGraphicsProcessor(
         withContext(openGlRelatedThreadDispatcher) {
             inputSurface.makeCurrent()
             textureRenderer.prepareShader()
-            GLES20.glViewport(0, 0, width, height)
+            GLES20.glViewport(0, 0, renderingPrepareData.width, renderingPrepareData.height)
         }
     }
 

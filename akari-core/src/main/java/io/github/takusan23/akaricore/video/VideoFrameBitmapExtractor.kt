@@ -8,6 +8,8 @@ import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 
 /**
@@ -82,10 +84,12 @@ class VideoFrameBitmapExtractor {
         // MediaCodec と ImageReader の間に OpenGL を経由させる
         // 経由させないと、Google Pixel 以外（Snapdragon 端末とか）で動かなかった
         akariGraphicsProcessor = AkariGraphicsProcessor(
-            outputSurface = imageReader!!.surface,
-            width = videoWidth,
-            height = videoHeight,
-            isEnableTenBitHdr = false
+            AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                surface = imageReader!!.surface,
+                width = videoWidth,
+                height = videoHeight
+            ),
+            AkariGraphicsProcessorDynamicRangeMode.SDR
         ).apply { prepare() }
 
         // 映像デコーダー起動

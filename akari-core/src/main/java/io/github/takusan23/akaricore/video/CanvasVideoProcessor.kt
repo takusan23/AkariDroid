@@ -5,6 +5,8 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -53,10 +55,12 @@ object CanvasVideoProcessor {
 
         // OpenGL ES で描画するやつ、Canvas で書いて転写する
         val akariGraphicsProcessor = AkariGraphicsProcessor(
-            outputSurface = akariVideoEncoder.getInputSurface(),
-            width = outputVideoWidth,
-            height = outputVideoHeight,
-            isEnableTenBitHdr = false
+            renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                surface = akariVideoEncoder.getInputSurface(),
+                width = outputVideoWidth,
+                height = outputVideoHeight
+            ),
+            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
         ).apply { prepare() }
 
         try {

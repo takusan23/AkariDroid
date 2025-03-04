@@ -4,7 +4,7 @@ import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import javax.microedition.khronos.egl.EGL10
 
 /**
@@ -17,7 +17,7 @@ import javax.microedition.khronos.egl.EGL10
  * @param dynamicRangeType SDR か 10-bit HDR か
  */
 internal class AkariGraphicsInputSurface(
-    renderingMode: AkariGraphicsProcessorRenderingMode,
+    renderingMode: AkariGraphicsProcessorRenderingPrepareData,
     dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
 ) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
@@ -36,7 +36,7 @@ internal class AkariGraphicsInputSurface(
 
     /** 10-bit HDR version. Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
     private fun eglSetupForTenBitHdr(
-        renderingMode: AkariGraphicsProcessorRenderingMode,
+        renderingMode: AkariGraphicsProcessorRenderingPrepareData,
         dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
     ) {
         mEGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -90,7 +90,7 @@ internal class AkariGraphicsInputSurface(
         // 描画先
         // Create a window surface, and attach it to the Surface we received.
         mEGLSurface = when (renderingMode) {
-            is AkariGraphicsProcessorRenderingMode.OffscreenRendering -> {
+            is AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering -> {
                 // オフスクリーンレンダリングの場合は横と縦が必要？
                 // https://github.com/google-ai-edge/mediapipe/blob/ffe429d5278b914c44fdb5df3ce38962b55580bb/mediapipe/java/com/google/mediapipe/glutil/EglManager.java#L203
                 val surfaceAttribs = appendSurfaceAttribs + intArrayOf(
@@ -101,7 +101,7 @@ internal class AkariGraphicsInputSurface(
                 EGL14.eglCreatePbufferSurface(mEGLDisplay, configs[0], surfaceAttribs, 0)
             }
 
-            is AkariGraphicsProcessorRenderingMode.SurfaceRendering -> {
+            is AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering -> {
                 val surfaceAttribs = appendSurfaceAttribs + intArrayOf(
                     EGL14.EGL_NONE
                 )
@@ -113,7 +113,7 @@ internal class AkariGraphicsInputSurface(
     }
 
     /** Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
-    private fun eglSetupForSdr(renderingMode: AkariGraphicsProcessorRenderingMode) {
+    private fun eglSetupForSdr(renderingMode: AkariGraphicsProcessorRenderingPrepareData) {
         mEGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         if (mEGLDisplay == EGL14.EGL_NO_DISPLAY) {
             throw RuntimeException("unable to get EGL14 display")
@@ -150,7 +150,7 @@ internal class AkariGraphicsInputSurface(
 
         // Create a window surface, and attach it to the Surface we received.
         mEGLSurface = when (renderingMode) {
-            is AkariGraphicsProcessorRenderingMode.OffscreenRendering -> {
+            is AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering -> {
                 // オフスクリーンレンダリングの場合は横と縦が必要？
                 // https://github.com/google-ai-edge/mediapipe/blob/ffe429d5278b914c44fdb5df3ce38962b55580bb/mediapipe/java/com/google/mediapipe/glutil/EglManager.java#L203
                 val surfaceAttribs = intArrayOf(
@@ -161,7 +161,7 @@ internal class AkariGraphicsInputSurface(
                 EGL14.eglCreatePbufferSurface(mEGLDisplay, configs[0], surfaceAttribs, 0)
             }
 
-            is AkariGraphicsProcessorRenderingMode.SurfaceRendering -> {
+            is AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering -> {
                 val surfaceAttribs = intArrayOf(
                     EGL14.EGL_NONE
                 )
