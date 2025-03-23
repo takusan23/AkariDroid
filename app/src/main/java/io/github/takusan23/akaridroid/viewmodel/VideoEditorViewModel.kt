@@ -1,9 +1,10 @@
 package io.github.takusan23.akaridroid.viewmodel
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
-import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
@@ -17,7 +18,6 @@ import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.tool.AvAnalyze
-import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.MultiArmedBanditManager
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
@@ -57,6 +57,8 @@ class VideoEditorViewModel(
 
     private val context: Context
         get() = application.applicationContext
+
+    private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     private val _renderData = MutableStateFlow(RenderData())
     private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
@@ -461,54 +463,6 @@ class VideoEditorViewModel(
         }
     }
 
-    /** タイムラインへ投げられた、ファイルのドラッグアンドドロップをさばく */
-    fun resolveDragAndDropReceiveUri(mimeType: String, uri: Uri, dropPermission: DragAndDropPermissionsCompat) {
-        // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
-        // TODO ので、悲しいけどアプリ固有のフォルダへコピーする
-        // TODO やっぱり、アプリ固有にコピーすると、スマホの容量が2倍必要になるから考え直すわ。
-        Toast.makeText(context, "将来的に実装", Toast.LENGTH_SHORT).show()
-        dropPermission.release()
-        return
-
-        viewModelScope.launch {
-            val localFolder = projectFolder.resolve("drag_and_drop_files").apply { mkdir() }
-            val fileName = MediaStoreTool.getFileName(context, uri) ?: "${System.currentTimeMillis()}"
-            val copyToFile = localFolder.resolve(fileName)
-            MediaStoreTool.fileCopy(context, uri, copyToFile)
-
-            // 素材の挿入位置。現在の位置
-            val displayTimeStartMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-
-            // あかりんくの結果から RenderItem を作る
-            val openEditItem = when {
-                mimeType.startsWith("image/") -> createImageCanvasItem(displayTimeStartMs, copyToFile.toIoType())
-                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
-
-                mimeType.startsWith("audio/") -> createAudioItem(displayTimeStartMs, copyToFile.toIoType())
-                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
-
-                mimeType.startsWith("video/") -> createVideoItem(displayTimeStartMs, copyToFile.toIoType())
-                    .onEach { renderItem ->
-                        when (renderItem) {
-                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                        }
-                    }
-                    .firstOrNull()
-
-                else -> return@launch
-            }
-
-            // 編集画面を開く
-            if (openEditItem != null) {
-                openEditRenderItemSheet(openEditItem)
-            }
-
-            // 終わったら
-            dropPermission.release()
-        }
-    }
-
     /** ボトムシートを表示させる */
     fun openBottomSheet(bottomSheetRouteRequestData: VideoEditorBottomSheetRouteRequestData) {
         // 今表示中の場合はアニメーションのため若干遅らせる
@@ -908,6 +862,231 @@ class VideoEditorViewModel(
     }
 
     /**
+     * 指定した[RenderData.RenderItem]を JSON にしてコピーする
+     * TODO 本当に JSON でいいかは要検討。テキストだと見えちゃうんだよな普通に
+     *
+     * @param copyList コピーしたいタイムラインのアイテム
+     */
+    fun copy(copyList: List<RenderData.RenderItem>) {
+        viewModelScope.launch {
+            // JSON にエンコードするが、時間は 0 に合わせる
+            // 1分のアイテムをコピーして、貼り付けるときには時間は今の位置になるようにしたい
+            // 貼り付け先は時間が 0 から始まる用に。
+            val minPosition = copyList.minOf { it.displayTime.startMs }
+            fun RenderData.DisplayTime.resetDisplayTime(): RenderData.DisplayTime {
+                return this.copy(startMs = this.startMs - minPosition)
+            }
+
+            val resetDisplayTimeList = copyList.map {
+                when (it) {
+                    is RenderData.AudioItem.Audio -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Effect -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Image -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Shader -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Shape -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.SwitchAnimation -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Text -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.CanvasItem.Video -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                }
+            }
+
+            // エンコードして ClipData にする
+            // 独自 MIME-Type でアプリ固有であることを定義
+            val jsonString = ProjectFolderManager.renderItemToJson(resetDisplayTimeList)
+            val clipData = ClipData("akaridroid timeline copy", arrayOf(TIMELINE_COPY_MIME_TYPE), ClipData.Item(jsonString))
+            clipboardManager.setPrimaryClip(clipData)
+        }
+    }
+
+    /**
+     * タイムラインへ投げられた、ファイルのドラッグアンドドロップをさばく
+     *
+     * @param clipData ドラッグアンドドロップでもらえる ClipData
+     * @param dragAndDropPermissionsCompat 多分いる
+     */
+    fun resolveDragAndDrop(clipData: ClipData, dragAndDropPermissionsCompat: DragAndDropPermissionsCompat) {
+        clipData ?: return
+        // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
+        // TODO ので、悲しいけどアプリ固有のフォルダへコピーする
+        // TODO やっぱり、アプリ固有にコピーすると、スマホの容量が2倍必要になるから考え直すわ。
+        // TODO ファイル読み込み権限を追加したら戻す、いや、どっちにしろコピーする機構が必要だしもう付けるわ。
+        viewModelScope.launch {
+            // ドラッグアンドドロップもコピペと同じ ClipData を使っている
+            val insertRenderItemList = pasteBasicClipData(clipData)
+            val openEditItem = insertRenderItemList.lastOrNull()
+
+            // 編集画面を開く
+            if (openEditItem != null) {
+                openEditRenderItemSheet(openEditItem)
+            }
+
+            // 終わったら
+            dragAndDropPermissionsCompat.release()
+        }
+    }
+
+    /**
+     * [ClipData]を今のプレビューの位置に挿入する
+     * [RenderData.RenderItem]の JSON データや、他アプリからコピーしたテキストや画像を受け付ける。
+     *
+     * @param clipData ドラッグアンドドロップやクリップボードから
+     */
+    fun paste(clipData: ClipData? = clipboardManager.primaryClip) {
+        clipData ?: return
+        val mimeTypeList = (0 until clipData.itemCount).map { clipData.description.getMimeType(it) }
+
+        viewModelScope.launch {
+            val insertRenderItemList = if (TIMELINE_COPY_MIME_TYPE in mimeTypeList) {
+                // クリップボードから取り出して、RenderItem の JSON がある場合はそれを優先
+                pasteInternalClipData(clipData)
+            } else {
+                // テキスト、画像、音声、動画はこっち
+                pasteBasicClipData(clipData)
+            }
+
+            // 最後のを表示
+            openEditRenderItemSheet(renderItem = insertRenderItemList.lastOrNull() ?: return@launch)
+        }
+    }
+
+    /**
+     * コピーしたテキスト、画像、音声、動画をタイムラインに貼り付ける。
+     *
+     * @param clipData [ClipData]
+     * @return 追加できたタイムラインのアイテム
+     */
+    private suspend fun pasteBasicClipData(clipData: ClipData): List<RenderData.RenderItem> {
+        return (0 until clipData.itemCount).mapIndexedNotNull { index, i ->
+            val currentPreviewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+            val mimeType = clipData.description.getMimeType(index)
+            val item = clipData.getItemAt(index)
+
+            // もし Uri がある場合はアプリ内にコピー
+            // Uri は有効期限があるため自分のところにコピーするか、ストレージ読み込み権限がいる
+            val copiedFile = item.uri
+                ?.let { ProjectFolderManager.copyToProjectFolder(context, projectName, it) }
+                ?.let { File(it).toIoType() }
+
+            // タイムラインに追加
+            when {
+                mimeType.startsWith("text/") -> createTextCanvasItem(
+                    displayTimeStartMs = currentPreviewPositionMs,
+                    text = item.text.toString()
+                ).also { image -> addOrUpdateCanvasRenderItem(image) }
+
+                mimeType.startsWith("image/") -> createImageCanvasItem(
+                    displayTimeStartMs = currentPreviewPositionMs,
+                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                )?.also { image -> addOrUpdateCanvasRenderItem(image) }
+
+                mimeType.startsWith("audio/") -> createAudioItem(
+                    displayTimeStartMs = currentPreviewPositionMs,
+                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                )?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+
+                mimeType.startsWith("video/") -> createVideoItem(
+                    displayTimeStartMs = currentPreviewPositionMs,
+                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                ).onEach { renderItem ->
+                    when (renderItem) {
+                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+                    }
+                }.firstOrNull()
+
+                else -> return@mapIndexedNotNull null
+            }
+        }
+    }
+
+    /**
+     * [copy]でコピーした JSON をパースしてタイムラインに追加する。
+     * アプリ固有。[TIMELINE_COPY_MIME_TYPE]
+     *
+     * @param clipData クリップボードから取り出したデータ
+     * @return 追加できたタイムラインのアイテム
+     */
+    private suspend fun pasteInternalClipData(clipData: ClipData): List<RenderData.RenderItem> {
+        val jsonString = clipData.getItemAt(0)?.text?.toString() ?: return emptyList()
+        val renderItemList = ProjectFolderManager.jsonRenderItemToList(jsonString)
+
+        // TODO ID が重複していないかの確認が必要。UUID にする...？
+        // TODO ストレージ読み込み権限をまだ持っていないので、今のところは自前のフォルダにコピーする実装...
+        // TODO Uri か、ストレージ読み込み権限があれば File がくる。File なら権限さえあれば読み込めるはずなので Uri に絞る
+        val uriList = renderItemList
+            .mapNotNull {
+                when (it) {
+                    is RenderData.AudioItem.Audio -> it.filePath
+                    is RenderData.CanvasItem.Video -> it.filePath
+                    is RenderData.CanvasItem.Image -> it.filePath
+                    is RenderData.CanvasItem.Effect,
+                    is RenderData.CanvasItem.Text,
+                    is RenderData.CanvasItem.Shader,
+                    is RenderData.CanvasItem.Shape,
+                    is RenderData.CanvasItem.SwitchAnimation -> null
+                }
+            }
+            .filterIsInstance<RenderData.FilePath.Uri>()
+            .map { it.uriPath.toUri() }
+
+        // Uri をコピー先 File に置き換える
+        val copyFilePathPairList = uriList.associateWith { uri -> ProjectFolderManager.copyToProjectFolder(context, projectName, uri) }
+        fun RenderData.FilePath.replaceToCopiedFile(): RenderData.FilePath.File {
+            return when (this) {
+                is RenderData.FilePath.File -> this
+                is RenderData.FilePath.Uri -> RenderData.FilePath.File(filePath = copyFilePathPairList[this.uriPath.toUri()]!!)
+            }
+        }
+
+        // 今のプレビューの時間に挿入するように
+        val currentPreviewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+        fun RenderData.DisplayTime.setStartMsFromCurrentPreviewPosition(): RenderData.DisplayTime {
+            // コピー元で 0 基準にしたのでこっちは足すだけでいい
+            return this.copy(startMs = currentPreviewPositionMs + this.startMs)
+        }
+
+        val addableCopyRenderItemList = renderItemList
+            // Uri ならコピーして File に置き換える
+            .map {
+                when (it) {
+                    is RenderData.AudioItem.Audio -> it.copy(filePath = it.filePath.replaceToCopiedFile())
+                    is RenderData.CanvasItem.Video -> it.copy(filePath = it.filePath.replaceToCopiedFile())
+                    is RenderData.CanvasItem.Image -> it.copy(filePath = it.filePath.replaceToCopiedFile())
+
+                    // ファイル関係ないものはそのまま
+                    is RenderData.CanvasItem.Effect,
+                    is RenderData.CanvasItem.Text,
+                    is RenderData.CanvasItem.Shader,
+                    is RenderData.CanvasItem.Shape,
+                    is RenderData.CanvasItem.SwitchAnimation -> it
+                }
+            }
+            // 今のプレビューの位置に追加するように時間を足す
+            .map {
+                when (it) {
+                    is RenderData.AudioItem.Audio -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Effect -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Image -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Shader -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Shape -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.SwitchAnimation -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Text -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                    is RenderData.CanvasItem.Video -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
+                }
+            }
+
+        // 追加する
+        addableCopyRenderItemList.forEach { renderItem ->
+            when (renderItem) {
+                is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
+                is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+            }
+        }
+
+        return addableCopyRenderItemList
+    }
+
+    /**
      * [RenderData.RenderItem]を削除する
      *
      * @param renderItem 削除したい
@@ -967,16 +1146,17 @@ class VideoEditorViewModel(
      * [RenderData.CanvasItem.Text]を作成する
      *
      * @param displayTimeStartMs 開始位置
+     * @param text テキスト
      * @return [RenderData.CanvasItem.Text]
      */
-    private fun createTextCanvasItem(displayTimeStartMs: Long): RenderData.CanvasItem.Text {
+    private fun createTextCanvasItem(displayTimeStartMs: Long, text: String = ""): RenderData.CanvasItem.Text {
         val displayTime = RenderData.DisplayTime(
             startMs = displayTimeStartMs,
             durationMs = 10_000
         )
 
         return RenderData.CanvasItem.Text(
-            text = "",
+            text = text,
             displayTime = displayTime,
             position = renderData.value.centerPosition(),
             layerIndex = calcInsertableLaneIndex(displayTime)
@@ -1207,4 +1387,9 @@ class VideoEditorViewModel(
         }
     }
 
+    companion object {
+
+        /** タイムラインをコピーしたときの MIME-Type */
+        private const val TIMELINE_COPY_MIME_TYPE = "application/vnd.akaridroid.timeline.copy"
+    }
 }

@@ -173,9 +173,7 @@ fun VideoEditorScreen(
 
                 // ドラッグアンドドロップが受け入れできるように
                 FileDragAndDropReceiveContainer(
-                    onReceive = { mimeType, uri, dropPermission ->
-                        viewModel.resolveDragAndDropReceiveUri(mimeType, uri, dropPermission)
-                    }
+                    onReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) }
                 ) {
                     // タイムライン
                     TimeLine(

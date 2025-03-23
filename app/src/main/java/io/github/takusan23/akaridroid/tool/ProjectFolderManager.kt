@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager.readRenderData
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -152,6 +153,58 @@ object ProjectFolderManager {
                     videoDurationMs = renderData.durationMs
                 )
             } ?: emptyList()
+    }
+
+    /**
+     * [RenderData.RenderItem]を JSON にエンコードする
+     *
+     * @param renderItemList [RenderData.RenderItem]の配列
+     * @return JSON 文字列
+     */
+    suspend fun renderItemToJson(renderItemList: List<RenderData.RenderItem>): String {
+        val jsonString = withContext(Dispatchers.Default) {
+            jsonSerialization.encodeToString(renderItemList)
+        }
+        return jsonString
+    }
+
+    /**
+     * JSON の[RenderData.RenderItem]配列を戻す
+     *
+     * @param jsonRenderItem JSON 文字列
+     * @return [RenderData.RenderItem]の配列
+     */
+    suspend fun jsonRenderItemToList(jsonRenderItem: String): List<RenderData.RenderItem> {
+        val renderItemList = withContext(Dispatchers.Default) {
+            jsonSerialization.decodeFromString<List<RenderData.RenderItem>>(jsonRenderItem)
+        }
+        return renderItemList
+    }
+
+    /**
+     * 永続化出来ない Uri のファイルを自分のフォルダにコピーする。
+     * 二重にコピーすることになる。が、一部の Uri はアクセス権が揮発してしまう（多分永続化出来ない）ので多分必要。
+     *
+     * TODO ファイル読み込み権限を追加した場合、ContentProvider で _DATA カラムがあればそれを返し、ない場合のみコピーする
+     * TODO Uri はローカル以外（Google フォトのバックアップ済み端末に無い写真など）からも取ってこれるので、その場合はやっぱりコピーが必要
+     *
+     * @param context [Context]
+     * @param name プロジェクト名
+     * @param uri ドラッグアンドドロップやクリップボードからのペースト
+     */
+    suspend fun copyToProjectFolder(
+        context: Context,
+        name: String,
+        uri: Uri
+    ): String {
+        val folder = getProjectFolder(context, name)
+        val fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString()
+        val copiedFile = folder.resolve(fileName)
+        // コピーする
+        withContext(Dispatchers.IO) {
+            MediaStoreTool.fileCopy(context, uri, copiedFile)
+        }
+        return copiedFile.path
     }
 
     /**
