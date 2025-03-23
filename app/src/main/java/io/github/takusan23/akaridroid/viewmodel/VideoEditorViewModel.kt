@@ -956,10 +956,18 @@ class VideoEditorViewModel(
      * @return 追加できたタイムラインのアイテム
      */
     private suspend fun pasteBasicClipData(clipData: ClipData): List<RenderData.RenderItem> {
-        return (0 until clipData.itemCount).mapIndexedNotNull { index, i ->
+        return (0 until clipData.itemCount).mapNotNull { index ->
             val currentPreviewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
-            val mimeType = clipData.description.getMimeType(index)
             val item = clipData.getItemAt(index)
+
+            // MIME-Type を解決
+            // プレーンテキストの場合は一律 text/
+            // Uri の場合は MediaStore に問い合わせる
+            val mimeType = when {
+                item.text != null -> "text/"
+                item.uri != null -> withContext(Dispatchers.IO) { context.contentResolver.getType(item.uri) }
+                else -> null
+            } ?: return@mapNotNull null
 
             // もし Uri がある場合はアプリ内にコピー
             // Uri は有効期限があるため自分のところにコピーするか、ストレージ読み込み権限がいる
@@ -976,17 +984,17 @@ class VideoEditorViewModel(
 
                 mimeType.startsWith("image/") -> createImageCanvasItem(
                     displayTimeStartMs = currentPreviewPositionMs,
-                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                    ioType = copiedFile ?: return@mapNotNull null
                 )?.also { image -> addOrUpdateCanvasRenderItem(image) }
 
                 mimeType.startsWith("audio/") -> createAudioItem(
                     displayTimeStartMs = currentPreviewPositionMs,
-                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                    ioType = copiedFile ?: return@mapNotNull null
                 )?.also { audio -> addOrUpdateAudioRenderItem(audio) }
 
                 mimeType.startsWith("video/") -> createVideoItem(
                     displayTimeStartMs = currentPreviewPositionMs,
-                    ioType = copiedFile ?: return@mapIndexedNotNull null
+                    ioType = copiedFile ?: return@mapNotNull null
                 ).onEach { renderItem ->
                     when (renderItem) {
                         is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
@@ -994,7 +1002,7 @@ class VideoEditorViewModel(
                     }
                 }.firstOrNull()
 
-                else -> return@mapIndexedNotNull null
+                else -> return@mapNotNull null
             }
         }
     }
