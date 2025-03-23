@@ -878,9 +878,6 @@ class VideoEditorViewModel(
                 return this.copy(startMs = this.startMs - minPosition)
             }
 
-            // TODO 今のところバイナリデータがプロジェクト内にあるため、プロジェクトを跨いでコピーすることは出来ない
-            // TODO 正攻法だと ContentProvider を作るところから？
-
             // レーン番号も貼り付け先に依存するので消しておく
             val resetDisplayTimeList = copyList.map {
                 when (it) {
@@ -941,7 +938,6 @@ class VideoEditorViewModel(
      * @param dragAndDropPermissionsCompat 多分いる
      */
     fun resolveDragAndDrop(clipData: ClipData, dragAndDropPermissionsCompat: DragAndDropPermissionsCompat) {
-        clipData ?: return
         // TODO takePersistableUriPermission は、PhotoPicker や、StorageAccessFramework 用なので、それ以外の Uri の永続化には使えない
         // TODO ので、悲しいけどアプリ固有のフォルダへコピーする
         // TODO やっぱり、アプリ固有にコピーすると、スマホの容量が2倍必要になるから考え直すわ。
@@ -1057,28 +1053,38 @@ class VideoEditorViewModel(
         // TODO ID が重複していないかの確認が必要。UUID にする...？
         // TODO ストレージ読み込み権限をまだ持っていないので、今のところは自前のフォルダにコピーする実装...
         // TODO Uri か、ストレージ読み込み権限があれば File がくる。File なら権限さえあれば読み込めるはずなので Uri に絞る
-        val uriList = renderItemList
-            .mapNotNull {
-                when (it) {
-                    is RenderData.AudioItem.Audio -> it.filePath
-                    is RenderData.CanvasItem.Video -> it.filePath
-                    is RenderData.CanvasItem.Image -> it.filePath
-                    is RenderData.CanvasItem.Effect,
-                    is RenderData.CanvasItem.Text,
-                    is RenderData.CanvasItem.Shader,
-                    is RenderData.CanvasItem.Shape,
-                    is RenderData.CanvasItem.SwitchAnimation -> null
-                }
+        // TODO File でも他のプロジェクトのパスだと消したら読み込みできなくなるのでやっぱりコピー
+        val filePathList = renderItemList.mapNotNull {
+            when (it) {
+                is RenderData.AudioItem.Audio -> it.filePath
+                is RenderData.CanvasItem.Video -> it.filePath
+                is RenderData.CanvasItem.Image -> it.filePath
+                is RenderData.CanvasItem.Effect,
+                is RenderData.CanvasItem.Text,
+                is RenderData.CanvasItem.Shader,
+                is RenderData.CanvasItem.Shape,
+                is RenderData.CanvasItem.SwitchAnimation -> null
             }
-            .filterIsInstance<RenderData.FilePath.Uri>()
-            .map { it.uriPath.toUri() }
+        }
 
         // Uri をコピー先 File に置き換える
-        val copyFilePathPairList = uriList.associateWith { uri -> ProjectFolderManager.copyToProjectFolder(context, projectName, uri) }
+        // コピー元 FilePath とコピー先 File の連想配列
+        val copyFilePathPairList = filePathList.associate { path ->
+            val origin = when (path) {
+                is RenderData.FilePath.File -> path.filePath
+                is RenderData.FilePath.Uri -> path.uriPath
+            }
+            val replace = when (path) {
+                is RenderData.FilePath.File -> ProjectFolderManager.copyToProjectFolder(context, projectName, File(path.filePath))
+                is RenderData.FilePath.Uri -> ProjectFolderManager.copyToProjectFolder(context, projectName, path.uriPath.toUri())
+            }
+            origin to replace
+        }
+
         fun RenderData.FilePath.replaceToCopiedFile(): RenderData.FilePath.File {
             return when (this) {
-                is RenderData.FilePath.File -> this
-                is RenderData.FilePath.Uri -> RenderData.FilePath.File(filePath = copyFilePathPairList[this.uriPath.toUri()]!!)
+                is RenderData.FilePath.File -> RenderData.FilePath.File(filePath = copyFilePathPairList[this.filePath]!!)
+                is RenderData.FilePath.Uri -> RenderData.FilePath.File(filePath = copyFilePathPairList[this.uriPath]!!)
             }
         }
 

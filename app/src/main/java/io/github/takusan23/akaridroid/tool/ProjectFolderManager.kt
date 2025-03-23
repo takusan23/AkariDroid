@@ -207,6 +207,27 @@ object ProjectFolderManager {
         return copiedFile.path
     }
 
+    /** [copyToProjectFolder]の[File]版。 */
+    suspend fun copyToProjectFolder(
+        context: Context,
+        name: String,
+        file: File
+    ): String {
+        // TODO このアプリの File に限定する、もしストレージ読み込み権限が実装された際には動かないようにする必要あり
+        val folder = getProjectFolder(context, name)
+        val fileName = file.path
+        val copiedFile = folder.resolve(fileName)
+        // コピーする
+        withContext(Dispatchers.IO) {
+            file.inputStream().use { inputStream ->
+                copiedFile.outputStream().use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+        }
+        return copiedFile.path
+    }
+
     /**
      * TODO 実験的
      * TODO Android 7 以前のサポート
