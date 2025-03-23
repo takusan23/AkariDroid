@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -1132,6 +1133,11 @@ class VideoEditorViewModel(
                     is RenderData.AudioItem -> addOrUpdateAudioRenderItem(updateLaneIndexRenderItem)
                     is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(updateLaneIndexRenderItem)
                 }
+                // TODO _timelineData が _renderData の後に更新されるため、更新が確認できるまで待つ
+                // TODO _renderData を元に calcInsertableLaneIndex するように直す
+                combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
+                    (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
+                }
             }
 
         return addableCopyRenderItemList
@@ -1175,32 +1181,56 @@ class VideoEditorViewModel(
     private fun calcInsertableLaneIndex(
         displayTime: RenderData.DisplayTime,
         ignoreLane: List<Int> = emptyList()
-    ): Int =
-        // RenderData から作る。TimeLineData は RenderData よりも後に更新されるため
-        (_renderData.value.audioRenderItem + _renderData.value.canvasRenderItem)
-            // RenderData の解析が間に合わないと空になるので
-            .ifEmpty { null }
-            // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
-            ?.let { allTimeLineItem ->
-                val laneCount = allTimeLineItem.maxOf { it.layerIndex }
-                (0 until laneCount).map { laneIndex ->
-                    laneIndex to allTimeLineItem.filter { it.layerIndex == laneIndex }
-                }
+    ): Int = _timeLineData.value
+        // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
+        .groupByLane()
+        // 無視したいレーンは消す
+        .filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
+        // すべてのレーンから、空いているレーンを探す
+        .firstOrNull { (_, itemList) ->
+            itemList.all { laneItem ->
+                // 空きがあること
+                val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
+                // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
+                hasFreeSpace && hasNotInclude
             }
-            // 無視したいレーンは消す
-            ?.filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
-            // すべてのレーンから、空いているレーンを探す
-            ?.firstOrNull { (_, laneItemList) ->
-                laneItemList.all { laneItem ->
-                    // 空きがあること
-                    val hasFreeSpace = displayTime.startMs !in laneItem.displayTime && displayTime.stopMs !in laneItem.displayTime
-                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                    val hasNotInclude = laneItem.displayTime.startMs !in displayTime && laneItem.displayTime.stopMs !in displayTime
-                    hasFreeSpace && hasNotInclude
+        }?.first
+        ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+        ?: 0 // どうしようもない
+
+    /*
+        TODO こっちを使いたいけど動いてない
+        private fun calcInsertableLaneIndex(
+            displayTime: RenderData.DisplayTime,
+            ignoreLane: List<Int> = emptyList()
+        ): Int =
+            // RenderData から作る。TimeLineData は RenderData よりも後に更新されるため
+            (_renderData.value.audioRenderItem + _renderData.value.canvasRenderItem)
+                // RenderData の解析が間に合わないと空になるので
+                .ifEmpty { null }
+                // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
+                ?.let { allTimeLineItem ->
+                    val laneCount = allTimeLineItem.maxOf { it.layerIndex }
+                    (0 until laneCount).map { laneIndex ->
+                        laneIndex to allTimeLineItem.filter { it.layerIndex == laneIndex }
+                    }
                 }
-            }?.first
-            ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-            ?: 0 // どうしようもない
+                // 無視したいレーンは消す
+                ?.filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
+                // すべてのレーンから、空いているレーンを探す
+                ?.firstOrNull { (_, laneItemList) ->
+                    laneItemList.all { laneItem ->
+                        // 空きがあること
+                        val hasFreeSpace = displayTime.startMs !in laneItem.displayTime && displayTime.stopMs !in laneItem.displayTime
+                        // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                        val hasNotInclude = laneItem.displayTime.startMs !in displayTime && laneItem.displayTime.stopMs !in displayTime
+                        hasFreeSpace && hasNotInclude
+                    }
+                }?.first
+                ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+                ?: 0 // どうしようもない
+    */
 
     /**
      * [RenderData.CanvasItem.Text]を作成する
