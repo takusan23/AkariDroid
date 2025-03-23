@@ -878,6 +878,9 @@ class VideoEditorViewModel(
                 return this.copy(startMs = this.startMs - minPosition)
             }
 
+            // TODO 今のところバイナリデータがプロジェクト内にあるため、プロジェクトを跨いでコピーすることは出来ない
+            // TODO 正攻法だと ContentProvider を作るところから？
+
             // レーン番号も貼り付け先に依存するので消しておく
             val resetDisplayTimeList = copyList.map {
                 when (it) {
