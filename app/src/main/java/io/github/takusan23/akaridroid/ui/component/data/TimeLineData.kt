@@ -46,7 +46,6 @@ data class TimeLineData(
      * ドラッグアンドドロップした対象の情報
      * ViewModel とかで判定するのでそのときに使う
      *
-     * @param id [Item.id]と同じ
      * @param dragAndDroppedStartMs 移動先の開始時間
      * @param dragAndDroppedLaneIndex ドロップ先のレーン番号
      */
