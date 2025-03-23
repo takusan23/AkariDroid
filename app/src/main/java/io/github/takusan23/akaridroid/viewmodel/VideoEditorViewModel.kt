@@ -649,11 +649,13 @@ class VideoEditorViewModel(
      * @param request 分割したいタイムラインのアイテム
      */
     fun resolveTimeLineCutRequest(request: TimeLineData.Item) {
-        val cutPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
+        val cutPositionMs = 1L
         // 分割したいアイテム
         val targetItem = getRenderItem(request.id)!!
         // そもそも範囲内にいない場合は
         if (cutPositionMs !in targetItem.displayTime) return
+        // 同じ場合は許可しない
+        if (targetItem.displayTime.startMs == cutPositionMs) return
 
         // 2つに分けるので、表示する時間も2つにする
         val (displayTimeA, displayTimeB) = targetItem.displayTime.splitTime(cutPositionMs)

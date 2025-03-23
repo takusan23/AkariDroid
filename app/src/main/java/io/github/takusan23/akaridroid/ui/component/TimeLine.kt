@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,12 +43,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
@@ -55,41 +55,15 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
-import io.github.takusan23.akaridroid.ui.component.data.groupByLane
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineMillisecondsWidthPx
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
+import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.abs
 
-/**
- * タイムラインの拡大縮小用
- *
- * @param msWidthPx 1 ミリ秒をどれだけの幅で表すか
- */
-@JvmInline
-private value class TimeLineMillisecondsWidthPx(val msWidthPx: Int) {
-
-    /** 1 ミリ秒をどれだけの幅で表すか。[dp]版 */
-    val Long.msToWidthDp: Dp
-        // Pixel to Dp
-        @Composable
-        get() = with(LocalDensity.current) { msToWidth.toDp() }
-
-    /** 1 ミリ秒をどれだけの幅で表すか。[Int]版。 */
-    val Long.msToWidth: Int
-        get() = (this / msWidthPx).toInt()
-
-    /** 幅や位置は何 ミリ秒を表しているか */
-    val Int.widthToMs: Long
-        get() = (this * msWidthPx).toLong()
-
-    /** 幅や位置は何 ミリ秒を表しているか */
-    val Float.widthToMs: Long
-        get() = (this * msWidthPx).toLong()
-
-}
-
 /** タイムラインの拡大、縮小を CompositionLocal で提供する、バケツリレーを回避する */
-private val LocalTimeLineMillisecondsWidthPx = compositionLocalOf { TimeLineMillisecondsWidthPx(msWidthPx = 20) }
+private val LocalTimeLineMillisecondsWidthPx = compositionLocalOf { TimeLineMillisecondsWidthPx() }
 
 /**
  * タイムラインのアイテム移動中に、隣接するアイテムの隣に置きたい場合に、磁石のように勝手にくっつく機能がある。
@@ -99,17 +73,6 @@ private const val MAGNET_THRESHOLD_MOVE = 50
 
 /** 磁石モード。長さ調整版。[MAGNET_THRESHOLD_MOVE]よりも大きくしないとズレて使いにくかった */
 private const val MAGNET_THRESHOLD_DURATION_CHANGE = 200
-
-/**
- * 磁石モードのくっつく位置と ID
- *
- * @param id [TimeLineData.Item.id]と同じ
- * @param positionMs くっつける位置
- */
-private data class MagnetPosition(
-    val id: Long,
-    val positionMs: Long
-)
 
 /**
  * タイムラインのアイテムが移動したときに貰えるデータ
@@ -167,21 +130,33 @@ fun TimeLine(
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
+    val verticalScroll = rememberScrollState()
+    val horizontalScroll = rememberScrollState()
+
+    // タイムラインの状態管理
+    val timeLineParentWidth = remember { mutableIntStateOf(0) }
+    val timeLineState = rememberTimeLineState(
+        timeLineData = timeLineData,
+        currentHorizontalScrollPos = horizontalScroll.value,
+        millisecondsWidthPx = millisecondsWidthPx,
+        timeLineParentWidth = timeLineParentWidth.intValue
+    )
+
     // millisecondsWidthPx を LocalTimeLineMillisecondsWidthPx で提供する
     CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides millisecondsWidthPx) {
         Box(
             modifier = modifier
-                .verticalScroll(rememberScrollState())
-                .horizontalScroll(rememberScrollState()),
+                .onSizeChanged { timeLineParentWidth.intValue = it.width }
+                .verticalScroll(verticalScroll)
+                .horizontalScroll(horizontalScroll),
         ) {
 
             // 横に長ーいタイムラインを作る
-            // 画面外にはみ出すので requiredSize
             RequiredSizeTimeLine(
                 modifier = Modifier
                     // タイムラインにあるアイテムの座標出すのに使う
                     .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
-                timeLineData = timeLineData,
+                timeLineState = timeLineState,
                 onSeek = onSeek,
                 timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value,
                 currentPositionMs = currentPositionMs,
@@ -253,7 +228,7 @@ private fun OverlayTimeLineComponents(
 @Composable
 private fun RequiredSizeTimeLine(
     modifier: Modifier = Modifier,
-    timeLineData: TimeLineData,
+    timeLineState: TimeLineState,
     onSeek: (positionMs: Long) -> Unit,
     timeLineScrollableAreaCoordinates: LayoutCoordinates?,
     currentPositionMs: () -> Long,
@@ -265,24 +240,13 @@ private fun RequiredSizeTimeLine(
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean
 ) {
     val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
-
-    // 一番遅い時間
-    val maxDurationMs = remember(timeLineData) { maxOf(timeLineData.itemList.maxOfOrNull { it.stopMs } ?: 0, timeLineData.durationMs) }
     // レーンコンポーネントの位置と番号
     val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
-    // レーンとレーンのアイテムの Map
-    val laneItemMap = remember(timeLineData) { timeLineData.groupByLane() }
-    // 磁石モード用に、くっつく位置。最初と最後
-    // +1 は、例えば2秒で終わった後に2秒に始めると、重なってしまうため
-    val magnetPositionList = remember(timeLineData) {
-        timeLineData.itemList
-            .map { item -> listOf(MagnetPosition(item.id, item.startMs), MagnetPosition(item.id, item.stopMs + 1)) }
-            .flatten()
-    }
 
     Column(
         modifier = modifier
-            .requiredWidth(with(msWidthPx) { maxDurationMs.msToWidthDp })
+            // 画面外にはみ出すので requiredSize
+            .requiredWidth(with(msWidthPx) { timeLineState.maxDurationMs.msToWidthDp })
             // 再生位置の移動。タイムラインの棒を移動させる
             .pointerInput(msWidthPx) {
                 detectTapGestures {
@@ -295,7 +259,7 @@ private fun RequiredSizeTimeLine(
 
         // 時間を表示するやつ
         TimeLineTopTimeLabel(
-            durationMs = maxDurationMs,
+            durationMs = timeLineState.maxDurationMs,
             // TODO もっといい感じにする
             stepMs = if (10 < msWidthPx.msWidthPx) {
                 10_000
@@ -310,7 +274,7 @@ private fun RequiredSizeTimeLine(
 
             // タイムラインのアイテム
             // レーンの数だけ
-            laneItemMap.forEach { (laneIndex, itemList) ->
+            timeLineState.visibleTimeLineItemMap.forEach { (laneIndex, itemList) ->
                 TimeLineLane(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -329,7 +293,7 @@ private fun RequiredSizeTimeLine(
                     onDuplicate = onDuplicate,
                     onDurationChange = onDurationChange,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
-                    magnetPositionList = magnetPositionList,
+                    magnetPositionList = timeLineState.magnetPositionList,
                     onDragAndDropRequest = { dragAndDropData ->
                         val (id, start, stop, positionMs) = dragAndDropData
                         // ドラッグアンドドロップで移動先に移動してよいか
@@ -379,7 +343,7 @@ private fun TimeLineLane(
     laneIndex: Int,
     currentPositionMs: () -> Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
-    magnetPositionList: List<MagnetPosition>,
+    magnetPositionList: List<TimeLineState.MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit,
@@ -437,7 +401,7 @@ private fun TimeLineItem(
     timeLineItemData: TimeLineData.Item,
     currentPositionMs: () -> Long,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
-    magnetPositionList: List<MagnetPosition>,
+    magnetPositionList: List<TimeLineState.MagnetPosition>,
     onDragAndDropRequest: (TimeLineItemComponentDragAndDropData) -> Boolean = { false },
     onEdit: () -> Unit,
     onCut: () -> Unit,
