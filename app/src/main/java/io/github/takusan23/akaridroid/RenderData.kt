@@ -66,10 +66,10 @@ data class RenderData(
         @Serializable
         @SerialName("text") // sealed class を kotlinx/serialization 出来るように。
         data class Text(
-            override val id: Long = System.currentTimeMillis(), // TODO UnixTime ぽいのを入れているが、全然時間以外のも入って来ていい
+            override val id: Long = System.currentTimeMillis(), // TODO UnixTime ぽいのを入れているが、全然時間以外のも入って来ていい。限界見えてきた。UUID に変えたい。他からコピペで被らない保証無いんだよな。
             override val position: Position,
-            override val displayTime: DisplayTime,
-            override val layerIndex: Int,
+            override val displayTime: DisplayTime, // TODO コピペの際に時間までコピーすること無いように
+            override val layerIndex: Int, // TODO コピペの際に被らないようにする必要あり。
             val text: String,
             val textSize: Float = 50f,
             val fontColor: String = "#ffffff",

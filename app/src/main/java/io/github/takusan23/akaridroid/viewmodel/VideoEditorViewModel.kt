@@ -877,16 +877,48 @@ class VideoEditorViewModel(
                 return this.copy(startMs = this.startMs - minPosition)
             }
 
+            // レーン番号も貼り付け先に依存するので消しておく
             val resetDisplayTimeList = copyList.map {
                 when (it) {
-                    is RenderData.AudioItem.Audio -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Effect -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Image -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Shader -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Shape -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.SwitchAnimation -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Text -> it.copy(displayTime = it.displayTime.resetDisplayTime())
-                    is RenderData.CanvasItem.Video -> it.copy(displayTime = it.displayTime.resetDisplayTime())
+                    is RenderData.AudioItem.Audio -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Effect -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Image -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Shader -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Shape -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.SwitchAnimation -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Text -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
+
+                    is RenderData.CanvasItem.Video -> it.copy(
+                        displayTime = it.displayTime.resetDisplayTime(),
+                        layerIndex = -1
+                    )
                 }
             }
 
@@ -1082,14 +1114,25 @@ class VideoEditorViewModel(
                     is RenderData.CanvasItem.Video -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
                 }
             }
-
-        // 追加する
-        addableCopyRenderItemList.forEach { renderItem ->
-            when (renderItem) {
-                is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
+            // 追加する
+            // レーン番号はタイムラインに追加した後に計算する必要があるので、↑の追加しない map { } じゃ出来ない
+            .onEach { renderItem ->
+                val laneIndex = calcInsertableLaneIndex(renderItem.displayTime)
+                val updateLaneIndexRenderItem = when (renderItem) {
+                    is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Effect -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Image -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Shader -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Shape -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Text -> renderItem.copy(layerIndex = laneIndex)
+                    is RenderData.CanvasItem.Video -> renderItem.copy(layerIndex = laneIndex)
+                }
+                when (updateLaneIndexRenderItem) {
+                    is RenderData.AudioItem -> addOrUpdateAudioRenderItem(updateLaneIndexRenderItem)
+                    is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(updateLaneIndexRenderItem)
+                }
             }
-        }
 
         return addableCopyRenderItemList
     }
@@ -1132,23 +1175,32 @@ class VideoEditorViewModel(
     private fun calcInsertableLaneIndex(
         displayTime: RenderData.DisplayTime,
         ignoreLane: List<Int> = emptyList()
-    ): Int = _timeLineData.value
-        // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
-        .groupByLane()
-        // 無視したいレーンは消す
-        .filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
-        // すべてのレーンから、空いているレーンを探す
-        .firstOrNull { (_, itemList) ->
-            itemList.all { laneItem ->
-                // 空きがあること
-                val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
-                // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
-                hasFreeSpace && hasNotInclude
+    ): Int =
+        // RenderData から作る。TimeLineData は RenderData よりも後に更新されるため
+        (_renderData.value.audioRenderItem + _renderData.value.canvasRenderItem)
+            // RenderData の解析が間に合わないと空になるので
+            .ifEmpty { null }
+            // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
+            ?.let { allTimeLineItem ->
+                val laneCount = allTimeLineItem.maxOf { it.layerIndex }
+                (0 until laneCount).map { laneIndex ->
+                    laneIndex to allTimeLineItem.filter { it.layerIndex == laneIndex }
+                }
             }
-        }?.first
-        ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-        ?: 0 // どうしようもない
+            // 無視したいレーンは消す
+            ?.filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
+            // すべてのレーンから、空いているレーンを探す
+            ?.firstOrNull { (_, laneItemList) ->
+                laneItemList.all { laneItem ->
+                    // 空きがあること
+                    val hasFreeSpace = displayTime.startMs !in laneItem.displayTime && displayTime.stopMs !in laneItem.displayTime
+                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                    val hasNotInclude = laneItem.displayTime.startMs !in displayTime && laneItem.displayTime.stopMs !in displayTime
+                    hasFreeSpace && hasNotInclude
+                }
+            }?.first
+            ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+            ?: 0 // どうしようもない
 
     /**
      * [RenderData.CanvasItem.Text]を作成する
