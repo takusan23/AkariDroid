@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.component
+package io.github.takusan23.akaridroid.ui.component.timeline
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -65,7 +65,6 @@ fun MultiSelectTimeLine(
     // はみ出しているタイムラインの LayoutCoordinates
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
-
 
     // タイムラインの状態管理
     val horizontalScroll = rememberScrollState()

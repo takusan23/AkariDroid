@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.component
+package io.github.takusan23.akaridroid.ui.component.timeline
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures

@@ -29,12 +29,12 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
-import io.github.takusan23.akaridroid.ui.component.DefaultTimeLineHeader
-import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
-import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
-import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
+import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropReceiveContainer
+import io.github.takusan23.akaridroid.ui.component.timeline.FloatingAddRenderItemBar
+import io.github.takusan23.akaridroid.ui.component.timeline.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
-import io.github.takusan23.akaridroid.ui.component.TimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeader
+import io.github.takusan23.akaridroid.ui.component.timeline.TimeLine
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 

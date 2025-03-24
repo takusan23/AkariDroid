@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.component
+package io.github.takusan23.akaridroid.ui.component.timeline
 
 import android.app.Activity
 import android.content.ClipData

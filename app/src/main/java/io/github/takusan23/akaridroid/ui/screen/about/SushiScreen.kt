@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.component.TimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.TimeLine
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 
 private const val SUSHI_EMOJI = "\uD83C\uDF63"
