@@ -172,7 +172,7 @@ fun TimeLine(
  * @param currentPositionMs 再生位置
  */
 @Composable
-private fun OverlayTimeLineComponents(
+fun OverlayTimeLineComponents(
     modifier: Modifier = Modifier,
     durationMs: () -> Long,
     currentPositionMs: () -> Long
@@ -349,7 +349,7 @@ private fun TimeLineLane(
         )
 
         laneItemList.forEach { timeLineItemData ->
-            SingleTimeLineItem(
+            DefaultTimeLineItem(
                 timeLineItemData = timeLineItemData,
                 currentPositionMs = currentPositionMs,
                 onDragAndDropRequest = onDragAndDropRequest,
@@ -367,7 +367,7 @@ private fun TimeLineLane(
 
 /** タイムラインの一番上に表示する時間 */
 @Composable
-private fun TimeLineTopTimeLabel(
+fun TimeLineTopTimeLabel(
     modifier: Modifier = Modifier,
     durationMs: Long,
     stepMs: Long = 10_000 // 10 秒間隔
