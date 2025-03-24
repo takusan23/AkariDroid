@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -49,7 +50,7 @@ fun MultiSelectTimeLineItem(
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     isSelected: Boolean,
     onItemSelect: (TimeLineData.Item) -> Unit,
-    draggingOffsetOrZero: IntOffset,
+    draggingOffsetOrZero: (TimeLineData.Item) -> IntOffset,
     onDragStart: (IntRect) -> Unit,
     onDragProgress: (x: Float, y: Float) -> Unit,
     onDragEnd: (start: IntRect, end: IntRect) -> Unit
@@ -60,7 +61,7 @@ fun MultiSelectTimeLineItem(
         modifier = modifier.offset {
             // 移動中の場合はそのオフセット
             // 移動中じゃない場合は Zero なので足し算しても問題ないはず
-            draggingOffsetOrZero + IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0)
+            draggingOffsetOrZero(timeLineItemData) + IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0)
         },
         timeLineItemData = timeLineItemData,
         timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
@@ -72,6 +73,9 @@ fun MultiSelectTimeLineItem(
             // TODO 画像に差し替える
             if (isSelected) {
                 Checkbox(
+                    modifier = Modifier
+                        .padding(end = 5.dp)
+                        .align(Alignment.CenterEnd),
                     checked = true,
                     onCheckedChange = null
                 )
@@ -255,7 +259,7 @@ private fun BaseTimeLineItem(
     onDragStart: (IntRect) -> Unit,
     onDragProgress: (x: Float, y: Float) -> Unit,
     onDragEnd: (start: IntRect, end: IntRect) -> Unit,
-    itemSuffix: @Composable () -> Unit = {}
+    itemSuffix: @Composable BoxScope.() -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
     // 拡大縮小

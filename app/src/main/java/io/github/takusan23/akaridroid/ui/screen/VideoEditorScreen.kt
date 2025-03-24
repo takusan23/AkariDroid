@@ -29,13 +29,12 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
+import io.github.takusan23.akaridroid.ui.component.DefaultTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.TimeLine
-import io.github.takusan23.akaridroid.ui.component.TimeLineZoomButtons
-import io.github.takusan23.akaridroid.ui.component.UndoRedoButtons
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
@@ -154,19 +153,15 @@ fun VideoEditorScreen(
                 }
 
                 // 戻るボタンとか
-                Row(modifier = Modifier.align(Alignment.End)) {
-                    TimeLineZoomButtons(
-                        msWidthPx = timeLineMsWidthPx.intValue,
-                        onZoomIn = { timeLineMsWidthPx.intValue++ },
-                        onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) }
-                    )
-                    UndoRedoButtons(
-                        hasUndo = historyState.value.hasUndo,
-                        hasRedo = historyState.value.hasRedo,
-                        onUndo = { viewModel.renderDataUndo() },
-                        onRedo = { viewModel.renderDataRedo() }
-                    )
-                }
+                DefaultTimeLineHeader(
+                    msWidthPx = timeLineMsWidthPx.intValue,
+                    onZoomIn = { timeLineMsWidthPx.intValue++ },
+                    onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
+                    hasUndo = historyState.value.hasUndo,
+                    hasRedo = historyState.value.hasRedo,
+                    onUndo = { viewModel.renderDataUndo() },
+                    onRedo = { viewModel.renderDataRedo() }
+                )
 
                 // 線
                 HorizontalDivider()
