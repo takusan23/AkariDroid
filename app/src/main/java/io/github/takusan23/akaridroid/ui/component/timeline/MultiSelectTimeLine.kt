@@ -1,7 +1,6 @@
 package io.github.takusan23.akaridroid.ui.component.timeline
 
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,14 +8,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,61 +21,30 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
-import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
-import io.github.takusan23.akaridroid.ui.component.data.TimeLineMillisecondsWidthPx
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
-import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
 
 @Composable
 fun MultiSelectTimeLine(
     modifier: Modifier = Modifier,
-    timeLineData: TimeLineData = TimeLineData(
-        durationMs = 30_000,
-        laneCount = 5,
-        itemList = listOf(
-            TimeLineData.Item(id = 1, laneIndex = 0, startMs = 0, stopMs = 10_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-            TimeLineData.Item(id = 2, laneIndex = 0, startMs = 10_000, stopMs = 20_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-            TimeLineData.Item(id = 3, laneIndex = 1, startMs = 1000, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-            TimeLineData.Item(id = 4, laneIndex = 2, startMs = 0, stopMs = 2000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-            TimeLineData.Item(id = 5, laneIndex = 3, startMs = 1000, stopMs = 1500, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-            TimeLineData.Item(id = 6, laneIndex = 4, startMs = 10_000, stopMs = 11_000, label = "素材", iconResId = R.drawable.ic_outline_audiotrack_24, false),
-        )
-    ),
+    timeLineState: TimeLineState,
     currentPositionMs: () -> Long,
-    durationMs: Long,
-    msWidthPx: Int,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
     onSeek: (positionMs: Long) -> Unit
 ) {
-    // タイムラインの拡大縮小
-    val millisecondsWidthPx = remember(msWidthPx) { TimeLineMillisecondsWidthPx(msWidthPx) }
-
     // はみ出しているタイムラインの LayoutCoordinates
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // タイムラインの状態管理
-    val horizontalScroll = rememberScrollState()
-    val timeLineParentWidth = remember { mutableIntStateOf(0) }
-    val timeLineState = rememberTimeLineState(
-        timeLineData = timeLineData,
-        currentHorizontalScrollPos = horizontalScroll.value,
-        millisecondsWidthPx = millisecondsWidthPx,
-        timeLineParentWidth = timeLineParentWidth.intValue
-    )
 
     // 選択中のアイテム
     val multiSelectedItemList = remember { mutableStateOf(emptyList<TimeLineData.Item>()) }
     // 移動中のオフセット
     val draggingOffsetOrZero = remember { mutableStateOf(IntOffset.Zero) }
-
     // 磁石モード用に、くっつける位置。
     // 再生位置と、今選択中の以外にくっつくように
     val magnetPositionMsList = remember(multiSelectedItemList.value, currentPositionMs()) {
@@ -90,56 +54,41 @@ fun MultiSelectTimeLine(
             .map { it.positionMs } + currentPositionMs()
     }
 
-    // millisecondsWidthPx を LocalTimeLineMillisecondsWidthPx で提供する
-    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides millisecondsWidthPx) {
-        Box(
-            modifier = modifier
-                .onSizeChanged { timeLineParentWidth.intValue = it.width }
-                .verticalScroll(rememberScrollState())
-                .horizontalScroll(horizontalScroll),
-        ) {
-
-            // 横に長ーいタイムラインを作る
-            RequiredSizeMultiSelectTimeLine(
-                modifier = Modifier
-                    // タイムラインにあるアイテムの座標出すのに使う
-                    .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
-                timeLineState = timeLineState,
-                timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value,
-                magnetPositionMsList = magnetPositionMsList,
-                multiSelectedItemList = multiSelectedItemList.value,
-                onSeek = onSeek,
-                onItemSelect = { item ->
-                    if (item in multiSelectedItemList.value) {
-                        multiSelectedItemList.value -= item
-                    } else {
-                        multiSelectedItemList.value += item
-                    }
-                },
-                draggingOffsetOrZero = { item ->
-                    if (item in multiSelectedItemList.value) {
-                        draggingOffsetOrZero.value
-                    } else {
-                        IntOffset.Zero
-                    }
-                },
-                onUpdateDraggingOffset = { draggingOffsetOrZero.value = it },
-                onDragEnd = {
-
-                }
-            )
-
-            // タイムラインの縦の棒。タイムラインに重ねて使う
-            // matchParentSize で親 Box の大きさに合わせる
-            OverlayTimeLineComponents(
-                modifier = Modifier.matchParentSize(),
-                durationMs = { durationMs },
-                currentPositionMs = currentPositionMs
-            )
+    // 横に長ーいタイムラインを作る
+    RequiredSizeMultiSelectTimeLine(
+        modifier = modifier
+            // タイムラインにあるアイテムの座標出すのに使う
+            .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
+        timeLineState = timeLineState,
+        timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value,
+        magnetPositionMsList = magnetPositionMsList,
+        multiSelectedItemList = multiSelectedItemList.value,
+        onSeek = onSeek,
+        onItemSelect = { item ->
+            if (item in multiSelectedItemList.value) {
+                multiSelectedItemList.value -= item
+            } else {
+                multiSelectedItemList.value += item
+            }
+        },
+        draggingOffsetOrZero = { item ->
+            if (item in multiSelectedItemList.value) {
+                draggingOffsetOrZero.value
+            } else {
+                IntOffset.Zero
+            }
+        },
+        onUpdateDraggingOffset = { draggingOffsetOrZero.value = it },
+        onDragEnd = {
+            println(it)
         }
-    }
+    )
 }
 
+/**
+ * 動画の長さだけずっっと横に長いタイムライン。複数選択版。[TimeLineContainer]を親にする。
+ * 横と縦に長いので、親はスクロールできるようにする必要があります。
+ */
 @Composable
 private fun RequiredSizeMultiSelectTimeLine(
     modifier: Modifier = Modifier,

@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.ui.screen.about
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -9,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,8 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.component.timeline.TimeLine
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
+import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
+import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.LocalTimeLineMillisecondsWidthPx
+import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
 
 private const val SUSHI_EMOJI = "\uD83C\uDF63"
 
@@ -45,6 +50,9 @@ fun AboutSushiScreen(onBack: () -> Unit) {
         )
     }
 
+    val horizontalScroll = rememberScrollState()
+    val timeLineParentWidth = remember { mutableIntStateOf(0) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -58,69 +66,86 @@ fun AboutSushiScreen(onBack: () -> Unit) {
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            TimeLine(
-                modifier = Modifier.weight(1f),
-                timeLineData = sushiData.value,
-                currentPositionMs = { currentPositionMs.longValue },
-                durationMs = 60_000,
+            TimeLineContainer(
+                modifier = Modifier,
                 msWidthPx = 20,
-                onSeek = { positionMs -> currentPositionMs.longValue = positionMs },
-                onDragAndDropRequest = { request ->
-                    // 位置更新のみ、入るかの判定はしていない。
-                    sushiData.value = sushiData.value.copy(
-                        itemList = sushiData.value.itemList.map { sushi ->
-                            if (sushi.id == request.id) {
-                                sushi.copy(
-                                    laneIndex = request.dragAndDroppedLaneIndex,
-                                    startMs = request.dragAndDroppedStartMs,
-                                    stopMs = request.dragAndDroppedStartMs + sushi.durationMs
-                                )
-                            } else sushi
-                        }
-                    )
-                    true
-                },
-                onCut = { cutItem ->
-                    // 分割する前に、シーク位置が重なっているか
-                    if (currentPositionMs.longValue !in cutItem.timeRange) return@TimeLine
-                    // 分割するので2つ作る
-                    val id = cutItem.id
-                    // ID 被らんように
-                    val a = cutItem.copy(id = id * 100, stopMs = currentPositionMs.longValue)
-                    val b = cutItem.copy(id = id * 1000, startMs = currentPositionMs.longValue)
-                    // 元のアイテムは消して、入れる
-                    sushiData.value = sushiData.value.copy(
-                        itemList = sushiData.value.itemList.filter { it.id != id } + listOf(a, b)
-                    )
-                },
-                onEdit = {
-                    editItem.value = it
-                },
-                onDelete = { deleteItem ->
-                    sushiData.value = sushiData.value.copy(
-                        itemList = sushiData.value.itemList.filter { it.id != deleteItem.id }
-                    )
-                },
-                onDuplicate = {
-                    // ID 被らんように
-                    sushiData.value = sushiData.value.copy(
-                        itemList = sushiData.value.itemList + it.copy(id = it.id * 2)
-                    )
-                },
-                onDurationChange = { request ->
-                    // 長さ調整
-                    val (id, newDurationMs) = request
-                    sushiData.value = sushiData.value.copy(
-                        itemList = sushiData.value.itemList.map { item ->
-                            if (item.id == id) {
-                                item.copy(stopMs = item.startMs + newDurationMs)
-                            } else {
-                                item
+                verticalScroll = rememberScrollState(),
+                horizontalScroll = horizontalScroll,
+                durationMs = { 60_000 },
+                currentPositionMs = { currentPositionMs.longValue },
+                onScrollContainerSizeChange = { timeLineParentWidth.intValue = it.width }
+            ) {
+
+                // タイムラインの状態
+                val timeLineState = rememberTimeLineState(
+                    timeLineData = sushiData.value,
+                    currentHorizontalScrollPos = horizontalScroll.value,
+                    millisecondsWidthPx = LocalTimeLineMillisecondsWidthPx.current,
+                    timeLineParentWidth = timeLineParentWidth.intValue
+                )
+
+                DefaultTimeLine(
+                    modifier = Modifier.weight(1f),
+                    timeLineState = timeLineState,
+                    currentPositionMs = { currentPositionMs.longValue },
+                    onSeek = { positionMs -> currentPositionMs.longValue = positionMs },
+                    onDragAndDropRequest = { request ->
+                        // 位置更新のみ、入るかの判定はしていない。
+                        sushiData.value = sushiData.value.copy(
+                            itemList = sushiData.value.itemList.map { sushi ->
+                                if (sushi.id == request.id) {
+                                    sushi.copy(
+                                        laneIndex = request.dragAndDroppedLaneIndex,
+                                        startMs = request.dragAndDroppedStartMs,
+                                        stopMs = request.dragAndDroppedStartMs + sushi.durationMs
+                                    )
+                                } else sushi
                             }
-                        }
-                    )
-                }
-            )
+                        )
+                        true
+                    },
+                    onCut = { cutItem ->
+                        // 分割する前に、シーク位置が重なっているか
+                        if (currentPositionMs.longValue !in cutItem.timeRange) return@DefaultTimeLine
+                        // 分割するので2つ作る
+                        val id = cutItem.id
+                        // ID 被らんように
+                        val a = cutItem.copy(id = id * 100, stopMs = currentPositionMs.longValue)
+                        val b = cutItem.copy(id = id * 1000, startMs = currentPositionMs.longValue)
+                        // 元のアイテムは消して、入れる
+                        sushiData.value = sushiData.value.copy(
+                            itemList = sushiData.value.itemList.filter { it.id != id } + listOf(a, b)
+                        )
+                    },
+                    onEdit = {
+                        editItem.value = it
+                    },
+                    onDelete = { deleteItem ->
+                        sushiData.value = sushiData.value.copy(
+                            itemList = sushiData.value.itemList.filter { it.id != deleteItem.id }
+                        )
+                    },
+                    onDuplicate = {
+                        // ID 被らんように
+                        sushiData.value = sushiData.value.copy(
+                            itemList = sushiData.value.itemList + it.copy(id = it.id * 2)
+                        )
+                    },
+                    onDurationChange = { request ->
+                        // 長さ調整
+                        val (id, newDurationMs) = request
+                        sushiData.value = sushiData.value.copy(
+                            itemList = sushiData.value.itemList.map { item ->
+                                if (item.id == id) {
+                                    item.copy(stopMs = item.startMs + newDurationMs)
+                                } else {
+                                    item
+                                }
+                            }
+                        )
+                    }
+                )
+            }
             Text(
                 modifier = Modifier.padding(10.dp),
                 text = editItem.value.toString()

@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,12 +31,17 @@ import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRoute
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
+import io.github.takusan23.akaridroid.ui.component.PreviewContainer
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineMode
+import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
+import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingMenuButton
-import io.github.takusan23.akaridroid.ui.component.PreviewContainer
-import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeader
-import io.github.takusan23.akaridroid.ui.component.timeline.TimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.LocalTimeLineMillisecondsWidthPx
+import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
@@ -152,9 +159,20 @@ fun VideoEditorScreen(
                     )
                 }
 
-                // 戻るボタンとか
+                // タイムラインのモード
+                val timeLineMode = remember { mutableStateOf(TimeLineMode.Default) }
+                val horizontalScroll = rememberScrollState()
+                val timeLineParentWidth = remember { mutableIntStateOf(0) }
+
+                // 戻る進むとかのヘッダー
                 DefaultTimeLineHeader(
                     msWidthPx = timeLineMsWidthPx.intValue,
+                    onModeChangeClick = {
+                        timeLineMode.value = when (timeLineMode.value) {
+                            TimeLineMode.Default -> TimeLineMode.MultiSelect
+                            TimeLineMode.MultiSelect -> TimeLineMode.Default
+                        }
+                    },
                     onZoomIn = { timeLineMsWidthPx.intValue++ },
                     onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
                     hasUndo = historyState.value.hasUndo,
@@ -166,29 +184,61 @@ fun VideoEditorScreen(
                 // 線
                 HorizontalDivider()
 
-                // ドラッグアンドドロップが受け入れできるように
-                FileDragAndDropReceiveContainer(
-                    onReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) }
+                // タイムラインの共有部分
+                TimeLineContainer(
+                    modifier = Modifier,
+                    msWidthPx = timeLineMsWidthPx.intValue,
+                    verticalScroll = rememberScrollState(),
+                    horizontalScroll = rememberScrollState(),
+                    durationMs = { renderData.value.durationMs },
+                    currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
+                    onScrollContainerSizeChange = { timeLineParentWidth.intValue = it.width }
                 ) {
-                    // タイムライン
-                    TimeLine(
-                        modifier = Modifier,
+
+                    // タイムラインの状態
+                    val timeLineState = rememberTimeLineState(
                         timeLineData = timeLineData.value,
-                        currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
-                        durationMs = renderData.value.durationMs,
-                        msWidthPx = timeLineMsWidthPx.intValue,
-                        onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                        onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
-                        onEdit = { timeLineItem ->
-                            viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                                viewModel.openEditRenderItemSheet(renderItem)
-                            }
-                        },
-                        onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
-                        onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
-                        onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
-                        onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
+                        currentHorizontalScrollPos = horizontalScroll.value,
+                        millisecondsWidthPx = LocalTimeLineMillisecondsWidthPx.current,
+                        timeLineParentWidth = timeLineParentWidth.intValue
                     )
+
+                    when (timeLineMode.value) {
+                        TimeLineMode.Default -> {
+                            // ドラッグアンドドロップが受け入れできるように
+                            FileDragAndDropReceiveContainer(
+                                onReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) }
+                            ) {
+                                DefaultTimeLine(
+                                    modifier = Modifier,
+                                    timeLineState = timeLineState,
+                                    currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
+                                    onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
+                                    onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
+                                    onEdit = { timeLineItem ->
+                                        viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                                            viewModel.openEditRenderItemSheet(renderItem)
+                                        }
+                                    },
+                                    onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
+                                    onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
+                                    onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
+                                    onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
+                                )
+                            }
+                        }
+
+                        TimeLineMode.MultiSelect -> {
+                            // 複数選択
+                            MultiSelectTimeLine(
+                                modifier = Modifier,
+                                timeLineState = timeLineState,
+                                currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
+                                onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
+                                onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) }
+                            )
+                        }
+                    }
                 }
             }
 
