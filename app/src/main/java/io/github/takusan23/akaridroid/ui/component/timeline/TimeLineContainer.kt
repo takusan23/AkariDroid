@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
@@ -24,7 +23,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TimeLineMillisecondsWidt
 @Composable
 fun TimeLineContainer(
     modifier: Modifier = Modifier,
-    msWidthPx: Int,
+    timeLineMillisecondsWidthPx: TimeLineMillisecondsWidthPx,
     verticalScroll: ScrollState = rememberScrollState(),
     horizontalScroll: ScrollState = rememberScrollState(),
     durationMs: () -> Long,
@@ -32,11 +31,8 @@ fun TimeLineContainer(
     onScrollContainerSizeChange: (IntSize) -> Unit,
     content: @Composable () -> Unit
 ) {
-    // タイムラインの拡大縮小
-    val millisecondsWidthPx = remember(msWidthPx) { TimeLineMillisecondsWidthPx(msWidthPx) }
-
     // millisecondsWidthPx を LocalTimeLineMillisecondsWidthPx で提供する
-    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides millisecondsWidthPx) {
+    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides timeLineMillisecondsWidthPx) {
         Box(
             modifier = modifier
                 .onSizeChanged(onScrollContainerSizeChange)

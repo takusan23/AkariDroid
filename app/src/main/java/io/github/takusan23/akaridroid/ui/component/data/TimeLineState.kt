@@ -1,5 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component.data
 
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -20,24 +22,20 @@ import kotlinx.coroutines.withContext
  * タイムラインの状態を作る
  *
  * @param timeLineData タイムラインに表示するアイテム
- * @param currentHorizontalScrollPos タイムラインの横スクロール位置
- * @param millisecondsWidthPx タイムラインの拡大縮小
- * @param timeLineParentWidth タイムラインの幅（スクロールするコンテナ自体の幅）
+ * @param msWidthPx タイムラインの拡大縮小
  */
 @Composable
 fun rememberTimeLineState(
     timeLineData: TimeLineData,
-    currentHorizontalScrollPos: Int,
-    millisecondsWidthPx: TimeLineMillisecondsWidthPx,
-    timeLineParentWidth: Int
+    msWidthPx: Int,
 ): TimeLineState {
     val scope = rememberCoroutineScope()
-    val state = remember { DefaultTimeLineState(scope) }
+    val scrollState = rememberScrollState()
+    val state = remember { DefaultTimeLineState(scope, scrollState) }
+    val timeLineMillisecondsWidthPx = remember(msWidthPx) { TimeLineMillisecondsWidthPx(msWidthPx) }
 
     state.timeLineData = timeLineData
-    state.horizontalScrollPosition = currentHorizontalScrollPos
-    state.millisecondsWidthPx = millisecondsWidthPx
-    state.timeLineParentWidth = timeLineParentWidth
+    state.timeLineMillisecondsWidthPx = timeLineMillisecondsWidthPx
 
     return state
 }
@@ -57,6 +55,15 @@ interface TimeLineState {
     /** 磁石みたいにくっつく機能があるので、その位置 */
     val magnetPositionList: List<MagnetPosition>
 
+    /** タイムラインの拡大縮小 */
+    var timeLineMillisecondsWidthPx: TimeLineMillisecondsWidthPx
+
+    /** タイムラインの横スクロール[] */
+    val horizontalScroll: ScrollState
+
+    /** タイムラインのスクロールするコンポーネントの幅 */
+    var timeLineParentWidth: Int
+
     /**
      * 磁石モードのくっつく位置と ID
      *
@@ -70,18 +77,18 @@ interface TimeLineState {
 }
 
 /** [TimeLineState]のデフォルト実装 */
-class DefaultTimeLineState(scope: CoroutineScope) : TimeLineState {
+class DefaultTimeLineState(
+    scope: CoroutineScope,
+    override val horizontalScroll: ScrollState
+) : TimeLineState {
     /** ViewModel が作ってる [TimeLineData] */
     var timeLineData by mutableStateOf<TimeLineData?>(null)
 
-    /** 横スクロール位置 */
-    var horizontalScrollPosition by mutableIntStateOf(0)
-
     /** タイムラインの拡大縮小 */
-    var millisecondsWidthPx by mutableStateOf(TimeLineMillisecondsWidthPx())
+    override var timeLineMillisecondsWidthPx by mutableStateOf(TimeLineMillisecondsWidthPx())
 
     /** タイムラインのスクロールするコンポーネントの幅 */
-    var timeLineParentWidth by mutableIntStateOf(0)
+    override var timeLineParentWidth by mutableIntStateOf(0)
 
     override var visibleTimeLineItemMap by mutableStateOf(emptyMap<Int, List<TimeLineData.Item>>())
         private set
@@ -95,11 +102,11 @@ class DefaultTimeLineState(scope: CoroutineScope) : TimeLineState {
     init {
         // Flow にする
         val timeLineDataFlow = snapshotFlow { timeLineData }
-        val msWidthPxFlow = snapshotFlow { millisecondsWidthPx }
+        val msWidthPxFlow = snapshotFlow { timeLineMillisecondsWidthPx }
 
         // スクロールに対応して、今表示しているタイムラインの表示領域を計算する
         val visibleTimeLineWidthRange = combine(
-            snapshotFlow { horizontalScrollPosition },
+            snapshotFlow { horizontalScroll.value },
             snapshotFlow { timeLineParentWidth },
             { startScroll, timeLineParent -> startScroll..(startScroll + timeLineParent) }
         )

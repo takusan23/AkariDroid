@@ -39,7 +39,6 @@ import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeade
 import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingMenuButton
-import io.github.takusan23.akaridroid.ui.component.timeline.LocalTimeLineMillisecondsWidthPx
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
 import io.github.takusan23.akaridroid.ui.component.toMenu
@@ -161,8 +160,11 @@ fun VideoEditorScreen(
 
                 // タイムラインのモード
                 val timeLineMode = remember { mutableStateOf(TimeLineMode.Default) }
-                val horizontalScroll = rememberScrollState()
-                val timeLineParentWidth = remember { mutableIntStateOf(0) }
+                // タイムラインの状態
+                val timeLineState = rememberTimeLineState(
+                    timeLineData = timeLineData.value,
+                    msWidthPx = timeLineMsWidthPx.intValue
+                )
 
                 // 戻る進むとかのヘッダー
                 DefaultTimeLineHeader(
@@ -187,22 +189,13 @@ fun VideoEditorScreen(
                 // タイムラインの共有部分
                 TimeLineContainer(
                     modifier = Modifier,
-                    msWidthPx = timeLineMsWidthPx.intValue,
+                    timeLineMillisecondsWidthPx = timeLineState.timeLineMillisecondsWidthPx,
                     verticalScroll = rememberScrollState(),
-                    horizontalScroll = rememberScrollState(),
+                    horizontalScroll = timeLineState.horizontalScroll,
                     durationMs = { renderData.value.durationMs },
                     currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
-                    onScrollContainerSizeChange = { timeLineParentWidth.intValue = it.width }
+                    onScrollContainerSizeChange = { timeLineState.timeLineParentWidth = it.width }
                 ) {
-
-                    // タイムラインの状態
-                    val timeLineState = rememberTimeLineState(
-                        timeLineData = timeLineData.value,
-                        currentHorizontalScrollPos = horizontalScroll.value,
-                        millisecondsWidthPx = LocalTimeLineMillisecondsWidthPx.current,
-                        timeLineParentWidth = timeLineParentWidth.intValue
-                    )
-
                     when (timeLineMode.value) {
                         TimeLineMode.Default -> {
                             // ドラッグアンドドロップが受け入れできるように

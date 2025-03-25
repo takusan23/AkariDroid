@@ -10,7 +10,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,7 +20,6 @@ import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
-import io.github.takusan23.akaridroid.ui.component.timeline.LocalTimeLineMillisecondsWidthPx
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
 
 private const val SUSHI_EMOJI = "\uD83C\uDF63"
@@ -50,8 +48,11 @@ fun AboutSushiScreen(onBack: () -> Unit) {
         )
     }
 
-    val horizontalScroll = rememberScrollState()
-    val timeLineParentWidth = remember { mutableIntStateOf(0) }
+    // タイムラインの状態
+    val timeLineState = rememberTimeLineState(
+        timeLineData = sushiData.value,
+        msWidthPx = 20
+    )
 
     Scaffold(
         topBar = {
@@ -68,21 +69,13 @@ fun AboutSushiScreen(onBack: () -> Unit) {
         Column(modifier = Modifier.padding(paddingValues)) {
             TimeLineContainer(
                 modifier = Modifier,
-                msWidthPx = 20,
+                timeLineMillisecondsWidthPx = timeLineState.timeLineMillisecondsWidthPx,
                 verticalScroll = rememberScrollState(),
-                horizontalScroll = horizontalScroll,
+                horizontalScroll = timeLineState.horizontalScroll,
                 durationMs = { 60_000 },
                 currentPositionMs = { currentPositionMs.longValue },
-                onScrollContainerSizeChange = { timeLineParentWidth.intValue = it.width }
+                onScrollContainerSizeChange = { timeLineState.timeLineParentWidth = it.width }
             ) {
-
-                // タイムラインの状態
-                val timeLineState = rememberTimeLineState(
-                    timeLineData = sushiData.value,
-                    currentHorizontalScrollPos = horizontalScroll.value,
-                    millisecondsWidthPx = LocalTimeLineMillisecondsWidthPx.current,
-                    timeLineParentWidth = timeLineParentWidth.intValue
-                )
 
                 DefaultTimeLine(
                     modifier = Modifier.weight(1f),
