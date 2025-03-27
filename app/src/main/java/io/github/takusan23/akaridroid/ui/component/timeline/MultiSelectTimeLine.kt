@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +34,15 @@ import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
 import kotlin.math.abs
 
+/**
+ * 複数選択モードのタイムライン
+ *
+ * @param modifier [Modifier]
+ * @param timeLineState [io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState]
+ * @param currentPositionMs プレビューの再生位置
+ * @param onSeek プレビューのシーク時に呼ばれる
+ * @param onDragAndDropRequest アイテムのドラッグアンドドロップが要求されたとき
+ */
 @Composable
 fun MultiSelectTimeLine(
     modifier: Modifier = Modifier,
@@ -60,6 +71,13 @@ fun MultiSelectTimeLine(
 /**
  * 動画の長さだけずっっと横に長いタイムライン。複数選択版。[TimeLineContainer]を親にする。
  * 横と縦に長いので、親はスクロールできるようにする必要があります。
+ *
+ * @param modifier [Modifier]
+ * @param timeLineState [io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState]
+ * @param timeLineScrollableAreaCoordinates タイムラインの View の大きさ
+ * @param currentPositionMs プレビューの再生位置
+ * @param onSeek プレビューのシーク時に呼ばれる
+ * @param onDragAndDropRequest アイテムのドラッグアンドドロップが要求されたとき
  */
 @Composable
 private fun RequiredSizeMultiSelectTimeLine(
@@ -220,6 +238,7 @@ private fun RequiredSizeMultiSelectTimeLine(
                         // ViewModel 側に投げる
                         onDragAndDropRequest(dragAndDropRequestList)
                         draggingOffset.value = IntOffset.Zero
+                        // TODO リセットしない
                         multiSelectedItemList.value = emptyMap()
                     },
                 )
@@ -229,6 +248,22 @@ private fun RequiredSizeMultiSelectTimeLine(
     }
 }
 
+/**
+ * タイムラインのレーン
+ * ドラッグアンドドロップのコールバック系は、複数選択だとしても、指で押してるアイテムのみが呼ばれます。
+ *
+ * @param modifier [Modifier]
+ * @param laneItemList そのレーンのアイテム一覧
+ * @param laneIndex レーン番号
+ * @param timeLineScrollableAreaCoordinates タイムライン View の大きさ
+ * @param onItemSelect 押したとき
+ * @param isSelected 複数選択中なら true
+ * @param draggingOffset 移動するなら Offset
+ * @param onPositionChanged タイムラインの各アイテムの位置変更時に呼ばれる
+ * @param onDragStart ドラッグアンドドロップ開始時。
+ * @param onDragProgress ドラッグアンドドロップで移動中
+ * @param onDragEnd ドラッグアンドドロップ終了
+ */
 @Composable
 private fun MultiSelectTimeLineLane(
     modifier: Modifier = Modifier,
@@ -269,4 +304,65 @@ private fun MultiSelectTimeLineLane(
             )
         }
     }
+}
+
+/**
+ * 複数選択可能なタイムラインの各アイテム
+ *
+ * @param modifier [Modifier]
+ * @param timeLineItemData タイムラインのアイテム情報
+ * @param durationMs アイテムの長さ
+ * @param timeLineScrollableAreaCoordinates タイムライン View の大きさ
+ * @param isSelected 選択中なら true
+ * @param onItemSelect 押したとき
+ * @param draggingOffset 移動するなら Offset
+ * @param onPositionChanged タイムラインの各アイテムの位置変更時に呼ばれる
+ * @param onDragStart ドラッグアンドドロップ開始時。
+ * @param onDragProgress ドラッグアンドドロップで移動中
+ * @param onDragEnd ドラッグアンドドロップ終了
+ */
+@Composable
+private fun MultiSelectTimeLineItem(
+    modifier: Modifier = Modifier,
+    timeLineItemData: TimeLineData.Item,
+    durationMs: Long = timeLineItemData.durationMs,
+    timeLineScrollableAreaCoordinates: LayoutCoordinates,
+    isSelected: Boolean,
+    onItemSelect: (TimeLineData.Item) -> Unit,
+    draggingOffset: (TimeLineData.Item) -> IntOffset,
+    onPositionChanged: (IntRect) -> Unit,
+    onDragStart: (IntRect) -> Unit,
+    onDragProgress: (x: Float, y: Float) -> Unit,
+    onDragEnd: (start: IntRect, end: IntRect) -> Unit
+) {
+    BaseTimeLineItem(
+        modifier = modifier
+            .offset { draggingOffset(timeLineItemData) }
+            .onGloballyPositioned {
+                onPositionChanged(
+                    timeLineScrollableAreaCoordinates
+                        .localBoundingBoxOf(it)
+                        .roundToIntRect()
+                )
+            },
+        timeLineItemData = timeLineItemData,
+        durationMs = durationMs,
+        timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
+        onItemClick = { onItemSelect(timeLineItemData) },
+        onDragStart = onDragStart,
+        onDragProgress = onDragProgress,
+        onDragEnd = onDragEnd,
+        itemSuffix = {
+            // TODO 画像に差し替える
+            if (isSelected) {
+                Checkbox(
+                    modifier = Modifier
+                        .padding(end = 5.dp)
+                        .align(Alignment.CenterEnd),
+                    checked = true,
+                    onCheckedChange = null
+                )
+            }
+        }
+    )
 }
