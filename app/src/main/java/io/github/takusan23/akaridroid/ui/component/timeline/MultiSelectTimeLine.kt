@@ -99,15 +99,15 @@ private fun RequiredSizeMultiSelectTimeLine(
 
     // 移動中のオフセット。選択中のアイテムはこれを足す
     val draggingOffset = remember { mutableStateOf(IntOffset.Zero) }
-    // 選択中のアイテムと、開始位置。
-    val multiSelectedItemList = remember { mutableStateOf(emptyMap<TimeLineData.Item, IntRect>()) }
+    // 選択中のアイテム ID と、開始位置。移動するまで IntRect は null
+    val multiSelectedItemList = remember { mutableStateOf(emptyMap<Long, IntRect?>()) }
     // タイムライン上のアイテムの座標を持っておく。移動開始と終了で参照する
-    val timeLineItemPositionMap = remember { mutableStateOf(emptyMap<TimeLineData.Item, IntRect>()) }
+    val timeLineItemPositionMap = remember { mutableStateOf(emptyMap<Long, IntRect>()) }
 
     // 磁石モード用に、くっつける位置。
     // 再生位置と、今選択中の以外にくっつくように
     val magnetPositionMsList = remember(multiSelectedItemList.value, currentPositionMs()) {
-        val selectedIdList = multiSelectedItemList.value.map { it.key.id }
+        val selectedIdList = multiSelectedItemList.value.map { it.key }
         timeLineState.magnetPositionList
             .filter { it.id !in selectedIdList }
             .map { it.positionMs } + currentPositionMs()
@@ -158,31 +158,38 @@ private fun RequiredSizeMultiSelectTimeLine(
                     laneItemList = itemList,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                     isSelected = {
-                        it in multiSelectedItemList.value
+                        it.id in multiSelectedItemList.value
                     },
                     onItemSelect = { clickItem ->
-                        if (clickItem in multiSelectedItemList.value) {
-                            multiSelectedItemList.value -= clickItem
+                        val id = clickItem.id
+                        if (id in multiSelectedItemList.value) {
+                            multiSelectedItemList.value -= id
                         } else {
-                            val startPos = timeLineItemPositionMap.value[clickItem] ?: return@MultiSelectTimeLineLane
-                            multiSelectedItemList.value += clickItem to startPos
+                            // 位置は onDragStart で
+                            multiSelectedItemList.value += id to null
                         }
                     },
                     draggingOffset = { offsetItem ->
                         val originPosition = IntOffset(with(msWidthPx) { offsetItem.startMs.msToWidth }, 0)
-                        if (offsetItem in multiSelectedItemList.value) {
+                        if (offsetItem.id in multiSelectedItemList.value) {
                             draggingOffset.value + originPosition
                         } else {
                             originPosition
                         }
                     },
                     onPositionChanged = { positionChangeItem, positionIntRect ->
-                        timeLineItemPositionMap.value += positionChangeItem to positionIntRect
+                        timeLineItemPositionMap.value += positionChangeItem.id to positionIntRect
                     },
                     onDragStart = { _, _ ->
                         // ドラッグアンドドロップ開始時。フラグを立てて開始位置を入れておく
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         draggingOffset.value = IntOffset.Zero
+
+                        // 移動開始時に初期値を入れる
+                        multiSelectedItemList.value.forEach { (itemId, _) ->
+                            val startPos = timeLineItemPositionMap.value[itemId] ?: return@MultiSelectTimeLineLane
+                            multiSelectedItemList.value += itemId to startPos
+                        }
                     },
                     onDragProgress = { draggingItem, x, y ->
                         // 移動させる
@@ -216,10 +223,10 @@ private fun RequiredSizeMultiSelectTimeLine(
                     onDragEnd = { _, _, _ -> // 指で押してるやつなので使わない
                         // 移動終了
                         // 選択中のアイテムすべてに判定
-                        val dragAndDropRequestList = multiSelectedItemList.value.mapNotNull { (item, start) ->
-
+                        val dragAndDropRequestList = multiSelectedItemList.value.mapNotNull { (id, start) ->
+                            start ?: return@mapNotNull null
                             // 終了位置
-                            val stop = timeLineItemPositionMap.value[item] ?: return@mapNotNull null
+                            val stop = timeLineItemPositionMap.value[id] ?: return@mapNotNull null
 
                             // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
                             val stopMsInDroppedPos = with(msWidthPx) { stop.left.widthToMs }
@@ -230,16 +237,15 @@ private fun RequiredSizeMultiSelectTimeLine(
                             val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@mapNotNull null
 
                             TimeLineData.DragAndDropRequest(
-                                id = item.id,
+                                id = id,
                                 dragAndDroppedStartMs = stopMsInDroppedPos,
                                 dragAndDroppedLaneIndex = toLaneIndex
                             )
                         }
-                        // ViewModel 側に投げる
+
+                        // ViewModel 側に投げて判定を
                         onDragAndDropRequest(dragAndDropRequestList)
                         draggingOffset.value = IntOffset.Zero
-                        // TODO リセットしない
-                        multiSelectedItemList.value = emptyMap()
                     },
                 )
                 HorizontalDivider()
