@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -209,6 +208,7 @@ fun DefaultTimeLineItem(
     }
 }
 
+// TODO こめんと
 @Composable
 fun MultiSelectTimeLineItem(
     modifier: Modifier = Modifier,
@@ -216,79 +216,30 @@ fun MultiSelectTimeLineItem(
     durationMs: Long = timeLineItemData.durationMs,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
     isSelected: Boolean,
-    magnetPositionMsList: List<Long>,
     onItemSelect: (TimeLineData.Item) -> Unit,
-    draggingOffsetOrZero: (TimeLineData.Item) -> IntOffset,
-    onUpdateDraggingOffset: (IntOffset) -> Unit,
-    onDragEnd: (TimeLineItemComponentDragAndDropData) -> Unit
+    draggingOffset: (TimeLineData.Item) -> IntOffset,
+    onPositionChanged: (IntRect) -> Unit,
+    onDragStart: (IntRect) -> Unit,
+    onDragProgress: (x: Float, y: Float) -> Unit,
+    onDragEnd: (start: IntRect, end: IntRect) -> Unit
 ) {
-    val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
-    val latestMagnetPositionMsList = rememberUpdatedState(magnetPositionMsList)
-
-    // Haptics 制御
-    // 移動開始、磁石モード発動時にフィードバックを
-    val haptic = LocalHapticFeedback.current
-    val isHapticEnable = remember { mutableStateOf(true) }
-
     BaseTimeLineItem(
-        modifier = modifier.offset {
-            // 移動中の場合はそのオフセット
-            // 移動中じゃない場合は Zero なので足し算しても問題ないはず
-            draggingOffsetOrZero(timeLineItemData) + IntOffset(with(msWidthPx) { timeLineItemData.startMs.msToWidth }, 0)
-        },
+        modifier = modifier
+            .offset { draggingOffset(timeLineItemData) }
+            .onGloballyPositioned {
+                onPositionChanged(
+                    timeLineScrollableAreaCoordinates
+                        .localBoundingBoxOf(it)
+                        .roundToIntRect()
+                )
+            },
         timeLineItemData = timeLineItemData,
         durationMs = durationMs,
         timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
         onItemClick = { onItemSelect(timeLineItemData) },
-        onDragStart = {
-            // ドラッグアンドドロップ開始時。フラグを立てて開始位置を入れておく
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            onUpdateDraggingOffset(IntOffset.Zero)
-        },
-        onDragProgress = { x, y ->
-            // 移動させる
-            val draggingOffset = draggingOffsetOrZero(timeLineItemData)
-            val updatePos = IntOffset(
-                x = (draggingOffset.x + x).toInt(),
-                y = (draggingOffset.y + y).toInt()
-            )
-            // 移動前の時間
-            val beforeStartMs = timeLineItemData.startMs
-            // updatePos は移動開始が Zero なので、元の値を足す
-            val currentOffset = beforeStartMs + with(msWidthPx) { updatePos.x.widthToMs }
-            // 磁石モード発動するか
-            val magnetPositionMsOrNull = latestMagnetPositionMsList.value.firstOrNull { magnetPositionMs ->
-                abs(magnetPositionMs - currentOffset) < MAGNET_THRESHOLD_MOVE
-            }
-            if (magnetPositionMsOrNull != null) {
-                // 差があるときだけにして連続対策
-                if (isHapticEnable.value) {
-                    isHapticEnable.value = false
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                }
-                // Offset は移動開始を Zero としているので引いておく
-                onUpdateDraggingOffset(updatePos.copy(x = with(msWidthPx) { (magnetPositionMsOrNull - beforeStartMs).msToWidth }))
-            } else {
-                onUpdateDraggingOffset(updatePos)
-                isHapticEnable.value = true
-            }
-        },
-        onDragEnd = { startRect, endRect ->
-            // 移動終了
-            // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
-            val stopMsInDroppedPos = with(msWidthPx) { endRect.left.widthToMs }
-            // 移動できるか判定を上のコンポーネントでやる
-            // 出来ない場合は ViewModel からもとに戻った状態のデータに上書きされるはず
-            onDragEnd(
-                TimeLineItemComponentDragAndDropData(
-                    id = timeLineItemData.id,
-                    startRect = startRect,
-                    stopRect = endRect,
-                    positionMs = stopMsInDroppedPos
-                )
-            )
-            onUpdateDraggingOffset(IntOffset.Zero)
-        },
+        onDragStart = onDragStart,
+        onDragProgress = onDragProgress,
+        onDragEnd = onDragEnd,
         itemSuffix = {
             // TODO 画像に差し替える
             if (isSelected) {

@@ -69,7 +69,7 @@ fun DefaultTimeLine(
     modifier: Modifier = Modifier,
     timeLineState: TimeLineState,
     currentPositionMs: () -> Long,
-    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
+    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Unit,
     onSeek: (positionMs: Long) -> Unit,
     onEdit: (TimeLineData.Item) -> Unit,
     onCut: (TimeLineData.Item) -> Unit, // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
@@ -126,7 +126,7 @@ fun RequiredSizeTimeLine(
     onDelete: (TimeLineData.Item) -> Unit,
     onDuplicate: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
-    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean
+    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Unit
 ) {
     val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
     // レーンコンポーネントの位置と番号

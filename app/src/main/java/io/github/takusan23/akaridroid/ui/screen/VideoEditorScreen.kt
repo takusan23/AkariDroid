@@ -207,7 +207,7 @@ fun VideoEditorScreen(
                                     timeLineState = timeLineState,
                                     currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
                                     onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                                    onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
+                                    onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(listOf(request)) },
                                     onEdit = { timeLineItem ->
                                         viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
                                             viewModel.openEditRenderItemSheet(renderItem)
@@ -228,7 +228,7 @@ fun VideoEditorScreen(
                                 timeLineState = timeLineState,
                                 currentPositionMs = { previewPlayerStatus.value.currentPositionMs },
                                 onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                                onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) }
+                                onDragAndDropRequest = { requestList -> viewModel.resolveTimeLineDragAndDropRequest(requestList) }
                             )
                         }
                     }

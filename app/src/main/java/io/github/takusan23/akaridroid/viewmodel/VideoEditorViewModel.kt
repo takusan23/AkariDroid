@@ -506,38 +506,50 @@ class VideoEditorViewModel(
     /**
      * タイムラインの並び替え（ドラッグアンドドロップ）リクエストをさばく
      *
-     * @param request [io.github.takusan23.akaridroid.ui.component.TimeLine]からドラッグアンドドロップが終わると呼ばれる
-     * @return true でドラッグアンドドロップを受け入れたことになる。
+     * @param requestList [io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine]からドラッグアンドドロップが終わると呼ばれる
      */
-    fun resolveTimeLineDragAndDropRequest(request: TimeLineData.DragAndDropRequest): Boolean {
-        // ドラッグアンドドロップ対象の RenderItem を取る
-        val renderItem = getRenderItem(request.id)!!
-        // ドラッグアンドドロップ移動先に合った DisplayTime を作る
-        // マイナスに入らないように
-        val dragAndDroppedDisplayTime = renderItem.displayTime.copy(
-            startMs = max(request.dragAndDroppedStartMs, 0)
+    fun resolveTimeLineDragAndDropRequest(requestList: List<TimeLineData.DragAndDropRequest>) {
+
+        fun TimeLineData.DragAndDropRequest.getRenderItem() = getRenderItem(this.id)!! // ドラッグアンドドロップして無いとは言わせない
+        fun TimeLineData.DragAndDropRequest.createDragAndDroppedDisplayTime() = getRenderItem().displayTime.copy(
+            startMs = max(dragAndDroppedStartMs, 0)
         )
 
-        // 移動先のレーンに空きがあること
-        val isAcceptable = _timeLineData.value
-            // すべてのレーンを取得したあと、指定レーンだけ取り出す
-            .groupByLane()
-            .first { (laneIndex, _) -> laneIndex == request.dragAndDroppedLaneIndex }
-            .second
-            // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
-            .filter { laneItem -> laneItem.id != request.id }
-            // 判定を行う
-            .all { laneItem ->
-                // 空きがあること
-                val hasFreeSpace = dragAndDroppedDisplayTime.startMs !in laneItem.timeRange && dragAndDroppedDisplayTime.stopMs !in laneItem.timeRange
-                // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                val hasNotInclude = laneItem.startMs !in dragAndDroppedDisplayTime && laneItem.stopMs !in dragAndDroppedDisplayTime
-                hasFreeSpace && hasNotInclude
-            }
+        val requestIdList = requestList.map { it.id }
+        val isAllAcceptable = requestList.all { request ->
+            // ドラッグアンドドロップ移動先に合った DisplayTime を作る
+            // マイナスに入らないように
+            val dragAndDroppedDisplayTime = request.createDragAndDroppedDisplayTime()
+            // 移動先のレーンに空きがあること
+            _timeLineData.value
+                // すべてのレーンを取得したあと、指定レーンだけ取り出す
+                .groupByLane()
+                .first { (laneIndex, _) -> laneIndex == request.dragAndDroppedLaneIndex }
+                .second
+                // 同一レーンの移動の場合は自分自身も消す（同一レーンでの時間調整できなくなる）
+                // また、複数移動時は、空いたところに他のアイテムが入る可能性があるので、消しておく
+                .filter { laneItem -> laneItem.id !in requestIdList }
+                // 判定を行う
+                .all { laneItem ->
+                    // 空きがあること
+                    val hasFreeSpace = dragAndDroppedDisplayTime.startMs !in laneItem.timeRange && dragAndDroppedDisplayTime.stopMs !in laneItem.timeRange
+                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                    val hasNotInclude = laneItem.startMs !in dragAndDroppedDisplayTime && laneItem.stopMs !in dragAndDroppedDisplayTime
+                    hasFreeSpace && hasNotInclude
+                }
+        }
 
         // 空きがない場合は return
-        if (!isAcceptable) return false
-        val layerIndex = request.dragAndDroppedLaneIndex
+        // 複数件の移動が出来るため、一個でもアウトなら return
+        // TODO 何か toast とか出すなら
+        if (!isAllAcceptable) return
+
+        // すべて空きがあって移動できる場合
+        requestList.forEach { request ->
+            val renderItem = request.getRenderItem()
+            val dragAndDroppedDisplayTime = request.createDragAndDroppedDisplayTime()
+            val layerIndex = request.dragAndDroppedLaneIndex
+            /*
 
         // RenderData の Flow からタイムラインの情報が再構築されるが、
         // resolveTimeLineLabel が結構遅いので、ここで Flow 経由で更新してもぎこちない動作になってしまう。
@@ -556,67 +568,68 @@ class VideoEditorViewModel(
             })
         }
 
-        // RenderData を更新する
-        // タイムラインも RenderData の Flow から再構築される
-        when (renderItem) {
-            is RenderData.AudioItem.Audio -> addOrUpdateAudioRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
-                )
-            )
+            */
 
-            is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+            // RenderData を更新する
+            // タイムラインも RenderData の Flow から再構築される
+            when (renderItem) {
+                is RenderData.AudioItem.Audio -> addOrUpdateAudioRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.SwitchAnimation -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
 
-            is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(
-                renderItem.copy(
-                    displayTime = dragAndDroppedDisplayTime,
-                    layerIndex = layerIndex
+                is RenderData.CanvasItem.SwitchAnimation -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
                 )
-            )
+
+                is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(
+                    renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+                )
+            }
         }
-
-        return true
     }
 
     /**

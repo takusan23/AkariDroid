@@ -18,9 +18,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
@@ -28,31 +30,19 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
+import kotlin.math.abs
 
 @Composable
 fun MultiSelectTimeLine(
     modifier: Modifier = Modifier,
     timeLineState: TimeLineState,
     currentPositionMs: () -> Long,
-    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Boolean,
-    onSeek: (positionMs: Long) -> Unit
+    onSeek: (positionMs: Long) -> Unit,
+    onDragAndDropRequest: (request: List<TimeLineData.DragAndDropRequest>) -> Unit
 ) {
     // はみ出しているタイムラインの LayoutCoordinates
     // タイムラインのレーンや、タイムラインのアイテムの座標を出すのに必要
     val timelineScrollableAreaCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // 選択中のアイテム
-    val multiSelectedItemList = remember { mutableStateOf(emptyList<TimeLineData.Item>()) }
-    // 移動中のオフセット
-    val draggingOffsetOrZero = remember { mutableStateOf(IntOffset.Zero) }
-    // 磁石モード用に、くっつける位置。
-    // 再生位置と、今選択中の以外にくっつくように
-    val magnetPositionMsList = remember(multiSelectedItemList.value, currentPositionMs()) {
-        val selectedIdList = multiSelectedItemList.value.map { it.id }
-        timeLineState.magnetPositionList
-            .filter { it.id !in selectedIdList }
-            .map { it.positionMs } + currentPositionMs()
-    }
 
     // 横に長ーいタイムラインを作る
     RequiredSizeMultiSelectTimeLine(
@@ -61,27 +51,9 @@ fun MultiSelectTimeLine(
             .onGloballyPositioned { timelineScrollableAreaCoordinates.value = it },
         timeLineState = timeLineState,
         timeLineScrollableAreaCoordinates = timelineScrollableAreaCoordinates.value,
-        magnetPositionMsList = magnetPositionMsList,
-        multiSelectedItemList = multiSelectedItemList.value,
         onSeek = onSeek,
-        onItemSelect = { item ->
-            if (item in multiSelectedItemList.value) {
-                multiSelectedItemList.value -= item
-            } else {
-                multiSelectedItemList.value += item
-            }
-        },
-        draggingOffsetOrZero = { item ->
-            if (item in multiSelectedItemList.value) {
-                draggingOffsetOrZero.value
-            } else {
-                IntOffset.Zero
-            }
-        },
-        onUpdateDraggingOffset = { draggingOffsetOrZero.value = it },
-        onDragEnd = {
-            println(it)
-        }
+        currentPositionMs = currentPositionMs,
+        onDragAndDropRequest = onDragAndDropRequest
     )
 }
 
@@ -94,17 +66,34 @@ private fun RequiredSizeMultiSelectTimeLine(
     modifier: Modifier = Modifier,
     timeLineState: TimeLineState,
     timeLineScrollableAreaCoordinates: LayoutCoordinates?,
-    magnetPositionMsList: List<Long>,
-    multiSelectedItemList: List<TimeLineData.Item>,
+    currentPositionMs: () -> Long,
     onSeek: (positionMs: Long) -> Unit,
-    onItemSelect: (TimeLineData.Item) -> Unit,
-    draggingOffsetOrZero: (TimeLineData.Item) -> IntOffset,
-    onUpdateDraggingOffset: (IntOffset) -> Unit,
-    onDragEnd: (TimeLineItemComponentDragAndDropData) -> Unit
+    onDragAndDropRequest: (request: List<TimeLineData.DragAndDropRequest>) -> Unit
 ) {
     val msWidthPx = LocalTimeLineMillisecondsWidthPx.current
     // レーンコンポーネントの位置と番号
     val timeLineLaneIndexRectMap = remember { mutableStateMapOf<Int, IntRect>() }
+
+    // Haptics 制御
+    // 移動開始、磁石モード発動時にフィードバックを
+    val haptic = LocalHapticFeedback.current
+    val isHapticEnable = remember { mutableStateOf(true) }
+
+    // 移動中のオフセット。選択中のアイテムはこれを足す
+    val draggingOffset = remember { mutableStateOf(IntOffset.Zero) }
+    // 選択中のアイテムと、開始位置。
+    val multiSelectedItemList = remember { mutableStateOf(emptyMap<TimeLineData.Item, IntRect>()) }
+    // タイムライン上のアイテムの座標を持っておく。移動開始と終了で参照する
+    val timeLineItemPositionMap = remember { mutableStateOf(emptyMap<TimeLineData.Item, IntRect>()) }
+
+    // 磁石モード用に、くっつける位置。
+    // 再生位置と、今選択中の以外にくっつくように
+    val magnetPositionMsList = remember(multiSelectedItemList.value, currentPositionMs()) {
+        val selectedIdList = multiSelectedItemList.value.map { it.key.id }
+        timeLineState.magnetPositionList
+            .filter { it.id !in selectedIdList }
+            .map { it.positionMs } + currentPositionMs()
+    }
 
     Column(
         modifier = modifier
@@ -150,12 +139,89 @@ private fun RequiredSizeMultiSelectTimeLine(
                     laneIndex = laneIndex,
                     laneItemList = itemList,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
-                    magnetPositionMsList = magnetPositionMsList,
-                    multiSelectedItemList = multiSelectedItemList,
-                    onItemSelect = onItemSelect,
-                    draggingOffsetOrZero = draggingOffsetOrZero,
-                    onUpdateDraggingOffset = onUpdateDraggingOffset,
-                    onDragEnd = onDragEnd
+                    isSelected = {
+                        it in multiSelectedItemList.value
+                    },
+                    onItemSelect = { clickItem ->
+                        if (clickItem in multiSelectedItemList.value) {
+                            multiSelectedItemList.value -= clickItem
+                        } else {
+                            val startPos = timeLineItemPositionMap.value[clickItem] ?: return@MultiSelectTimeLineLane
+                            multiSelectedItemList.value += clickItem to startPos
+                        }
+                    },
+                    draggingOffset = { offsetItem ->
+                        val originPosition = IntOffset(with(msWidthPx) { offsetItem.startMs.msToWidth }, 0)
+                        if (offsetItem in multiSelectedItemList.value) {
+                            draggingOffset.value + originPosition
+                        } else {
+                            originPosition
+                        }
+                    },
+                    onPositionChanged = { positionChangeItem, positionIntRect ->
+                        timeLineItemPositionMap.value += positionChangeItem to positionIntRect
+                    },
+                    onDragStart = { _, _ ->
+                        // ドラッグアンドドロップ開始時。フラグを立てて開始位置を入れておく
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        draggingOffset.value = IntOffset.Zero
+                    },
+                    onDragProgress = { draggingItem, x, y ->
+                        // 移動させる
+                        val updatePos = IntOffset(
+                            x = (draggingOffset.value.x + x).toInt(),
+                            y = (draggingOffset.value.y + y).toInt()
+                        )
+                        draggingOffset.value = updatePos
+                        isHapticEnable.value = true
+                        // 移動前の時間
+                        val beforeStartMs = draggingItem.startMs
+                        // updatePos は移動開始が Zero なので、元の値を足す
+                        val currentOffset = beforeStartMs + with(msWidthPx) { updatePos.x.widthToMs }
+                        // 磁石モード発動するか
+                        val magnetPositionMsOrNull = magnetPositionMsList.firstOrNull { magnetPositionMs ->
+                            abs(magnetPositionMs - currentOffset) < MAGNET_THRESHOLD_MOVE
+                        }
+                        if (magnetPositionMsOrNull != null) {
+                            // 差があるときだけにして連続対策
+                            if (isHapticEnable.value) {
+                                isHapticEnable.value = false
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            // Offset は移動開始を Zero としているので引いておく
+                            draggingOffset.value = updatePos.copy(x = with(msWidthPx) { (magnetPositionMsOrNull - beforeStartMs).msToWidth })
+                        } else {
+                            draggingOffset.value = updatePos
+                            isHapticEnable.value = true
+                        }
+                    },
+                    onDragEnd = { _, _, _ -> // 指で押してるやつなので使わない
+                        // 移動終了
+                        // 選択中のアイテムすべてに判定
+                        val dragAndDropRequestList = multiSelectedItemList.value.mapNotNull { (item, start) ->
+
+                            // 終了位置
+                            val stop = timeLineItemPositionMap.value[item] ?: return@mapNotNull null
+
+                            // ドラッグアンドドロップが終わった後の位置に対応する時間を出す
+                            val stopMsInDroppedPos = with(msWidthPx) { stop.left.widthToMs }
+
+                            // ドラッグアンドドロップで移動先に移動してよいか
+                            // 移動元、移動先のレーン番号を取得
+                            val fromLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(start.center) }.keys.firstOrNull() ?: return@mapNotNull null
+                            val toLaneIndex = timeLineLaneIndexRectMap.filter { it.value.contains(stop.center) }.keys.firstOrNull() ?: return@mapNotNull null
+
+                            TimeLineData.DragAndDropRequest(
+                                id = item.id,
+                                dragAndDroppedStartMs = stopMsInDroppedPos,
+                                dragAndDroppedLaneIndex = toLaneIndex
+                            )
+                        }
+                        // ViewModel 側に投げる
+                        onDragAndDropRequest(dragAndDropRequestList)
+                        draggingOffset.value = IntOffset.Zero
+                        multiSelectedItemList.value = emptyMap()
+                    },
                 )
                 HorizontalDivider()
             }
@@ -169,12 +235,13 @@ private fun MultiSelectTimeLineLane(
     laneItemList: List<TimeLineData.Item>,
     laneIndex: Int,
     timeLineScrollableAreaCoordinates: LayoutCoordinates,
-    magnetPositionMsList: List<Long>,
-    multiSelectedItemList: List<TimeLineData.Item>,
     onItemSelect: (TimeLineData.Item) -> Unit,
-    draggingOffsetOrZero: (TimeLineData.Item) -> IntOffset,
-    onUpdateDraggingOffset: (IntOffset) -> Unit,
-    onDragEnd: (TimeLineItemComponentDragAndDropData) -> Unit
+    isSelected: (TimeLineData.Item) -> Boolean,
+    draggingOffset: (TimeLineData.Item) -> IntOffset,
+    onPositionChanged: (TimeLineData.Item, IntRect) -> Unit,
+    onDragStart: (TimeLineData.Item, IntRect) -> Unit,
+    onDragProgress: (TimeLineData.Item, x: Float, y: Float) -> Unit,
+    onDragEnd: (TimeLineData.Item, start: IntRect, end: IntRect) -> Unit
 ) {
     Box(modifier = modifier) {
 
@@ -192,12 +259,13 @@ private fun MultiSelectTimeLineLane(
             MultiSelectTimeLineItem(
                 timeLineItemData = timeLineItemData,
                 timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
-                isSelected = timeLineItemData in multiSelectedItemList,
-                magnetPositionMsList = magnetPositionMsList,
+                isSelected = isSelected(timeLineItemData),
                 onItemSelect = onItemSelect,
-                draggingOffsetOrZero = draggingOffsetOrZero,
-                onUpdateDraggingOffset = onUpdateDraggingOffset,
-                onDragEnd = onDragEnd
+                onPositionChanged = { onPositionChanged(timeLineItemData, it) },
+                draggingOffset = { draggingOffset(timeLineItemData) },
+                onDragStart = { startRect -> onDragStart(timeLineItemData, startRect) },
+                onDragProgress = { x, y -> onDragProgress(timeLineItemData, x, y) },
+                onDragEnd = { start, end -> onDragEnd(timeLineItemData, start, end) }
             )
         }
     }
