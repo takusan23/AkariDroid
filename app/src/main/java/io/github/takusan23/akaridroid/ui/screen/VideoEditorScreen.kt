@@ -40,6 +40,7 @@ import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropRecei
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingAddRenderItemBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingMenuButton
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
+import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
 import io.github.takusan23.akaridroid.ui.component.toMenu
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
@@ -167,21 +168,29 @@ fun VideoEditorScreen(
                 )
 
                 // 戻る進むとかのヘッダー
-                DefaultTimeLineHeader(
-                    msWidthPx = timeLineMsWidthPx.intValue,
-                    onModeChangeClick = {
-                        timeLineMode.value = when (timeLineMode.value) {
-                            TimeLineMode.Default -> TimeLineMode.MultiSelect
-                            TimeLineMode.MultiSelect -> TimeLineMode.Default
-                        }
-                    },
-                    onZoomIn = { timeLineMsWidthPx.intValue++ },
-                    onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
-                    hasUndo = historyState.value.hasUndo,
-                    hasRedo = historyState.value.hasRedo,
-                    onUndo = { viewModel.renderDataUndo() },
-                    onRedo = { viewModel.renderDataRedo() }
-                )
+                when (timeLineMode.value) {
+                    TimeLineMode.Default -> DefaultTimeLineHeader(
+                        msWidthPx = timeLineMsWidthPx.intValue,
+                        onModeChangeClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+                        onZoomIn = { timeLineMsWidthPx.intValue++ },
+                        onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
+                        hasUndo = historyState.value.hasUndo,
+                        hasRedo = historyState.value.hasRedo,
+                        onUndo = { viewModel.renderDataUndo() },
+                        onRedo = { viewModel.renderDataRedo() }
+                    )
+
+                    TimeLineMode.MultiSelect -> MultiSelectTimeLineHeader(
+                        onExitMultiSelect = { timeLineMode.value = TimeLineMode.Default },
+                        msWidthPx = timeLineMsWidthPx.intValue,
+                        onZoomIn = { timeLineMsWidthPx.intValue++ },
+                        onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
+                        hasUndo = historyState.value.hasUndo,
+                        hasRedo = historyState.value.hasRedo,
+                        onUndo = { viewModel.renderDataUndo() },
+                        onRedo = { viewModel.renderDataRedo() }
+                    )
+                }
 
                 // 線
                 HorizontalDivider()
