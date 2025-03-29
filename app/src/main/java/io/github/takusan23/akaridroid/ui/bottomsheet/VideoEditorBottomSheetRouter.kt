@@ -31,6 +31,8 @@ fun VideoEditorBottomSheetRouter(
     onSettingClick: () -> Unit,
     onStartAkaLink: () -> Unit,
     onClose: () -> Unit,
+    onDefaultClick: () -> Unit,
+    onMultiSelectClick: () -> Unit
 ) {
 
     ModalBottomSheet(onDismissRequest = onClose) {
@@ -178,6 +180,18 @@ fun VideoEditorBottomSheetRouter(
             // 素材追加画面
             VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem -> AddRenderItemBottomSheet(
                 onAddRenderItemResult = onAddRenderItemResult
+            )
+
+            // タイムラインのモード変更
+            VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange -> TimeLineModeChangeBottomSheet(
+                onDefaultClick = {
+                    onDefaultClick()
+                    onClose()
+                },
+                onMultiSelectClick = {
+                    onMultiSelectClick()
+                    onClose()
+                }
             )
         }
     }

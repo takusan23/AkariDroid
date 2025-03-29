@@ -62,6 +62,8 @@ fun VideoEditorScreen(
 
     // タイムライン拡大率
     val timeLineMsWidthPx = remember { mutableIntStateOf(20) }
+    // タイムラインのモード
+    val timeLineMode = remember { mutableStateOf(TimeLineMode.Default) }
 
     // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
@@ -116,7 +118,9 @@ fun VideoEditorScreen(
             onTimeLineReset = { viewModel.resetRenderItemList() },
             onSettingClick = { onNavigate(NavigationPaths.Setting) },
             onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },
-            onClose = { viewModel.closeBottomSheet() }
+            onClose = { viewModel.closeBottomSheet() },
+            onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
+            onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect }
         )
     }
 
@@ -159,8 +163,6 @@ fun VideoEditorScreen(
                     )
                 }
 
-                // タイムラインのモード
-                val timeLineMode = remember { mutableStateOf(TimeLineMode.Default) }
                 // タイムラインの状態
                 val timeLineState = rememberTimeLineState(
                     timeLineData = timeLineData.value,
@@ -171,7 +173,7 @@ fun VideoEditorScreen(
                 when (timeLineMode.value) {
                     TimeLineMode.Default -> DefaultTimeLineHeader(
                         msWidthPx = timeLineMsWidthPx.intValue,
-                        onModeChangeClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+                        onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
                         onZoomIn = { timeLineMsWidthPx.intValue++ },
                         onZoomOut = { timeLineMsWidthPx.intValue = maxOf(timeLineMsWidthPx.intValue - 1, 1) },
                         hasUndo = historyState.value.hasUndo,

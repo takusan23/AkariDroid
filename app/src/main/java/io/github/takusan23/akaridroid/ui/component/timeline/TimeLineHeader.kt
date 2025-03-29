@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,7 @@ fun DefaultTimeLineHeader(
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-            Text(text = "モード切替")
+            Text(text = stringResource(id = R.string.timeline_header_default_mode_switch))
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -101,11 +102,11 @@ fun MultiSelectTimeLineHeader(
                     trim = LineHeightStyle.Trim.None
                 )
                 Text(
-                    text = "複数選択モード",
+                    text = stringResource(id = R.string.timeline_header_multi_select_multi_select_title),
                     style = TextStyle(lineHeightStyle = lineHeightStyle)
                 )
                 Text(
-                    text = "移動やコピー、削除ができます",
+                    text = stringResource(id = R.string.timeline_header_multi_select_multi_select_description),
                     fontSize = 12.sp,
                     style = TextStyle(lineHeightStyle = lineHeightStyle)
                 )

@@ -256,4 +256,12 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="project_list_dialog_import_title">Importing projects</string>
     <string name="project_list_dialog_import_description">The materials in the zip file are extracted. This will take a while.</string>
     <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out_white">Fade out, fade in (white)</string>
+    <string name="timeline_header_default_mode_switch">Mode Switching</string>
+    <string name="timeline_header_multi_select_multi_select_title">Multiple Selection Mode</string>
+    <string name="timeline_header_multi_select_multi_select_description">You can move or copy them all at once.</string>
+    <string name="video_edit_bottomsheet_timeline_mode_change_title">Timeline mode switching</string>
+    <string name="video_edit_bottomsheet_timeline_mode_change_default_title">Standard Mode</string>
+    <string name="video_edit_bottomsheet_timeline_mode_change_default_description">This mode allows you to operate timeline items one by one.</string>
+    <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_title">Multiple Selection Mode</string>
+    <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_description">This mode allows you to select multiple items and move or copy them all at once.</string>
 </resources>
