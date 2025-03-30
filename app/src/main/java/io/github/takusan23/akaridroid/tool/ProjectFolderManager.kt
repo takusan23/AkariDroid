@@ -226,9 +226,12 @@ object ProjectFolderManager {
         val folder = getProjectFolder(context, name)
         val fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString()
         val copiedFile = folder.resolve(fileName)
-        // コピーする
-        withContext(Dispatchers.IO) {
-            MediaStoreTool.fileCopy(context, uri, copiedFile)
+        // すでにある場合は何もしない
+        if (!copiedFile.exists()) {
+            // コピーする
+            withContext(Dispatchers.IO) {
+                MediaStoreTool.fileCopy(context, uri, copiedFile)
+            }
         }
         return copiedFile.path
     }
@@ -243,11 +246,14 @@ object ProjectFolderManager {
         val folder = getProjectFolder(context, name)
         val fileName = file.path
         val copiedFile = folder.resolve(fileName)
-        // コピーする
-        withContext(Dispatchers.IO) {
-            file.inputStream().use { inputStream ->
-                copiedFile.outputStream().use { outputStream ->
-                    inputStream.copyTo(outputStream)
+        // すでにある場合は何もしない
+        if (!copiedFile.exists()) {
+            // コピーする
+            withContext(Dispatchers.IO) {
+                file.inputStream().use { inputStream ->
+                    copiedFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
                 }
             }
         }

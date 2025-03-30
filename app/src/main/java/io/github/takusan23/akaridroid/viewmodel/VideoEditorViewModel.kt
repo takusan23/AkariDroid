@@ -700,7 +700,7 @@ class VideoEditorViewModel(
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> processAudioOrVideo()
         }
         // 分割前のアイテムは消す
-        deleteRenderItem(targetItem)
+        deleteRenderItem(listOf(targetItem))
         // 追加する
         addOrUpdateRenderItem(cutItemList)
     }
@@ -708,10 +708,10 @@ class VideoEditorViewModel(
     /**
      * タイムラインのアイテムを削除する
      *
-     * @param id 削除したいアイテムのID。[RenderData.RenderItem.id]
+     * @param id 削除したいアイテムの ID 配列。[RenderData.RenderItem.id]
      */
-    fun deleteTimeLineItem(id: Long) {
-        val deleteItem = getRenderItem(id) ?: return
+    fun deleteTimeLineItemFromId(idList: List<Long>) {
+        val deleteItem = idList.mapNotNull { getRenderItem(it) }
         deleteRenderItem(deleteItem)
     }
 
@@ -844,10 +844,14 @@ class VideoEditorViewModel(
         }
     }
 
-    /** タイムラインのアイテムをコピーする */
-    fun copy(id: Long) {
-        val renderItem = getRenderItem(id) ?: return
-        copy(copyList = listOf(renderItem))
+    /**
+     * タイムラインのアイテムをコピーする
+     *
+     * @param idList コピーしたいアイテムの ID 配列
+     */
+    fun copyFromId(idList: List<Long>) {
+        val renderItem = idList.mapNotNull { getRenderItem(it) }
+        copy(copyList = renderItem)
     }
 
     /**
@@ -1158,16 +1162,23 @@ class VideoEditorViewModel(
     }
 
     /**
-     * [RenderData.RenderItem]を削除する
+     * [RenderData.RenderItem]を削除する。
+     * 配列で取っているのは undo/redo のため。
      *
-     * @param renderItem 削除したい
+     * @param renderItemList 削除したいアイテムの配列
      */
-    private fun deleteRenderItem(renderItem: RenderData.RenderItem) {
-        _renderData.update {
-            when (renderItem) {
-                is RenderData.AudioItem -> it.copy(audioRenderItem = it.audioRenderItem.filter { it.id != renderItem.id })
-                is RenderData.CanvasItem -> it.copy(canvasRenderItem = it.canvasRenderItem.filter { it.id != renderItem.id })
-            }
+    private fun deleteRenderItem(renderItemList: List<RenderData.RenderItem>) {
+        _renderData.update { before ->
+            val deleteCanvasItemList = renderItemList.filterIsInstance<RenderData.CanvasItem>()
+            val deleteAudioItemList = renderItemList.filterIsInstance<RenderData.AudioItem>()
+
+            val removedCanvasItem = before.canvasRenderItem - deleteCanvasItemList.toSet()
+            val removedAudioItem = before.audioRenderItem - deleteAudioItemList.toSet()
+
+            before.copy(
+                canvasRenderItem = removedCanvasItem,
+                audioRenderItem = removedAudioItem
+            )
         }
     }
 

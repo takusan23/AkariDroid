@@ -99,7 +99,7 @@ fun VideoEditorScreen(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
             onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
-            onDeleteItem = { viewModel.deleteTimeLineItem(it.id) },
+            onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
             onAddRenderItemResult = { viewModel.resolveRenderItemCreate(it) },
             onReceiveAkaLink = { viewModel.resolveAkaLinkResult(it) },
             onRenderDataUpdate = { viewModel.updateRenderData(it) },
@@ -255,9 +255,9 @@ private fun VideoEditorDefaultTimeLine(
                             }
                         },
                         onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
-                        onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
+                        onDelete = { deleteItem -> viewModel.deleteTimeLineItemFromId(listOf(deleteItem.id)) },
                         onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
-                        onCopy = { copyItem -> viewModel.copy(copyItem.id) },
+                        onCopy = { copyItem -> viewModel.copyFromId(listOf(copyItem.id)) },
                         onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
                     )
                 }
@@ -306,6 +306,9 @@ private fun VideoEditorMultiSelectTimeLine(
     onChangeTimeLineMsWidthPx: (Int) -> Unit,
     onExitMultiSelectTimeLine: () -> Unit
 ) {
+    // 複数選択中のアイテム
+    val multiSelectItemIdList = remember { mutableStateOf(emptyList<Long>()) }
+
     Box(modifier = modifier) {
 
         Column {
@@ -338,7 +341,17 @@ private fun VideoEditorMultiSelectTimeLine(
                 MultiSelectTimeLine(
                     modifier = Modifier,
                     timeLineState = timeLineState,
+                    selectedItemIdList = multiSelectItemIdList.value,
                     currentPositionMs = { previewPlayerStatus.currentPositionMs },
+                    onItemSelect = { selectItem ->
+                        // 無ければ追加、あれば消す
+                        val id = selectItem.id
+                        if (id in multiSelectItemIdList.value) {
+                            multiSelectItemIdList.value -= id
+                        } else {
+                            multiSelectItemIdList.value += id
+                        }
+                    },
                     onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
                     onDragAndDropRequest = { requestList -> viewModel.resolveTimeLineDragAndDropRequest(requestList) }
                 )
@@ -356,12 +369,15 @@ private fun VideoEditorMultiSelectTimeLine(
             FloatingTimeLineTitledItem(
                 title = stringResource(R.string.video_edit_floating_multi_select_copy),
                 iconResId = R.drawable.content_paste_24px,
-                onClick = { /* TODO 実装 */ }
+                onClick = { viewModel.copyFromId(multiSelectItemIdList.value) }
             )
             FloatingTimeLineTitledItem(
                 title = stringResource(R.string.video_edit_floating_multi_delete),
                 iconResId = R.drawable.ic_outline_delete_24px,
-                onClick = { /* TODO 実装 */ }
+                onClick = {
+                    viewModel.deleteTimeLineItemFromId(multiSelectItemIdList.value)
+                    multiSelectItemIdList.value = emptyList()
+                }
             )
         }
     }
