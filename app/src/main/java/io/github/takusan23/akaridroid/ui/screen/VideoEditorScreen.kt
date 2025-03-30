@@ -97,8 +97,8 @@ fun VideoEditorScreen(
     if (bottomSheetRouteData.value != null) {
         VideoEditorBottomSheetRouter(
             videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
-            onAudioUpdate = { viewModel.addOrUpdateAudioRenderItem(it) },
-            onCanvasUpdate = { viewModel.addOrUpdateCanvasRenderItem(it) },
+            onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
+            onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onDeleteItem = { viewModel.deleteTimeLineItem(it.id) },
             onAddRenderItemResult = { viewModel.resolveRenderItemCreate(it) },
             onReceiveAkaLink = { viewModel.resolveAkaLinkResult(it) },

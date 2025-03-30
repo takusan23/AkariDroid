@@ -396,34 +396,31 @@ class VideoEditorViewModel(
             // 編集画面を開きたい RenderItem を返す
             val openEditItem = when (addRenderItemMenuResult) {
                 AddRenderItemMenuResult.Text -> createTextCanvasItem(displayTimeStartMs)
-                    .also { text -> addOrUpdateCanvasRenderItem(text) }
+                    .also { text -> addOrUpdateRenderItem(listOf(text)) }
 
                 is AddRenderItemMenuResult.Image -> createImageCanvasItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
-                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+                    ?.also { image -> addOrUpdateRenderItem(listOf(image)) }
 
                 is AddRenderItemMenuResult.Video -> createVideoItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
-                    .onEach { renderItem ->
-                        when (renderItem) {
-                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                        }
+                    .also { list ->
+                        addOrUpdateRenderItem(renderItemList = list)
                     }
                     .firstOrNull()
 
                 is AddRenderItemMenuResult.Audio -> createAudioItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
-                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+                    ?.also { audio -> addOrUpdateRenderItem(listOf(audio)) }
 
                 AddRenderItemMenuResult.Shape -> createShapeCanvasItem(displayTimeStartMs)
-                    .also { shape -> addOrUpdateCanvasRenderItem(shape) }
+                    .also { shape -> addOrUpdateRenderItem(listOf(shape)) }
 
                 AddRenderItemMenuResult.Shader -> createShaderCanvasItem(displayTimeStartMs)
-                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
+                    .also { shader -> addOrUpdateRenderItem(listOf(shader)) }
 
                 AddRenderItemMenuResult.SwitchAnimation -> createSwitchAnimationCanvasItem(displayTimeStartMs)
-                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
+                    .also { shader -> addOrUpdateRenderItem(listOf(shader)) }
 
                 AddRenderItemMenuResult.Effect -> createEffectCanvasItem(displayTimeStartMs)
-                    .also { shader -> addOrUpdateCanvasRenderItem(shader) }
+                    .also { shader -> addOrUpdateRenderItem(listOf(shader)) }
             }
 
             // 編集画面を開く
@@ -443,17 +440,14 @@ class VideoEditorViewModel(
             // あかりんくの結果から RenderItem を作る
             val openEditItem = when (result) {
                 is AkaLinkTool.AkaLinkResult.Image -> createImageCanvasItem(displayTimeStartMs, file.toIoType())
-                    ?.also { image -> addOrUpdateCanvasRenderItem(image) }
+                    ?.also { image -> addOrUpdateRenderItem(listOf(image)) }
 
                 is AkaLinkTool.AkaLinkResult.Audio -> createAudioItem(displayTimeStartMs, file.toIoType())
-                    ?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+                    ?.also { audio -> addOrUpdateRenderItem(listOf(audio)) }
 
                 is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
-                    .onEach { renderItem ->
-                        when (renderItem) {
-                            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                        }
+                    .also { list ->
+                        addOrUpdateRenderItem(list)
                     }
                     .firstOrNull()
             }
@@ -545,92 +539,79 @@ class VideoEditorViewModel(
         // TODO 何か toast とか出すなら
         if (!isAllAcceptable) return
 
-        // すべて空きがあって移動できる場合
-        requestList.forEach { request ->
-            val renderItem = request.getRenderItem()
-            val dragAndDroppedDisplayTime = request.createDragAndDroppedDisplayTime()
-            val layerIndex = request.dragAndDroppedLaneIndex
-            /*
-
-        // RenderData の Flow からタイムラインの情報が再構築されるが、
-        // resolveTimeLineLabel が結構遅いので、ここで Flow 経由で更新してもぎこちない動作になってしまう。
-        // そこで、TimeLine の位置だけ真っ先に更新することにする。
-        _timeLineData.update { before ->
-            before.copy(itemList = before.itemList.map { item ->
-                if (item.id == renderItem.id) {
-                    item.copy(
-                        laneIndex = layerIndex,
-                        startMs = dragAndDroppedDisplayTime.startMs,
-                        stopMs = dragAndDroppedDisplayTime.stopMs
-                    )
-                } else {
-                    item
-                }
-            })
-        }
-
-            */
-
-            // RenderData を更新する
-            // タイムラインも RenderData の Flow から再構築される
-            when (renderItem) {
-                is RenderData.AudioItem.Audio -> addOrUpdateAudioRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
+        /*
+        TODO これ戻したい、transformLatest { } で一発更新したあとに解析でどうにかなりませんか？
+    // RenderData の Flow からタイムラインの情報が再構築されるが、
+    // resolveTimeLineLabel が結構遅いので、ここで Flow 経由で更新してもぎこちない動作になってしまう。
+    // そこで、TimeLine の位置だけ真っ先に更新することにする。
+    _timeLineData.update { before ->
+        before.copy(itemList = before.itemList.map { item ->
+            if (item.id == renderItem.id) {
+                item.copy(
+                    laneIndex = layerIndex,
+                    startMs = dragAndDroppedDisplayTime.startMs,
+                    stopMs = dragAndDroppedDisplayTime.stopMs
                 )
-
-                is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.SwitchAnimation -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
-
-                is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(
-                    renderItem.copy(
-                        displayTime = dragAndDroppedDisplayTime,
-                        layerIndex = layerIndex
-                    )
-                )
+            } else {
+                item
             }
-        }
+        })
+    }
+
+        */
+
+        // すべて空きがあって移動できる場合
+        addOrUpdateRenderItem(
+            renderItemList = requestList.map { request ->
+                val renderItem = request.getRenderItem()
+                val dragAndDroppedDisplayTime = request.createDragAndDroppedDisplayTime()
+                val layerIndex = request.dragAndDroppedLaneIndex
+
+                // RenderData を更新する
+                // タイムラインも RenderData の Flow から再構築される
+                when (renderItem) {
+                    is RenderData.AudioItem.Audio -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Image -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Text -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Video -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Shape -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Shader -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+
+                    is RenderData.CanvasItem.Effect -> renderItem.copy(
+                        displayTime = dragAndDroppedDisplayTime,
+                        layerIndex = layerIndex
+                    )
+                }
+            }
+        )
     }
 
     /**
@@ -641,20 +622,22 @@ class VideoEditorViewModel(
     fun resolveTouchEditorDragAndDropRequest(request: TouchEditorData.PositionUpdateRequest) {
         // RenderData を更新する
         // そのほかも RenderData の Flow から再構築される
-        when (val renderItem = getRenderItem(request.id)!!) {
-            is RenderData.CanvasItem.Image -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.Video -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.Shape -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.Shader -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.SwitchAnimation -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
-            is RenderData.CanvasItem.Effect -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position))
+        val updateItem = when (val renderItem = getRenderItem(request.id)!!) {
+            is RenderData.CanvasItem.Image -> (renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Video -> (renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Shape -> (renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Shader -> (renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.SwitchAnimation -> (renderItem.copy(position = request.position))
+            is RenderData.CanvasItem.Effect -> (renderItem.copy(position = request.position))
             // テキストは特別で（Android Canvas 都合）、文字の大きさの分がないので足す
-            is RenderData.CanvasItem.Text -> addOrUpdateCanvasRenderItem(renderItem.copy(position = request.position.copy(y = request.position.y + renderItem.textSize)))
+            is RenderData.CanvasItem.Text -> (renderItem.copy(position = request.position.copy(y = request.position.y + renderItem.textSize)))
             is RenderData.AudioItem.Audio -> {
                 // キャンバス要素だけなのでここに来ることはない
                 // do nothing
+                return
             }
         }
+        addOrUpdateRenderItem(listOf(updateItem))
     }
 
     /**
@@ -721,12 +704,7 @@ class VideoEditorViewModel(
         // 分割前のアイテムは消す
         deleteRenderItem(targetItem)
         // 追加する
-        cutItemList
-            .filterIsInstance<RenderData.CanvasItem>()
-            .forEach { addOrUpdateCanvasRenderItem(it) }
-        cutItemList
-            .filterIsInstance<RenderData.AudioItem>()
-            .forEach { addOrUpdateAudioRenderItem(it) }
+        addOrUpdateRenderItem(cutItemList)
     }
 
     /**
@@ -760,10 +738,7 @@ class VideoEditorViewModel(
             is RenderData.CanvasItem.SwitchAnimation -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
             is RenderData.CanvasItem.Effect -> copyFromItem.copy(id = System.currentTimeMillis(), layerIndex = layerIndex)
         }
-        when (copyItem) {
-            is RenderData.AudioItem -> addOrUpdateAudioRenderItem(copyItem)
-            is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(copyItem)
-        }
+        addOrUpdateRenderItem(listOf(copyItem))
     }
 
     /**
@@ -784,7 +759,7 @@ class VideoEditorViewModel(
             is RenderData.AudioItem.Audio, is RenderData.CanvasItem.Video -> return
         }
         // 上記の通り来ないので...
-        addOrUpdateCanvasRenderItem(newDurationRenderItem)
+        addOrUpdateRenderItem(listOf(newDurationRenderItem))
     }
 
     /**
@@ -805,7 +780,7 @@ class VideoEditorViewModel(
             is RenderData.CanvasItem.Effect -> renderItem.copy(size = request.size)
         }
         // 上記の通り来ないので...
-        addOrUpdateCanvasRenderItem(newSizeRenderItem)
+        addOrUpdateRenderItem(listOf(newSizeRenderItem))
     }
 
     /** [RenderData.RenderItem.id] から [RenderData.RenderItem] を返す */
@@ -841,40 +816,33 @@ class VideoEditorViewModel(
     }
 
     /**
-     * [RenderData.CanvasItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
-     * 動画とか、テキストとか
+     * [RenderData.CanvasItem]や[RenderData.AudioItem]を追加する。
+     * [RenderData.RenderItem.id]が同じ場合は更新される。
+     * 配列で取っているのは undo/redo でまとめて戻せるように。bulk update 的な。
      *
-     * @param canvasItem [RenderData.CanvasItem]
+     * @param renderItemList 追加、更新したい[RenderData.RenderItem]の配列
      */
-    fun addOrUpdateCanvasRenderItem(canvasItem: RenderData.CanvasItem) {
+    fun addOrUpdateRenderItem(renderItemList: List<RenderData.RenderItem>) {
         _renderData.update { before ->
-            // 更新なら
-            if (before.canvasRenderItem.any { it.id == canvasItem.id }) {
-                before.copy(canvasRenderItem = before.canvasRenderItem.map { item ->
-                    if (item.id == canvasItem.id) canvasItem else item
-                })
-            } else {
-                before.copy(canvasRenderItem = before.canvasRenderItem + canvasItem)
-            }
-        }
-    }
+            val canvasItemList = renderItemList.filterIsInstance<RenderData.CanvasItem>()
+            val audioItemList = renderItemList.filterIsInstance<RenderData.AudioItem>()
 
-    /**
-     * [RenderData.AudioItem]を追加する。[RenderData.RenderItem.id]が同じ場合は更新される。
-     * BGM とか、動画の音声とか
-     *
-     * @param audioItem [RenderData.AudioItem]
-     */
-    fun addOrUpdateAudioRenderItem(audioItem: RenderData.AudioItem) {
-        _renderData.update { before ->
-            // 更新なら
-            if (before.audioRenderItem.any { it.id == audioItem.id }) {
-                before.copy(audioRenderItem = before.audioRenderItem.map { item ->
-                    if (item.id == audioItem.id) audioItem else item
-                })
-            } else {
-                before.copy(audioRenderItem = before.audioRenderItem + audioItem)
-            }
+            // ID だけがほしい
+            val afterCanvasIdList = canvasItemList.map { it.id }
+            // 同じ ID があれば、上書きするためまず消す
+            val afterCanvasList = before.canvasRenderItem
+                .filter { beforeItem -> beforeItem.id !in afterCanvasIdList } + canvasItemList
+
+            // 音声も
+            val afterAudioIdList = audioItemList.map { it.id }
+            val afterAudioList = before.audioRenderItem
+                .filter { beforeItem -> beforeItem.id !in afterAudioIdList } + audioItemList
+
+            // まとめて更新し、update { } の呼び出し回数を減らす
+            before.copy(
+                canvasRenderItem = afterCanvasList,
+                audioRenderItem = afterAudioList
+            )
         }
     }
 
@@ -941,6 +909,7 @@ class VideoEditorViewModel(
 
             // エンコードして ClipData にする
             // 独自 MIME-Type でアプリ固有であることを定義
+            // TODO JSON を適当に保存し、Uri を共有するように直す。これで plain-text を脱却できる上、同じアプリ間なので file:// でも行けるはず
             val jsonString = ProjectFolderManager.renderItemToJson(resetDisplayTimeList)
             val clipData = ClipData("akaridroid timeline copy", arrayOf(TIMELINE_COPY_MIME_TYPE), ClipData.Item(jsonString))
             clipboardManager.setPrimaryClip(clipData)
@@ -1040,26 +1009,23 @@ class VideoEditorViewModel(
                 mimeType.startsWith("text/") -> createTextCanvasItem(
                     displayTimeStartMs = currentPreviewPositionMs,
                     text = item.text.toString()
-                ).also { image -> addOrUpdateCanvasRenderItem(image) }
+                ).also { image -> addOrUpdateRenderItem(listOf(image)) }
 
                 mimeType.startsWith("image/") -> createImageCanvasItem(
                     displayTimeStartMs = currentPreviewPositionMs,
                     ioType = copiedFile ?: return@mapNotNull null
-                )?.also { image -> addOrUpdateCanvasRenderItem(image) }
+                )?.also { image -> addOrUpdateRenderItem(listOf(image)) }
 
                 mimeType.startsWith("audio/") -> createAudioItem(
                     displayTimeStartMs = currentPreviewPositionMs,
                     ioType = copiedFile ?: return@mapNotNull null
-                )?.also { audio -> addOrUpdateAudioRenderItem(audio) }
+                )?.also { audio -> addOrUpdateRenderItem(listOf(audio)) }
 
                 mimeType.startsWith("video/") -> createVideoItem(
                     displayTimeStartMs = currentPreviewPositionMs,
                     ioType = copiedFile ?: return@mapNotNull null
-                ).onEach { renderItem ->
-                    when (renderItem) {
-                        is RenderData.AudioItem -> addOrUpdateAudioRenderItem(renderItem)
-                        is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(renderItem)
-                    }
+                ).also { renderItem ->
+                    addOrUpdateRenderItem(renderItem)
                 }.firstOrNull()
 
                 else -> return@mapNotNull null
@@ -1152,11 +1118,12 @@ class VideoEditorViewModel(
                     is RenderData.CanvasItem.Video -> it.copy(displayTime = it.displayTime.setStartMsFromCurrentPreviewPosition())
                 }
             }
-            // 追加する
-            // レーン番号はタイムラインに追加した後に計算する必要があるので、↑の追加しない map { } じゃ出来ない
-            .onEach { renderItem ->
+
+        // タイムラインに追加。undo/redo でまとめて移動できるように
+        addOrUpdateRenderItem(
+            renderItemList = addableCopyRenderItemList.map { renderItem ->
                 val laneIndex = calcInsertableLaneIndex(renderItem.displayTime)
-                val updateLaneIndexRenderItem = when (renderItem) {
+                when (renderItem) {
                     is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
                     is RenderData.CanvasItem.Effect -> renderItem.copy(layerIndex = laneIndex)
                     is RenderData.CanvasItem.Image -> renderItem.copy(layerIndex = laneIndex)
@@ -1166,16 +1133,14 @@ class VideoEditorViewModel(
                     is RenderData.CanvasItem.Text -> renderItem.copy(layerIndex = laneIndex)
                     is RenderData.CanvasItem.Video -> renderItem.copy(layerIndex = laneIndex)
                 }
-                when (updateLaneIndexRenderItem) {
-                    is RenderData.AudioItem -> addOrUpdateAudioRenderItem(updateLaneIndexRenderItem)
-                    is RenderData.CanvasItem -> addOrUpdateCanvasRenderItem(updateLaneIndexRenderItem)
-                }
-                // TODO _timelineData が _renderData の後に更新されるため、更新が確認できるまで待つ
-                // TODO _renderData を元に calcInsertableLaneIndex するように直す
-                combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
-                    (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
-                }
             }
+        )
+
+        // TODO _timelineData が _renderData の後に更新されるため、更新が確認できるまで待つ
+        // TODO _renderData を元に calcInsertableLaneIndex するように直す
+        combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
+            (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
+        }
 
         return addableCopyRenderItemList
     }
