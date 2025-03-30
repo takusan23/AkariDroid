@@ -30,6 +30,7 @@ import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
+import io.github.takusan23.akaridroid.ui.component.toMenu
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -995,6 +996,18 @@ class VideoEditorViewModel(
             openEditRenderItemSheet(renderItem = insertRenderItemList.lastOrNull() ?: return@launch)
         }
     }
+
+    /** [AddRenderItemMenuResult]をさばく */
+    fun resolveRenderItemCreate(result: AddRenderItemMenuResult) {
+        // Addable のみ。ボトムシートを出す必要があれば別途やる
+        when (result) {
+            is AddRenderItemMenuResult.Addable -> resolveAddRenderItem(result)
+            is AddRenderItemMenuResult.BottomSheetOpenable -> openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink)
+        }
+        // 報酬を与える
+        floatingMenuBarMultiArmedBanditManager.reward(result.toMenu())
+    }
+
 
     /**
      * コピーしたテキスト、画像、音声、動画をタイムラインに貼り付ける。
