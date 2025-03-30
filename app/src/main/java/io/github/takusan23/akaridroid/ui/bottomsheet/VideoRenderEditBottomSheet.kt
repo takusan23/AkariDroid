@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import io.github.takusan23.akaridroid.tool.UriTool
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.ChromaKeyColorDialog
 import io.github.takusan23.akaridroid.ui.component.ColorItem
+import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemRotationEditComponent
@@ -86,7 +86,7 @@ fun VideoRenderEditBottomSheet(
         Text(text = "${stringResource(id = R.string.video_edit_bottomsheet_video_file_name)} : ${videoFileName.value}")
 
         // 10-bit HDR の動画なのに 10-bit HDR 動画編集機能がオフの場合
-        if (renderItem.dynamicRange == RenderData.CanvasItem.Video.DynamicRange.HDR_HLG && !isProjectHdr) {
+        if (renderItem.colorSpace.isHdr && !isProjectHdr) {
             ProjectSdrMessageInHdrVideo(
                 modifier = Modifier.padding(vertical = 10.dp),
                 onOpenVideoInfo = onOpenVideoInfo
@@ -134,20 +134,12 @@ private fun ProjectSdrMessageInHdrVideo(
     modifier: Modifier = Modifier,
     onOpenVideoInfo: () -> Unit
 ) {
-    OutlinedCard(modifier = modifier) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalAlignment = Alignment.End
-        ) {
-
-            Text(text = stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title))
-
-            OutlinedButton(onClick = onOpenVideoInfo) {
-                Text(text = stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button))
-            }
-        }
-    }
+    MessageCard(
+        modifier = modifier,
+        message = stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title),
+        stringResource(id = R.string.video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button),
+        onClick = onOpenVideoInfo
+    )
 }
 
 /**

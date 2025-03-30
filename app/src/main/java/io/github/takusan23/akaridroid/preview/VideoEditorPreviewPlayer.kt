@@ -157,9 +157,9 @@ class VideoEditorPreviewPlayer(
         videoWidth: Int,
         videoHeight: Int,
         durationMs: Long,
-        isEnableTenBitHdr: Boolean
+        colorSpace: RenderData.ColorSpace
     ) {
-        videoRenderer.setVideoParameters(videoWidth, videoHeight, isEnableTenBitHdr = isEnableTenBitHdr)
+        videoRenderer.setVideoParameters(videoWidth, videoHeight, colorSpace)
         _playerStatus.update { it.copy(durationMs = durationMs) }
     }
 

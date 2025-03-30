@@ -120,12 +120,26 @@ object AkariCoreEncoder {
                             outputVideoWidth = renderData.videoSize.width,
                             outputVideoHeight = renderData.videoSize.height,
                             containerFormat = encoderParameters.containerFormat.androidMediaMuxerFormat,
-                            tenBitHdrParametersOrNullSdr = if (renderData.isEnableTenBitHdr && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                AkariVideoEncoder.TenBitHdrParameters(
-                                    codecProfile = MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
-                                    colorStandard = MediaFormat.COLOR_STANDARD_BT2020,
-                                    colorTransfer = MediaFormat.COLOR_TRANSFER_HLG
-                                )
+                            tenBitHdrParametersOrNullSdr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                when (renderData.colorSpace) {
+                                    // SDR 時はいらない
+                                    RenderData.ColorSpace.SDR_BT709 -> null
+
+                                    // HLG
+                                    RenderData.ColorSpace.HDR_BT2020_HLG -> AkariVideoEncoder.TenBitHdrParameters(
+                                        codecProfile = MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10,
+                                        colorStandard = MediaFormat.COLOR_STANDARD_BT2020,
+                                        colorTransfer = MediaFormat.COLOR_TRANSFER_HLG
+                                    )
+
+                                    // PQ
+                                    // TODO HDR10+ と HDR10 が選べるように
+                                    RenderData.ColorSpace.HDR_BT2020_PQ -> AkariVideoEncoder.TenBitHdrParameters(
+                                        codecProfile = MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10Plus,
+                                        colorStandard = MediaFormat.COLOR_STANDARD_BT2020,
+                                        colorTransfer = MediaFormat.COLOR_TRANSFER_ST2084
+                                    )
+                                }
                             } else null
                         )
                     }
@@ -137,7 +151,7 @@ object AkariCoreEncoder {
                     videoRenderer.setVideoParameters(
                         outputWidth = renderData.videoSize.width,
                         outputHeight = renderData.videoSize.height,
-                        isEnableTenBitHdr = renderData.isEnableTenBitHdr
+                        colorSpaceType = renderData.colorSpace
                     )
                     videoRenderer.setRenderData(
                         canvasRenderItem = renderData.canvasRenderItem

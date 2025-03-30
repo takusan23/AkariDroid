@@ -80,8 +80,8 @@ fun VideoInfoEditorBottomSheet(
 
         TenBitHdrSettingItem(
             modifier = Modifier.fillMaxWidth(),
-            isEnableTenBitHdr = renderData.value.isEnableTenBitHdr,
-            onTenBitHdrChange = { isTenBitHdr -> update { it.copy(isEnableTenBitHdr = isTenBitHdr) } }
+            currentColorSpace = renderData.value.colorSpace,
+            onChange = { colorSpace -> update { it.copy(colorSpace = colorSpace) } }
         )
     }
 }

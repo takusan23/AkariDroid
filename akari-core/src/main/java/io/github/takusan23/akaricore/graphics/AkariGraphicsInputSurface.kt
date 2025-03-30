@@ -3,7 +3,7 @@ package io.github.takusan23.akaricore.graphics
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.EGLExt
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import javax.microedition.khronos.egl.EGL10
 
@@ -14,11 +14,11 @@ import javax.microedition.khronos.egl.EGL10
  * TODO 10-bit HDR （HLG / PQ）の描画に対応しているかを確認する方法を用意する
  *
  * @param renderingMode OpenGL ES の描画先
- * @param dynamicRangeType SDR か 10-bit HDR か
+ * @param colorSpaceType SDR か 10-bit HDR か
  */
 internal class AkariGraphicsInputSurface(
     renderingMode: AkariGraphicsProcessorRenderingPrepareData,
-    dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
+    colorSpaceType: AkariGraphicsProcessorColorSpaceType
 ) {
     private var mEGLDisplay = EGL14.EGL_NO_DISPLAY
     private var mEGLContext = EGL14.EGL_NO_CONTEXT
@@ -27,8 +27,8 @@ internal class AkariGraphicsInputSurface(
     init {
         // 10-bit HDR
         // OpenGL ES 3.0 でセットアップし、10-bit HLG か PQ に設定する必要がある。
-        if (dynamicRangeType.isHdr) {
-            eglSetupForTenBitHdr(renderingMode, dynamicRangeType)
+        if (colorSpaceType.isHdr) {
+            eglSetupForTenBitHdr(renderingMode, colorSpaceType)
         } else {
             eglSetupForSdr(renderingMode)
         }
@@ -37,7 +37,7 @@ internal class AkariGraphicsInputSurface(
     /** 10-bit HDR version. Prepares EGL. We want a GLES 3.0 context and a surface that supports recording. */
     private fun eglSetupForTenBitHdr(
         renderingMode: AkariGraphicsProcessorRenderingPrepareData,
-        dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
+        colorSpaceType: AkariGraphicsProcessorColorSpaceType
     ) {
         mEGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         if (mEGLDisplay == EGL14.EGL_NO_DISPLAY) {
@@ -77,11 +77,11 @@ internal class AkariGraphicsInputSurface(
         // EGL_GL_COLORSPACE_BT2020_HLG_EXT や PQ_EXT で 10-bit HDR を OpenGL ES で描画できる
         // TODO 10-bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
         val appendSurfaceAttribs = when {
-            dynamicRangeType == AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_HLG) -> intArrayOf(
+            colorSpaceType == AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_HLG) -> intArrayOf(
                 EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT
             )
 
-            dynamicRangeType == AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_PQ && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_PQ) -> intArrayOf(
+            colorSpaceType == AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_PQ && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_PQ) -> intArrayOf(
                 EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_PQ_EXT
             )
 

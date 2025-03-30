@@ -61,13 +61,13 @@ class VideoRenderer(
                     is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
                 },
                 outputSurface = akariGraphicsSurfaceTexture.surface,
-                isSdrToneMapping = if (videoTrackRendererPrepareData.isEnableTenBitHdr) {
+                isSdrToneMapping = if (videoTrackRendererPrepareData.colorSpace.isHdr) {
                     // 映像トラックで 10-bit HDR が有効
                     false
                 } else {
                     // 映像トラックで 10-bit HDR が無効。
                     // 動画が HDR の場合はトーンマッピングする
-                    video.dynamicRange != RenderData.CanvasItem.Video.DynamicRange.SDR
+                    video.colorSpace != RenderData.ColorSpace.SDR_BT709
                 }
             )
         }

@@ -162,7 +162,7 @@ fun VideoEditorBottomSheetRouter(
             // 動画保存画面
             is VideoEditorBottomSheetRouteRequestData.OpenEncode -> EncodeBottomSheet(
                 videoSize = videoEditorBottomSheetRouteRequestData.videoSize,
-                isEnableTenBitHdr = videoEditorBottomSheetRouteRequestData.isEnableTenBitHdr,
+                colorSpace = videoEditorBottomSheetRouteRequestData.colorSpace,
                 onEncode = { fileName, parameters ->
                     onEncode(fileName, parameters)
                     onClose()

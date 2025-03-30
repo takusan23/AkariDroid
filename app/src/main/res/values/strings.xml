@@ -236,10 +236,8 @@ When working with HDR videos, we recommend enabling this function and handling t
 If you are aware of the above and you really want to output as SDR video, you can disable it.\n
 \n
 Also, please note the following when editing HDR videos.\n
-・Currently, HLG format HDR videos are supported.\n
-(Color space is BT.2020, gamma curve is HLG)\n
 ・We do not recommend displaying photos or SDR videos on HDR videos as the colors will change.\n
--Currently, the only codecs available for encoding HDR video are HEVC/AV1.\n</string>
+・Currently, the only codecs available for encoding HDR video are HEVC/AV1.\n</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">This video is a 10-bit HDR video. Because 10-bit HDR video editing is disabled in this project, the colors will be whitish. To enable 10-bit HDR video editing, open the video information editing screen.</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_button">Open the video information editing screen</string>
     <string name="video_edit_bottomsheet_encode_basic_ten_bit_hdr_low_description">Bitrate 6Mbps</string>
@@ -269,4 +267,10 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_renderitem_paste_title">Paste</string>
     <string name="video_edit_renderitem_paste_description">You can copy an item by pressing it on the timeline.</string>
     <string name="timeline_context_menu_copy">copy</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_title">SDR/HDR Selection</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_sdr">If you\'re not sure, choose this one.\nBecause most videos are in SDR format.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_hlg">Select this if your video was shot in HDR and the gamma curve is HLG.\nSometimes it is simply called HLG.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_pq">Select this if your video was shot in HDR and the gamma curve is PQ (ST 2084).\nThis is sometimes called HDR10 or HDR10+.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_message">If you have forgotten or do not know the camera settings, please click the button below and select the video you want to edit. It will be analyzed.</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">The analysis has been completed.</string>
 </resources>

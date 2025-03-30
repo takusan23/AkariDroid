@@ -2,7 +2,7 @@ package io.github.takusan23.akaricore.graphics
 
 import android.opengl.GLES20
 import android.view.Surface
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,18 +15,18 @@ import kotlinx.coroutines.yield
  * SurfaceView を使う場合、[android.view.SurfaceHolder.setFixedSize]で[width]、[height]を入れておく必要があります。glViewport と違うとズレてしまうので。
  *
  * @param renderingPrepareData OpenGL ES の描画先と映像の縦横サイズ。Surface なら[AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering]、Surface 無しのオフスクリーンレンダリングなら[AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering]
- * @param dynamicRangeType SDR か 10-bit HDR ( HLG / PQ ) かどっちか。[AkariGraphicsProcessorDynamicRangeMode]
+ * @param colorSpaceType SDR か 10-bit HDR ( HLG / PQ ) かどっちか。[AkariGraphicsProcessorColorSpaceType]
  */
 @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
 class AkariGraphicsProcessor(
     private val renderingPrepareData: AkariGraphicsProcessorRenderingPrepareData,
-    dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode
+    colorSpaceType: AkariGraphicsProcessorColorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
 ) {
     /** OpenGL 描画用スレッドの Kotlin Coroutine Dispatcher */
     private val openGlRelatedThreadDispatcher = newSingleThreadContext("openGlRelatedThreadDispatcher")
 
-    private val inputSurface = AkariGraphicsInputSurface(renderingPrepareData, dynamicRangeType)
-    private val textureRenderer = AkariGraphicsTextureRenderer(renderingPrepareData.width, renderingPrepareData.height, dynamicRangeType.isHdr)
+    private val inputSurface = AkariGraphicsInputSurface(renderingPrepareData, colorSpaceType)
+    private val textureRenderer = AkariGraphicsTextureRenderer(renderingPrepareData.width, renderingPrepareData.height, colorSpaceType.isHdr)
 
     @Deprecated("後方互換用。AkariGraphicsProcessorRenderingMode を引数に取る方を使ってください。")
     constructor(
@@ -36,7 +36,7 @@ class AkariGraphicsProcessor(
         isEnableTenBitHdr: Boolean
     ) : this(
         renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(outputSurface, width, height),
-        dynamicRangeType = if (isEnableTenBitHdr) AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG else AkariGraphicsProcessorDynamicRangeMode.SDR
+        colorSpaceType = if (isEnableTenBitHdr) AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG else AkariGraphicsProcessorColorSpaceType.SDR_BT709
     )
 
     /** [AkariGraphicsTextureRenderer]等の用意をします */

@@ -123,14 +123,14 @@ private enum class EncodeBottomSheetPage(val labelResId: Int) {
 @Composable
 fun EncodeBottomSheet(
     videoSize: RenderData.Size,
-    isEnableTenBitHdr: Boolean,
+    colorSpace: RenderData.ColorSpace,
     onEncode: (String, EncoderParameters) -> Unit
 ) {
     val currentPage = remember { mutableStateOf(EncodeBottomSheetPage.Basic) }
 
     // とりあえず高画質で
-    val encoderParameters = remember(isEnableTenBitHdr) {
-        mutableStateOf(if (isEnableTenBitHdr) EncoderParameters.TEN_BIT_HDR_HIGH_QUALITY else EncoderParameters.HIGH_QUALITY)
+    val encoderParameters = remember(colorSpace) {
+        mutableStateOf(if (colorSpace.isHdr) EncoderParameters.TEN_BIT_HDR_HIGH_QUALITY else EncoderParameters.HIGH_QUALITY)
     }
     val fileName = remember { mutableStateOf("あかりどろいど_${System.currentTimeMillis()}") }
 
@@ -171,14 +171,14 @@ fun EncodeBottomSheet(
 
             when (currentPage.value) {
                 EncodeBottomSheetPage.Basic -> BasicScreen(
-                    isEnableTenBitHdr = isEnableTenBitHdr,
+                    isEnableTenBitHdr = colorSpace.isHdr,
                     encoderParameters = encoderParameters.value,
                     onUpdate = { encoderParameters.value = it }
                 )
 
                 EncodeBottomSheetPage.Advanced -> AdvancedScreen(
                     videoSize = videoSize,
-                    isEnableTenBitHdr = isEnableTenBitHdr,
+                    isEnableTenBitHdr = colorSpace.isHdr,
                     encoderParameters = encoderParameters.value,
                     onUpdate = { encoderParameters.value = it }
                 )

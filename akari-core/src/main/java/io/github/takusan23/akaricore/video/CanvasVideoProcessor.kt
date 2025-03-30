@@ -5,7 +5,7 @@ import android.media.MediaFormat
 import android.media.MediaMuxer
 import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import kotlinx.coroutines.coroutineScope
@@ -60,7 +60,7 @@ object CanvasVideoProcessor {
                 width = outputVideoWidth,
                 height = outputVideoHeight
             ),
-            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+            colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
         ).apply { prepare() }
 
         try {

@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
  * @param version [RenderData]のバージョン。破壊的変更があればこれを見る
  * @param durationMs トータル時間
  * @param videoSize 動画の縦横
- * @param isEnableTenBitHdr 10-bit HDR の編集を有効にする場合。現状 HLG のみなので bool
+ * @param colorSpace 色空間。SDR か HDR か。
  * @param canvasRenderItem 描画するアイテム
  * @param audioRenderItem 音声データ
  */
@@ -18,7 +18,8 @@ data class RenderData(
     val version: Int = VERSION,
     val durationMs: Long = 60_000L,
     val videoSize: Size = Size(1280, 720),
-    val isEnableTenBitHdr: Boolean = false,
+    @Deprecated("colorSpace を使ってください") private val isEnableTenBitHdr: Boolean = false,
+    val colorSpace: ColorSpace = if (isEnableTenBitHdr) ColorSpace.HDR_BT2020_HLG else ColorSpace.SDR_BT709, // TODO リリースしてしばらくしたらフォールバック消す
     val canvasRenderItem: List<CanvasItem> = emptyList(),
     val audioRenderItem: List<AudioItem> = emptyList()
 ) {
@@ -101,7 +102,8 @@ data class RenderData(
             val size: Size,
             val displayOffset: DisplayOffset = DisplayOffset(0),
             val chromaKeyColor: Int? = null,
-            val dynamicRange: DynamicRange = DynamicRange.SDR,
+            @Deprecated("colorSpace の方を使ってください") private val dynamicRange: DynamicRange = DynamicRange.SDR,
+            val colorSpace: ColorSpace = if (dynamicRange == DynamicRange.HDR_HLG) ColorSpace.HDR_BT2020_HLG else ColorSpace.SDR_BT709, // TODO これも同じくしばらくしたら消す
             val rotation: Int = 0
         ) : CanvasItem {
 
@@ -377,6 +379,39 @@ data class RenderData(
      */
     @Serializable
     data class DisplayOffset(val offsetFirstMs: Long)
+
+    /**
+     * 色空間。
+     * 動画情報と、動画のアイテムで使う。
+     */
+    @Serializable
+    enum class ColorSpace {
+
+        /** SDR 動画 */
+        @SerialName("bt709")
+        SDR_BT709,
+
+        /**
+         * HDR 動画。
+         * 色空間が Rec.2020 で、ガンマカーブが HLG。
+         */
+        @SerialName("bt2020_hlg")
+        HDR_BT2020_HLG,
+
+        /**
+         * HDR 動画。
+         * 色空間が Rec.2020 で、ガンマカーブが PQ (ST2084)。
+         */
+        @SerialName("bt2020_pq")
+        HDR_BT2020_PQ;
+
+        /** HDR かどうかを返す */
+        val isHdr: Boolean
+            get() = when (this) {
+                SDR_BT709 -> false
+                HDR_BT2020_HLG, HDR_BT2020_PQ -> true
+            }
+    }
 
     companion object {
 

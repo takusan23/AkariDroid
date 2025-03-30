@@ -237,8 +237,6 @@ HDR 動画を扱う場合、できればこの機能を有効にし HDR 動画�
 上記を承知の上で、どうしても SDR 動画として出力したい場合は無効にすることが出来ます。\n
 \n
 また、HDR 動画の編集時には以下に注意してください\n
-・現状は HLG 形式の HDR 動画に対応しています。\n
-（色空間が BT.2020、ガンマカーブが HLG）\n
 ・HDR 動画に写真や、SDR 動画を表示させると色が変わってしまうため、あまりおすすめしません。\n
 ・今のところ HDR 動画をエンコードする際のコーデックは HEVC / AV1 のみになります。\n</string>
     <string name="video_edit_renderitem_warning_disable_ten_bit_hdr_edit_title">この動画は 10 ビット HDR 動画です。このプロジェクトでは 10 ビット HDR 動画編集が無効なため、色が白っぽくなります。10 ビット HDR 動画編集を有効にするには動画情報編集画面を開いてください。</string>
@@ -270,4 +268,10 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_renderitem_paste_title">貼り付け</string>
     <string name="video_edit_renderitem_paste_description">タイムライン上のアイテムを押してコピーができます。</string>
     <string name="timeline_context_menu_copy">コピー</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_title">SDR/HDR 選択</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_sdr">よくわからないという場合はこちらを選んでください。\nなぜなら、ほとんどの動画は SDR 形式であるからです。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_hlg">HDR で撮影した動画で、ガンマカーブが HLG の場合はこちらを選んでください。\n単に HLG と呼ばれていることもあります。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_pq">HDR で撮影した動画で、ガンマカーブが PQ (ST 2084) の場合はこちらを選んでください。\nHDR10 や HDR10+ と呼ばれていることもあります。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_message">カメラの設定を忘れた場合や、そもそも分からない場合は、以下のボタンを押して編集したい動画を選んでください。解析します。</string>
+    <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">解析しました。</string>
 </resources>

@@ -8,7 +8,7 @@ import io.github.takusan23.akaricore.common.AkariCoreInputOutput
 import io.github.takusan23.akaricore.common.MediaExtractorTool
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 
@@ -89,7 +89,7 @@ class VideoFrameBitmapExtractor {
                 width = videoWidth,
                 height = videoHeight
             ),
-            AkariGraphicsProcessorDynamicRangeMode.SDR
+            AkariGraphicsProcessorColorSpaceType.SDR_BT709
         ).apply { prepare() }
 
         // 映像デコーダー起動

@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.media.MediaFormat
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
@@ -256,10 +257,10 @@ class VideoEditorViewModel(
         viewModelScope.launch {
             // Pair に詰めて distinct で変わったときだけ
             _renderData
-                .map { Triple(it.videoSize, it.durationMs, it.isEnableTenBitHdr) }
+                .map { Triple(it.videoSize, it.durationMs, it.colorSpace) }
                 .distinctUntilChanged()
-                .collect { (videoSize, durationMs, isEnableTenBitHdr) ->
-                    videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs, isEnableTenBitHdr)
+                .collect { (videoSize, durationMs, colorSpace) ->
+                    videoEditorPreviewPlayer.setVideoInfo(videoSize.width, videoSize.height, durationMs, colorSpace)
                     _timeLineData.update { it.copy(durationMs = durationMs) }
                     _touchEditorData.update { it.copy(videoSize = videoSize) }
                 }
@@ -506,7 +507,7 @@ class VideoEditorViewModel(
             is RenderData.CanvasItem.Video -> VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Video(
                 renderItem,
                 previewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs,
-                isProjectHdr = renderData.value.isEnableTenBitHdr
+                isProjectHdr = renderData.value.colorSpace.isHdr
             )
         }
         openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEditor(editRenderItem))
@@ -1366,6 +1367,7 @@ class VideoEditorViewModel(
         }
 
         val resultList = emptyList<RenderData.RenderItem>().toMutableList()
+        val hdrInfoOrNull = analyzeVideo.tenBitHdrInfoOrSdrNull
         // 映像トラックを追加
         resultList += RenderData.CanvasItem.Video(
             id = idList[0],
@@ -1374,11 +1376,10 @@ class VideoEditorViewModel(
             position = renderData.value.centerPosition(),
             size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
             layerIndex = laneIndexedList[0].second,
-            dynamicRange = if (analyzeVideo.tenBitHdrInfoOrSdrNull != null) {
-                // TODO HDR だからといって HLG 形式とは限らない
-                RenderData.CanvasItem.Video.DynamicRange.HDR_HLG
-            } else {
-                RenderData.CanvasItem.Video.DynamicRange.SDR
+            colorSpace = when {
+                hdrInfoOrNull?.colorStandard == MediaFormat.COLOR_STANDARD_BT2020 && hdrInfoOrNull.colorTransfer == MediaFormat.COLOR_TRANSFER_HLG -> RenderData.ColorSpace.HDR_BT2020_HLG
+                hdrInfoOrNull?.colorStandard == MediaFormat.COLOR_STANDARD_BT2020 && hdrInfoOrNull.colorTransfer == MediaFormat.COLOR_TRANSFER_ST2084 -> RenderData.ColorSpace.HDR_BT2020_PQ
+                else -> RenderData.ColorSpace.SDR_BT709
             }
         )
 

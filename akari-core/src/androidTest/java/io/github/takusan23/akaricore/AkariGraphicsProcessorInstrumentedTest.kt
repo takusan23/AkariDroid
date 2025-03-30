@@ -17,7 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsSurfaceTexture
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoDecoder
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +47,7 @@ class AkariGraphicsProcessorInstrumentedTest {
                     width = CommonTestTool.TEST_VIDEO_WIDTH,
                     height = CommonTestTool.TEST_VIDEO_HEIGHT
                 ),
-                dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+                colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
             ).apply { prepare() }
 
             // デモ Bitmap
@@ -126,7 +126,7 @@ class AkariGraphicsProcessorInstrumentedTest {
                     width = CommonTestTool.TEST_VIDEO_WIDTH,
                     height = CommonTestTool.TEST_VIDEO_HEIGHT
                 ),
-                dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+                colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
             ).apply { prepare() }
 
             // OpenGL ES で映像をテクスチャとして利用する SurfaceTexture をラップしたもの
@@ -171,7 +171,7 @@ class AkariGraphicsProcessorInstrumentedTest {
                 width = CommonTestTool.TEST_VIDEO_WIDTH,
                 height = CommonTestTool.TEST_VIDEO_HEIGHT
             ),
-            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+            colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
         ).apply { prepare() }
 
         // 赤色で塗りつぶした Bitmap をオフスクリーンレンダリング
@@ -207,13 +207,13 @@ class AkariGraphicsProcessorInstrumentedTest {
     @Test
     fun test_10ビットHDRで描画できる() = runTest(timeout = (CommonTestTool.DEFAULT_DISPATCH_TIMEOUT_MS * 10).milliseconds) {
 
-        suspend fun hdrDrawTest(dynamicRangeType: AkariGraphicsProcessorDynamicRangeMode) {
+        suspend fun hdrDrawTest(dynamicRangeType: AkariGraphicsProcessorColorSpaceType) {
             val offscreenAkariGraphicsProcessor = AkariGraphicsProcessor(
                 renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.OffscreenRendering(
                     width = CommonTestTool.TEST_VIDEO_WIDTH,
                     height = CommonTestTool.TEST_VIDEO_HEIGHT
                 ),
-                dynamicRangeType = dynamicRangeType
+                colorSpaceType = dynamicRangeType
             ).apply { prepare() }
 
             // 真っ白
@@ -247,8 +247,8 @@ class AkariGraphicsProcessorInstrumentedTest {
 
         // TODO 古い端末は OpenGL ES で 10-bit HDR が使えないのでテストが多分通らない
         // HLG と PQ 両方のガンマカーブで確認しておく
-        hdrDrawTest(AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_HLG)
-        hdrDrawTest(AkariGraphicsProcessorDynamicRangeMode.TEN_BIT_HDR_PQ)
+        hdrDrawTest(AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG)
+        hdrDrawTest(AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_PQ)
     }
 
     /** [Image]から[Bitmap]を作る */

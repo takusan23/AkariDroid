@@ -6,7 +6,7 @@ import android.graphics.PixelFormat
 import android.media.ImageReader
 import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 
 /**
@@ -73,7 +73,7 @@ class GpuShaderImageProcessor {
                 width = width,
                 height = height
             ),
-            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+            colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
         ).apply { prepare() }
 
         akariGraphicsEffectShader = AkariGraphicsEffectShader(

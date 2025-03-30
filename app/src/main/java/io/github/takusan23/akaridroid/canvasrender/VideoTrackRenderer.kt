@@ -5,6 +5,8 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.EffectRenderer
 import io.github.takusan23.akaridroid.canvasrender.itemrender.ImageRenderer
@@ -75,7 +77,7 @@ class VideoTrackRenderer(private val context: Context) {
             val surfaceVariant = next.first
             val videoTrackRendererPrepareData = next.second
             if (surfaceVariant != null && videoTrackRendererPrepareData != null) {
-                val (outputWidth, outputHeight, isEnableTenBitHdr) = videoTrackRendererPrepareData
+                val (outputWidth, outputHeight, colorSpace) = videoTrackRendererPrepareData
 
                 // SurfaceHolder の場合は AkariGraphicsProcessor の glViewport に合わせる
                 if (surfaceVariant is SurfaceVariant.SurfaceHolder) {
@@ -84,12 +86,17 @@ class VideoTrackRenderer(private val context: Context) {
 
                 // OpenGL ES の上に構築された動画フレーム描画システム
                 // prepare() 後に emit() する
-                // TODO 10-bit HDR PQ に対応する際は strings.xml も更新する
                 val newAkariGraphicsProcessor = AkariGraphicsProcessor(
-                    outputSurface = surfaceVariant.surface,
-                    width = outputWidth,
-                    height = outputHeight,
-                    isEnableTenBitHdr = isEnableTenBitHdr
+                    renderingPrepareData = AkariGraphicsProcessorRenderingPrepareData.SurfaceRendering(
+                        surface = surfaceVariant.surface,
+                        width = outputWidth,
+                        height = outputHeight,
+                    ),
+                    colorSpaceType = when (colorSpace) {
+                        RenderData.ColorSpace.SDR_BT709 -> AkariGraphicsProcessorColorSpaceType.SDR_BT709
+                        RenderData.ColorSpace.HDR_BT2020_HLG -> AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG
+                        RenderData.ColorSpace.HDR_BT2020_PQ -> AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_PQ
+                    }
                 )
                 newAkariGraphicsProcessor.prepare()
                 emit(newAkariGraphicsProcessor)
@@ -110,14 +117,14 @@ class VideoTrackRenderer(private val context: Context) {
      *
      * @param outputWidth 幅
      * @param outputHeight 高さ
-     * @param isEnableTenBitHdr 10-bit HDR を利用する場合は true。10-bit HDR の動画を扱う場合。
+     * @param colorSpaceType SDR か HDR か
      */
     fun setVideoParameters(
         outputWidth: Int,
         outputHeight: Int,
-        isEnableTenBitHdr: Boolean = false
+        colorSpaceType: RenderData.ColorSpace
     ) {
-        videoTrackPrepareDataFlow.value = VideoTrackRendererPrepareData(outputWidth, outputHeight, isEnableTenBitHdr)
+        videoTrackPrepareDataFlow.value = VideoTrackRendererPrepareData(outputWidth, outputHeight, colorSpaceType)
     }
 
     /**

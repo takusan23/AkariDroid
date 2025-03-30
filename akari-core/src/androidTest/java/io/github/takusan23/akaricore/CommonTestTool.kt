@@ -6,7 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
-import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorDynamicRangeMode
+import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorRenderingPrepareData
 import io.github.takusan23.akaricore.graphics.mediacodec.AkariVideoEncoder
 import kotlinx.coroutines.coroutineScope
@@ -72,7 +72,7 @@ object CommonTestTool {
                 width = TEST_VIDEO_WIDTH,
                 height = TEST_VIDEO_HEIGHT
             ),
-            dynamicRangeType = AkariGraphicsProcessorDynamicRangeMode.SDR
+            colorSpaceType = AkariGraphicsProcessorColorSpaceType.SDR_BT709
         ).apply { prepare() }
 
         coroutineScope {

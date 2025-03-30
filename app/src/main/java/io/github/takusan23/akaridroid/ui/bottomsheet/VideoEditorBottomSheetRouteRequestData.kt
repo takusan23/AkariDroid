@@ -65,7 +65,7 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
      */
     data class OpenEncode(
         val videoSize: RenderData.Size,
-        val isEnableTenBitHdr: Boolean
+        val colorSpace: RenderData.ColorSpace
     ) : VideoEditorBottomSheetRouteRequestData
 
     /** メニューを開く */

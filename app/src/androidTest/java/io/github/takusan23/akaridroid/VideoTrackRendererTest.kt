@@ -520,7 +520,7 @@ class VideoTrackRendererTest {
         }
         val videoTrackRenderer = VideoTrackRenderer(targetContext).apply {
             setOutputSurface(akariVideoEncoder.getInputSurface())
-            setVideoParameters(width, height, isEnableTenBitHdr = false)
+            setVideoParameters(width, height, RenderData.ColorSpace.SDR_BT709)
             setRenderData(canvasRenderItem)
         }
         try {
