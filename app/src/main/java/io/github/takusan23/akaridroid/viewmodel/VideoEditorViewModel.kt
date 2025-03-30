@@ -844,9 +844,14 @@ class VideoEditorViewModel(
         }
     }
 
+    /** タイムラインのアイテムをコピーする */
+    fun copy(id: Long) {
+        val renderItem = getRenderItem(id) ?: return
+        copy(copyList = listOf(renderItem))
+    }
+
     /**
      * 指定した[RenderData.RenderItem]を JSON にしてコピーする
-     * TODO 本当に JSON でいいかは要検討。テキストだと見えちゃうんだよな普通に
      *
      * @param copyList コピーしたいタイムラインのアイテム
      */
@@ -907,7 +912,6 @@ class VideoEditorViewModel(
 
             // エンコードして ClipData にする
             // 独自 MIME-Type でアプリ固有であることを定義
-            // TODO JSON を適当に保存し、Uri を共有するように直す。これで plain-text を脱却できる上、同じアプリ間なので file:// でも行けるはず
             val sharedUri = ProjectFolderManager.renderItemToJson(context, resetDisplayTimeList)
             val clipData = ClipData("akaridroid timeline copy", arrayOf(ProjectFolderManager.TIMELINE_COPY_MIME_TYPE), ClipData.Item(sharedUri))
             clipboardManager.setPrimaryClip(clipData)
@@ -1039,9 +1043,26 @@ class VideoEditorViewModel(
      * @return 追加するべきタイムラインのアイテム
      */
     private suspend fun parsePasteInternalClipData(clipData: ClipData): List<RenderData.RenderItem> {
-        val renderItemList = ProjectFolderManager.jsonRenderItemToList(context, clipData)
 
-        // TODO ID が重複していないかの確認が必要。UUID にする...？
+        // ClipData から取り出し、ID が重複しないように
+        // TODO UUID とかを検討する
+        val startId = System.currentTimeMillis()
+        val renderItemList = ProjectFolderManager
+            .jsonRenderItemToList(context, clipData)
+            .mapIndexed { index, renderItem ->
+                when (renderItem) {
+                    is RenderData.AudioItem.Audio -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Effect -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Image -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Shader -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Shape -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Text -> renderItem.copy(id = startId + index)
+                    is RenderData.CanvasItem.Video -> renderItem.copy(id = startId + index)
+                }
+            }
+
+
         // TODO ストレージ読み込み権限をまだ持っていないので、今のところは自前のフォルダにコピーする実装...
         // TODO Uri か、ストレージ読み込み権限があれば File がくる。File なら権限さえあれば読み込めるはずなので Uri に絞る
         // TODO File でも他のプロジェクトのパスだと消したら読み込みできなくなるのでやっぱりコピー
@@ -1326,9 +1347,17 @@ class VideoEditorViewModel(
             }
         )
 
+        // ID が被りそう
+        val idList = if (analyzeVideo.hasAudioTrack) {
+            listOf(System.currentTimeMillis(), System.currentTimeMillis() + 1)
+        } else {
+            listOf(System.currentTimeMillis())
+        }
+
         val resultList = emptyList<RenderData.RenderItem>().toMutableList()
         // 映像トラックを追加
         resultList += RenderData.CanvasItem.Video(
+            id = idList[0],
             filePath = ioType.toRenderDataFilePath(),
             displayTime = displayTime,
             position = renderData.value.centerPosition(),
@@ -1345,7 +1374,10 @@ class VideoEditorViewModel(
         // 音声トラックもあれば追加
         // 映像トラックとタイムライン上で重ならないように
         if (analyzeVideo.hasAudioTrack) {
-            val audio = createAudioItem(displayTimeStartMs, ioType)?.copy(layerIndex = laneIndexedList[1].second)
+            val audio = createAudioItem(displayTimeStartMs, ioType)?.copy(
+                id = idList[1],
+                layerIndex = laneIndexedList[1].second
+            )
             if (audio != null) {
                 resultList += audio
             }

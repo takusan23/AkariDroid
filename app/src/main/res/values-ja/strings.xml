@@ -269,4 +269,5 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_floating_multi_delete">削除</string>
     <string name="video_edit_renderitem_paste_title">貼り付け</string>
     <string name="video_edit_renderitem_paste_description">タイムライン上のアイテムを押してコピーができます。</string>
+    <string name="timeline_context_menu_copy">コピー</string>
 </resources>

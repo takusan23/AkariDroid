@@ -177,14 +177,14 @@ object ProjectFolderManager {
         context: Context,
         renderItemList: List<RenderData.RenderItem>
     ): Uri {
+        // 共有する Uri は content:// が必要なので、あかりんくの実装を間借りする...
+        val (clipboardJsonFile, sharedUri) = AkaLinkTool.createAkaLinkFileUri(context, CLIPBOARD_TIMELINE_JSON_PATH)
         // ファイルに書き出す
-        val clipboardJsonFile = context.getExternalFilesDir(null)?.resolve(CLIPBOARD_TIMELINE_JSON_PATH)!!.apply { createNewFile() }
         val jsonString = withContext(Dispatchers.Default) {
             jsonSerialization.encodeToString(renderItemList)
         }
         clipboardJsonFile.writeText(jsonString)
-        // Uri.fromFile はアプリ内で完結するため使えるはず
-        return Uri.fromFile(clipboardJsonFile)
+        return sharedUri
     }
 
     /**

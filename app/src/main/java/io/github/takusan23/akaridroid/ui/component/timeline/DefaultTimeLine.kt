@@ -75,6 +75,7 @@ private data class TimeLineItemComponentDragAndDropData(
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
  * @param onDuplicate メニューで複製を押した
+ * @param onCopy メニューでコピーを押した
  * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
@@ -88,6 +89,7 @@ fun DefaultTimeLine(
     onCut: (TimeLineData.Item) -> Unit, // TODO これ TimeLineData.Item 全部のパラメーターは要らないわ。
     onDelete: (TimeLineData.Item) -> Unit,
     onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // はみ出しているタイムラインの LayoutCoordinates
@@ -107,6 +109,7 @@ fun DefaultTimeLine(
         onDelete = onDelete,
         onDuplicate = onDuplicate,
         onDurationChange = onDurationChange,
+        onCopy = onCopy,
         onDragAndDropRequest = onDragAndDropRequest,
     )
 }
@@ -116,7 +119,7 @@ fun DefaultTimeLine(
  * 横と縦に長いので、親はスクロールできるようにする必要があります。
  *
  * @param modifier [Modifier]
- * @param timeLineData タイムラインのデータ
+ * @param timeLineState タイムラインのデータ
  * @param onSeek シークがリクエストされた
  * @param timeLineScrollableAreaCoordinates このコンポーネントのサイズ
  * @param currentPositionMs 再生位置
@@ -125,6 +128,7 @@ fun DefaultTimeLine(
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
  * @param onDuplicate メニューで複製を押した
+ * @param onCopy メニューでコピーを押した
  * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
@@ -138,6 +142,7 @@ fun RequiredSizeTimeLine(
     onCut: (TimeLineData.Item) -> Unit,
     onDelete: (TimeLineData.Item) -> Unit,
     onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
     onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Unit
 ) {
@@ -193,6 +198,7 @@ fun RequiredSizeTimeLine(
                     onCut = onCut,
                     onDelete = onDelete,
                     onDuplicate = onDuplicate,
+                    onCopy = onCopy,
                     onDurationChange = onDurationChange,
                     timeLineScrollableAreaCoordinates = timeLineScrollableAreaCoordinates,
                     magnetPositionList = timeLineState.magnetPositionList,
@@ -236,6 +242,7 @@ fun RequiredSizeTimeLine(
  * @param onCut メニューで分割を押した
  * @param onDelete メニューで削除を押した
  * @param onDuplicate メニューで複製を押した
+ * @param onCopy メニューでコピーを押した
  * @param onDurationChange 長さ調整がリクエストされた
  */
 @Composable
@@ -251,6 +258,7 @@ private fun TimeLineLane(
     onCut: (TimeLineData.Item) -> Unit,
     onDelete: (TimeLineData.Item) -> Unit,
     onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -276,6 +284,7 @@ private fun TimeLineLane(
                 onCut = { onCut(timeLineItemData) },
                 onDelete = { onDelete(timeLineItemData) },
                 onDuplicate = { onDuplicate(timeLineItemData) },
+                onCopy = { onCopy(timeLineItemData) },
                 onDurationChange = onDurationChange
             )
         }
@@ -295,6 +304,7 @@ private fun TimeLineLane(
  * @param onCut メニューで分割を押した
  * @param onDelete 削除を押した
  * @param onDuplicate 複製を押した
+ * @param onCopy コピーを押した
  * @param onDurationChange 長さ調整がリクエストされた。長さ調整つまみを離したら呼ばれる。
  */
 @Composable
@@ -309,6 +319,7 @@ private fun DefaultTimeLineItem(
     onCut: () -> Unit,
     onDelete: () -> Unit,
     onDuplicate: () -> Unit,
+    onCopy: () -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit
 ) {
     // 拡大縮小
@@ -442,6 +453,7 @@ private fun DefaultTimeLineItem(
             onEdit = onEdit,
             onCut = onCut,
             onDelete = onDelete,
+            onCopy = onCopy,
             onDuplicate = onDuplicate
         )
     }
@@ -458,6 +470,7 @@ private fun DefaultTimeLineItem(
  * @param onCut 分割を押した
  * @param onDelete 削除を押した
  * @param onDuplicate 複製を押した
+ * @param onCopy コピーを押した
  */
 @Composable
 private fun TimeLineItemContextMenu(
@@ -467,7 +480,8 @@ private fun TimeLineItemContextMenu(
     onEdit: () -> Unit,
     onCut: () -> Unit,
     onDelete: () -> Unit,
-    onDuplicate: () -> Unit
+    onDuplicate: () -> Unit,
+    onCopy: () -> Unit
 ) {
     DropdownMenu(
         expanded = isVisibleMenu,
@@ -498,6 +512,14 @@ private fun TimeLineItemContextMenu(
                 onDismissRequest()
             },
             leadingIcon = { Icon(painter = painterResource(id = R.drawable.ic_content_copy_24px), contentDescription = null) }
+        )
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.timeline_context_menu_copy)) },
+            onClick = {
+                onCopy()
+                onDismissRequest()
+            },
+            leadingIcon = { Icon(painter = painterResource(id = R.drawable.content_paste_24px), contentDescription = null) }
         )
         DropdownMenuItem(
             text = { Text(text = stringResource(id = R.string.timeline_context_menu_delete)) },

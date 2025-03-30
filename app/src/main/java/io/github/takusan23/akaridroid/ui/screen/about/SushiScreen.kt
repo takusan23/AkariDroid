@@ -95,7 +95,6 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                                 } else sushi
                             }
                         )
-                        true
                     },
                     onCut = { cutItem ->
                         // 分割する前に、シーク位置が重なっているか
@@ -123,6 +122,9 @@ fun AboutSushiScreen(onBack: () -> Unit) {
                         sushiData.value = sushiData.value.copy(
                             itemList = sushiData.value.itemList + it.copy(id = it.id * 2)
                         )
+                    },
+                    onCopy = {
+                        // todo
                     },
                     onDurationChange = { request ->
                         // 長さ調整

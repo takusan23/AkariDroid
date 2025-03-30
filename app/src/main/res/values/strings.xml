@@ -268,4 +268,5 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_floating_multi_delete">delete</string>
     <string name="video_edit_renderitem_paste_title">Paste</string>
     <string name="video_edit_renderitem_paste_description">You can copy an item by pressing it on the timeline.</string>
+    <string name="timeline_context_menu_copy">copy</string>
 </resources>

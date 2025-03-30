@@ -32,13 +32,24 @@ object AkaLinkTool {
      */
     private const val AKALINK_FOLDER_NAME = "akalink"
 
+    /** [AKALINK_FOLDER_NAME]のフォルダを取得する */
+    fun getAkaLinkFolder(context: Context): File = context.getExternalFilesDir(null)!!.resolve(AKALINK_FOLDER_NAME)
+
+    /**
+     * 外部に共有できる[File]を作り、外部公開用の[Uri]も返す。
+     * 権限は付与していないため、Intent に載せるなり、grantUriPermission() してください。
+     */
+    fun createAkaLinkFileUri(context: Context, fileName: String): Pair<File, Uri> {
+        val folder = context.getExternalFilesDir(null)!!.resolve(AKALINK_FOLDER_NAME).apply { mkdir() }
+        val externalShareFile = folder.resolve(fileName).apply { createNewFile() }
+        return externalShareFile to FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", externalShareFile)
+    }
+
     /** 外部連携用の[Intent]を作る */
     fun createAkaLinkStartIntent(context: Context): AkaLinkIntentData {
         // 外部連携アプリが素材を保存できるように、こちらでファイルを作成したのち、
         // Uri を作成し Intent に乗せて共有する
-        val folder = context.getExternalFilesDir(null)!!.resolve(AKALINK_FOLDER_NAME).apply { mkdir() }
-        val externalShareFile = folder.resolve("akalink_${System.currentTimeMillis()}").apply { createNewFile() }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", externalShareFile)
+        val (externalShareFile, uri) = createAkaLinkFileUri(context, "akalink_${System.currentTimeMillis()}")
         val intent = Intent(ACTION_START_AKALINK, uri).apply {
             // 読み書き権限
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
@@ -95,7 +106,8 @@ object AkaLinkTool {
         // TODO Android 8 and later... renameTo でも良かった？
         val filePath = if (fileNameOrNull != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             withContext(Dispatchers.IO) {
-                context.getAkaLinkFolder().resolve(fileNameOrNull)
+                getAkaLinkFolder(context)
+                    .resolve(fileNameOrNull)
                     .also { newFile -> Files.move(akaLinkIntentData.file.toPath(), newFile.toPath()) }
                     .path
             }
@@ -111,9 +123,6 @@ object AkaLinkTool {
             else -> null
         }
     }
-
-    /** [AKALINK_FOLDER_NAME]のフォルダを取得する */
-    private fun Context.getAkaLinkFolder(): File = this.getExternalFilesDir(null)!!.resolve(AKALINK_FOLDER_NAME)
 
     /** ファイルを破棄する */
     private suspend fun AkaLinkIntentData.delete() {

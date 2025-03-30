@@ -257,6 +257,7 @@ private fun VideoEditorDefaultTimeLine(
                         onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
                         onDelete = { deleteItem -> viewModel.deleteTimeLineItem(deleteItem.id) },
                         onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
+                        onCopy = { copyItem -> viewModel.copy(copyItem.id) },
                         onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
                     )
                 }
