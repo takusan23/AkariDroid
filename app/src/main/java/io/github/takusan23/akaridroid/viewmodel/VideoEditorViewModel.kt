@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -292,6 +291,26 @@ class VideoEditorViewModel(
             ) { canvas, audio -> canvas + audio }
                 .distinctUntilChanged()
                 .collect { renderItemList ->
+
+                    // 真っ先に時間だけを更新する。
+                    // resolveTimeLineLabel() に時間がかかっても良いよう。
+                    // TODO あんまり体感良くなってない、、
+                    _timeLineData.update { before ->
+                        before.copy(
+                            itemList = before.itemList.map { beforeTimeLineItem ->
+                                renderItemList.firstOrNull {
+                                    it.id == beforeTimeLineItem.id
+                                }?.let {
+                                    beforeTimeLineItem.copy(
+                                        laneIndex = it.layerIndex,
+                                        startMs = it.displayTime.startMs,
+                                        stopMs = it.displayTime.stopMs
+                                    )
+                                } ?: beforeTimeLineItem
+                            }
+                        )
+                    }
+
                     // 入れる値
                     val timeLineItemDataArrayList = arrayListOf<TimeLineData.Item>()
                     // キャンバス
@@ -538,27 +557,6 @@ class VideoEditorViewModel(
         // 複数件の移動が出来るため、一個でもアウトなら return
         // TODO 何か toast とか出すなら
         if (!isAllAcceptable) return
-
-        /*
-        TODO これ戻したい、transformLatest { } で一発更新したあとに解析でどうにかなりませんか？
-    // RenderData の Flow からタイムラインの情報が再構築されるが、
-    // resolveTimeLineLabel が結構遅いので、ここで Flow 経由で更新してもぎこちない動作になってしまう。
-    // そこで、TimeLine の位置だけ真っ先に更新することにする。
-    _timeLineData.update { before ->
-        before.copy(itemList = before.itemList.map { item ->
-            if (item.id == renderItem.id) {
-                item.copy(
-                    laneIndex = layerIndex,
-                    startMs = dragAndDroppedDisplayTime.startMs,
-                    stopMs = dragAndDroppedDisplayTime.stopMs
-                )
-            } else {
-                item
-            }
-        })
-    }
-
-        */
 
         // すべて空きがあって移動できる場合
         addOrUpdateRenderItem(
@@ -1122,6 +1120,7 @@ class VideoEditorViewModel(
         // タイムラインに追加。undo/redo でまとめて移動できるように
         addOrUpdateRenderItem(
             renderItemList = addableCopyRenderItemList.map { renderItem ->
+                // TODO 動かないこれ。一つずつ追加するたびに combine(_renderData, _timeLineData, ::Pair) を待つ必要がある
                 val laneIndex = calcInsertableLaneIndex(renderItem.displayTime)
                 when (renderItem) {
                     is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
@@ -1138,9 +1137,9 @@ class VideoEditorViewModel(
 
         // TODO _timelineData が _renderData の後に更新されるため、更新が確認できるまで待つ
         // TODO _renderData を元に calcInsertableLaneIndex するように直す
-        combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
-            (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
-        }
+        // TODO combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
+        // TODO     (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
+        // TODO }
 
         return addableCopyRenderItemList
     }
