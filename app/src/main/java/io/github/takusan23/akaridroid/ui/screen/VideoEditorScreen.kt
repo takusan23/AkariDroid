@@ -1,9 +1,7 @@
 package io.github.takusan23.akaridroid.ui.screen
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -22,11 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.preview.HistoryManager
@@ -39,11 +39,13 @@ import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineMode
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
 import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
+import io.github.takusan23.akaridroid.ui.component.rememberRenderItemCreator
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropReceiveContainer
-import io.github.takusan23.akaridroid.ui.component.timeline.FloatingAddRenderItemBar
-import io.github.takusan23.akaridroid.ui.component.timeline.FloatingMenuButton
+import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineBar
+import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineItem
+import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitledItem
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
@@ -262,25 +264,28 @@ private fun VideoEditorDefaultTimeLine(
 
         // フローティングしているバー
         // ナビゲーションバーの分も padding 入れておく
-        Row(
+        FloatingTimeLineBar(
             modifier = Modifier
                 .padding(vertical = 10.dp, horizontal = 20.dp)
                 .padding(bottom = bottomPadding)
-                .fillMaxWidth()
-                .align(Alignment.BottomEnd),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .align(Alignment.BottomCenter)
         ) {
 
-            FloatingMenuButton(
-                onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) }
+            FloatingTimeLineTitledItem(
+                title = stringResource(id = R.string.video_edit_floating_add_bar_add),
+                iconResId = R.drawable.ic_outlined_add_24px,
+                onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
             )
 
-            FloatingAddRenderItemBar(
-                modifier = Modifier.weight(1f),
-                onOpenMenu = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) },
-                recommendedMenuList = recommendFloatingBarMenuList,
-                onRecommendMenuClick = { viewModel.resolveRenderItemCreate(it) }
-            )
+            // 使うメニュー推論
+            recommendFloatingBarMenuList.forEach { recommendMenu ->
+                val creator = rememberRenderItemCreator(onResult = { viewModel.resolveRenderItemCreate(it) })
+
+                FloatingTimeLineItem(
+                    iconResId = recommendMenu.iconResId,
+                    onClick = { creator.create(recommendMenu) }
+                )
+            }
         }
     }
 }
@@ -340,16 +345,22 @@ private fun VideoEditorMultiSelectTimeLine(
 
         // フローティングしているバー
         // ナビゲーションバーの分も padding 入れておく
-        Row(
+        FloatingTimeLineBar(
             modifier = Modifier
                 .padding(vertical = 10.dp, horizontal = 20.dp)
                 .padding(bottom = bottomPadding)
-                .fillMaxWidth()
-                .align(Alignment.BottomEnd),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .align(Alignment.BottomCenter)
         ) {
-
-            // TODO 専用 UI を用意する
+            FloatingTimeLineTitledItem(
+                title = stringResource(R.string.video_edit_floating_multi_select_copy),
+                iconResId = R.drawable.content_paste_24px,
+                onClick = { /* TODO 実装 */ }
+            )
+            FloatingTimeLineTitledItem(
+                title = stringResource(R.string.video_edit_floating_multi_delete),
+                iconResId = R.drawable.ic_outline_delete_24px,
+                onClick = { /* TODO 実装 */ }
+            )
         }
     }
 }
