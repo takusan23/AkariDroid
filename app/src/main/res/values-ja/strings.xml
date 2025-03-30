@@ -17,7 +17,7 @@
     <string name="video_edit_preview_menu">メニュー</string>
     <string name="video_edit_floating_add_bar_add">追加</string>
     <string name="video_edit_bottomsheet_menu_title">メニュー</string>
-    <string name="video_edit_bottomsheet_menu_hint">タイムラインへの素材追加はメニューの隣のボタンからできます。</string>
+    <string name="video_edit_bottomsheet_menu_hint">タイムラインへの素材追加はタイムラインの追加ボタンからできます。</string>
     <string name="video_edit_bottomsheet_menu_edit_video_info_title">動画情報の編集</string>
     <string name="video_edit_bottomsheet_menu_edit_video_info_description">動画の解像度（縦横サイズ）、動画の時間、10 ビット HDR を有効にするかを設定できます。</string>
     <string name="video_edit_bottomsheet_menu_encode_video_title">動画を保存する</string>
