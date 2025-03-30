@@ -1,6 +1,14 @@
 package io.github.takusan23.akaridroid.ui.component.data
 
 /**
+ * レーン番号をキーにしてそのレーンのアイテムをまとめた[Pair]を返す。
+ *
+ * @param laneCount [TimeLineData.laneCount]。[TimeLineData.itemList]を filter する等だと、利用しているレーンしか知ることが出来ないため。
+ */
+fun List<TimeLineData.Item>.groupByLane(laneCount: Int) = (0 until laneCount)
+    .map { laneIndex -> laneIndex to filter { it.laneIndex == laneIndex } }
+
+/**
  *
  * @param durationMs 動画の最大長
  * @param laneCount レーンの数
@@ -11,6 +19,9 @@ data class TimeLineData(
     val laneCount: Int = 5,
     val itemList: List<Item>
 ) {
+
+    /** [List.groupByLane]を呼び出す */
+    fun groupByLane(): List<Pair<Int, List<Item>>> = itemList.groupByLane(laneCount)
 
     /**
      * タイムラインにアイテム（素材）を表示するためのデータ
@@ -67,13 +78,3 @@ data class TimeLineData(
     )
 }
 
-/**
- * [TimeLineData.itemList]を、レーン番号をキーにしてそのレーンのアイテムをまとめた[Map]を返す。
- * また、すべてのレーンを取得する際はこちらを使うこと。
- * [TimeLineData.itemList]を filter する等だと、利用しているレーンしか知ることが出来ないため。
- *
- * @return Map<レーン番号, List<TimeLineData.Item>>
- */
-fun TimeLineData.groupByLane() =
-    (0 until this.laneCount)
-        .map { laneIndex -> laneIndex to this.itemList.filter { it.laneIndex == laneIndex } }

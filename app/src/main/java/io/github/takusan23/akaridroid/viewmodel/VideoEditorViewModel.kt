@@ -1117,11 +1117,12 @@ class VideoEditorViewModel(
                 }
             }
 
+        // レーン番号を出す
+        val laneIndexedList = calcMultipleInsertableLaneIndex(displayTimeList = addableCopyRenderItemList.map { it.displayTime })
         // タイムラインに追加。undo/redo でまとめて移動できるように
         addOrUpdateRenderItem(
-            renderItemList = addableCopyRenderItemList.map { renderItem ->
-                // TODO 動かないこれ。一つずつ追加するたびに combine(_renderData, _timeLineData, ::Pair) を待つ必要がある
-                val laneIndex = calcInsertableLaneIndex(renderItem.displayTime)
+            renderItemList = addableCopyRenderItemList.mapIndexed { index, renderItem ->
+                val laneIndex = laneIndexedList[index].second
                 when (renderItem) {
                     is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
                     is RenderData.CanvasItem.Effect -> renderItem.copy(layerIndex = laneIndex)
@@ -1134,12 +1135,6 @@ class VideoEditorViewModel(
                 }
             }
         )
-
-        // TODO _timelineData が _renderData の後に更新されるため、更新が確認できるまで待つ
-        // TODO _renderData を元に calcInsertableLaneIndex するように直す
-        // TODO combine(_renderData, _timeLineData, ::Pair).first { (render, timeline) ->
-        // TODO     (render.canvasRenderItem.size + render.audioRenderItem.size) == timeline.itemList.size
-        // TODO }
 
         return addableCopyRenderItemList
     }
@@ -1172,66 +1167,77 @@ class VideoEditorViewModel(
     }
 
     /**
-     * [TimeLineData.Item]を追加する際に、位置[RenderData.DisplayTime]に被らないレーン番号を取得する。
-     * 素材追加時にどのレーンに入れればいいかを判定する
+     * [calcMultipleInsertableLaneIndex]の一つだけ版。
+     * 配列から取るの面倒だし、、
      *
-     * @param displayTime 追加したい時間（開始、終了位置）
-     * @param ignoreLane 無視したいレーン番号。つまり空いていてもこのレーン番号に入れない。
-     * @return 入れられるレーン番号。なければ今ある最大のレーン番号 + 1 を返す。レーンがない場合は 0 を返す。
+     * @param displayTime 追加したい時間
+     * @param ignoreLane 無視したいレーン番号
+     * @return 追加可能なレーン番号
      */
     private fun calcInsertableLaneIndex(
         displayTime: RenderData.DisplayTime,
         ignoreLane: List<Int> = emptyList()
-    ): Int = _timeLineData.value
-        // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
-        .groupByLane()
-        // 無視したいレーンは消す
-        .filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
-        // すべてのレーンから、空いているレーンを探す
-        .firstOrNull { (_, itemList) ->
-            itemList.all { laneItem ->
-                // 空きがあること
-                val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
-                // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
-                hasFreeSpace && hasNotInclude
-            }
-        }?.first
-        ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-        ?: 0 // どうしようもない
+    ): Int = calcMultipleInsertableLaneIndex(listOf(displayTime), ignoreLane).first().second
 
-    /*
-        TODO こっちを使いたいけど動いてない
-        private fun calcInsertableLaneIndex(
-            displayTime: RenderData.DisplayTime,
-            ignoreLane: List<Int> = emptyList()
-        ): Int =
-            // RenderData から作る。TimeLineData は RenderData よりも後に更新されるため
-            (_renderData.value.audioRenderItem + _renderData.value.canvasRenderItem)
-                // RenderData の解析が間に合わないと空になるので
-                .ifEmpty { null }
-                // Pair にする。first = レーン番号 / second = レーンに入っているアイテムの配列
-                ?.let { allTimeLineItem ->
-                    val laneCount = allTimeLineItem.maxOf { it.layerIndex }
-                    (0 until laneCount).map { laneIndex ->
-                        laneIndex to allTimeLineItem.filter { it.layerIndex == laneIndex }
-                    }
+    /**
+     * タイムラインに追加する際、空いているレーン番号を探す関数。
+     * まとめて空いているレーンを探せます。
+     *
+     * @param displayTimeList 追加したい時間
+     * @param ignoreLane 無視したいレーン番号
+     * @return 追加できる時間と、レーン番号
+     */
+    private fun calcMultipleInsertableLaneIndex(
+        displayTimeList: List<RenderData.DisplayTime>,
+        ignoreLane: List<Int> = emptyList()
+    ): List<Pair<RenderData.DisplayTime, Int>> {
+
+        /** [groupByLane]を呼び出す */
+        fun List<TimeLineData.Item>.availableLanePairList() = this
+            // Pair にする。first = レーン番号 / seconds = レーンに入っているアイテムの配列
+            .groupByLane(_timeLineData.value.laneCount)
+            // 無視したいレーンは消す
+            .filter { (laneIndex, _) -> laneIndex !in ignoreLane }
+
+        /** 挿入可能なレーン番号を返す */
+        fun List<Pair<Int, List<TimeLineData.Item>>>.findInsertableLaneIndex(displayTime: RenderData.DisplayTime) = this
+            // すべてのレーンから、空いているレーンを探す
+            .firstOrNull { (_, itemList) ->
+                itemList.all { laneItem ->
+                    // 空きがあること
+                    val hasFreeSpace = displayTime.startMs !in laneItem.timeRange && displayTime.stopMs !in laneItem.timeRange
+                    // 移動先に重なる形で自分より小さいアイテムが居ないこと
+                    val hasNotInclude = laneItem.startMs !in displayTime && laneItem.stopMs !in displayTime
+                    hasFreeSpace && hasNotInclude
                 }
-                // 無視したいレーンは消す
-                ?.filter { (laneIndex, _) -> !ignoreLane.contains(laneIndex) }
-                // すべてのレーンから、空いているレーンを探す
-                ?.firstOrNull { (_, laneItemList) ->
-                    laneItemList.all { laneItem ->
-                        // 空きがあること
-                        val hasFreeSpace = displayTime.startMs !in laneItem.displayTime && displayTime.stopMs !in laneItem.displayTime
-                        // 移動先に重なる形で自分より小さいアイテムが居ないこと
-                        val hasNotInclude = laneItem.displayTime.startMs !in displayTime && laneItem.displayTime.stopMs !in displayTime
-                        hasFreeSpace && hasNotInclude
-                    }
-                }?.first
-                ?: _timeLineData.value.groupByLane().maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
-                ?: 0 // どうしようもない
-    */
+            }?.first
+            ?: maxOfOrNull { (laneIndex, _) -> laneIndex }?.plus(1) // 見つからなければ最大のレーン番号 + 1 を返す
+            ?: 0 // どうしようもない
+
+        // 複数に対応するため、追加したらこれも追加した想定で追加する
+        val currentTimeLineDataList = _timeLineData.value.itemList.toMutableList()
+
+        // List<DisplayTime> が入るレーンを探す
+        return displayTimeList.map { displayTime ->
+            // 探す
+            val insertableLaneIndex = currentTimeLineDataList
+                .availableLanePairList()
+                .findInsertableLaneIndex(displayTime)
+
+            // もうその位置は使うことが決まったので、リストも更新する
+            currentTimeLineDataList += TimeLineData.Item(
+                laneIndex = insertableLaneIndex,
+                startMs = displayTime.startMs,
+                stopMs = displayTime.stopMs,
+                label = "0", // findInsertableLaneIndex() で使うわけじゃないので
+                iconResId = 0, // 上に同じ
+                isChangeDuration = false // 上に同じ
+            )
+
+            // 割り当て完了
+            displayTime to insertableLaneIndex
+        }
+    }
 
     /**
      * [RenderData.CanvasItem.Text]を作成する
@@ -1314,33 +1320,40 @@ class VideoEditorViewModel(
         )
 
         // 映像トラックの追加位置
-        val videoTrackLayerIndex = calcInsertableLaneIndex(displayTime)
-
-        val resultList = listOfNotNull(
-            // 映像トラックを追加
-            RenderData.CanvasItem.Video(
-                filePath = ioType.toRenderDataFilePath(),
-                displayTime = displayTime,
-                position = renderData.value.centerPosition(),
-                size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
-                layerIndex = videoTrackLayerIndex,
-                dynamicRange = if (analyzeVideo.tenBitHdrInfoOrSdrNull != null) {
-                    // TODO HDR だからといって HLG 形式とは限らない
-                    RenderData.CanvasItem.Video.DynamicRange.HDR_HLG
-                } else {
-                    RenderData.CanvasItem.Video.DynamicRange.SDR
-                }
-            ),
-
-            // 音声トラックもあれば追加
-            // 映像トラックとタイムライン上で重ならないように
-            if (analyzeVideo.hasAudioTrack) {
-                createAudioItem(displayTimeStartMs, ioType)
-                    ?.copy(layerIndex = calcInsertableLaneIndex(displayTime, listOf(videoTrackLayerIndex)))
+        // 音声も追加するなら
+        val laneIndexedList = calcMultipleInsertableLaneIndex(
+            displayTimeList = if (analyzeVideo.hasAudioTrack) {
+                listOf(displayTime, displayTime)
             } else {
-                null
+                listOf(displayTime)
             }
         )
+
+        val resultList = emptyList<RenderData.RenderItem>().toMutableList()
+        // 映像トラックを追加
+        resultList += RenderData.CanvasItem.Video(
+            filePath = ioType.toRenderDataFilePath(),
+            displayTime = displayTime,
+            position = renderData.value.centerPosition(),
+            size = RenderData.Size(analyzeVideo.size.width, analyzeVideo.size.height),
+            layerIndex = laneIndexedList[0].second,
+            dynamicRange = if (analyzeVideo.tenBitHdrInfoOrSdrNull != null) {
+                // TODO HDR だからといって HLG 形式とは限らない
+                RenderData.CanvasItem.Video.DynamicRange.HDR_HLG
+            } else {
+                RenderData.CanvasItem.Video.DynamicRange.SDR
+            }
+        )
+
+        // 音声トラックもあれば追加
+        // 映像トラックとタイムライン上で重ならないように
+        if (analyzeVideo.hasAudioTrack) {
+            val audio = createAudioItem(displayTimeStartMs, ioType)?.copy(layerIndex = laneIndexedList[1].second)
+            if (audio != null) {
+                resultList += audio
+            }
+        }
+
         return resultList
     }
 
