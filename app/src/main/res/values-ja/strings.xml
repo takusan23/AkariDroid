@@ -14,7 +14,7 @@
     <string name="setting_about_description">GitHub でソースコードを見るなど</string>
     <string name="setting_license_description">ありがとうございます</string>
     <string name="setting">設定</string>
-    <string name="video_edit_floating_menu">メニュー</string>
+    <string name="video_edit_preview_menu">メニュー</string>
     <string name="video_edit_floating_add_bar_add">追加</string>
     <string name="video_edit_bottomsheet_menu_title">メニュー</string>
     <string name="video_edit_bottomsheet_menu_hint">タイムラインへの素材追加はメニューの隣のボタンからできます。</string>

@@ -13,7 +13,7 @@
     <string name="setting_about_description">View source code on GitHub, etc.</string>
     <string name="setting_license_description">thanks !!!</string>
     <string name="setting">Settings</string>
-    <string name="video_edit_floating_menu">menu</string>
+    <string name="video_edit_preview_menu">menu</string>
     <string name="video_edit_floating_add_bar_add">add</string>
     <string name="video_edit_bottomsheet_menu_title">menu</string>
     <string name="video_edit_bottomsheet_menu_hint">You can add materials to the timeline using the button next to the menu.</string>

@@ -159,7 +159,8 @@ fun VideoEditorScreen(
                         onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
                         playerStatus = previewPlayerStatus.value,
                         onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() }
+                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() },
+                        onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) }
                     )
                 }
 
