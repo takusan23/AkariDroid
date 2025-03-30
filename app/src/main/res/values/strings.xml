@@ -266,4 +266,6 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_description">This mode allows you to select multiple items and move or copy them all at once.</string>
     <string name="video_edit_floating_multi_select_copy">copy</string>
     <string name="video_edit_floating_multi_delete">delete</string>
+    <string name="video_edit_renderitem_paste_title">Paste</string>
+    <string name="video_edit_renderitem_paste_description">You can copy an item by pressing it on the timeline.</string>
 </resources>

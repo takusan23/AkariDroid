@@ -421,9 +421,7 @@ class VideoEditorViewModel(
                     ?.also { image -> addOrUpdateRenderItem(listOf(image)) }
 
                 is AddRenderItemMenuResult.Video -> createVideoItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
-                    .also { list ->
-                        addOrUpdateRenderItem(renderItemList = list)
-                    }
+                    .also { list -> addOrUpdateRenderItem(renderItemList = list) }
                     .firstOrNull()
 
                 is AddRenderItemMenuResult.Audio -> createAudioItem(displayTimeStartMs, addRenderItemMenuResult.uri.toIoType())
@@ -440,6 +438,10 @@ class VideoEditorViewModel(
 
                 AddRenderItemMenuResult.Effect -> createEffectCanvasItem(displayTimeStartMs)
                     .also { shader -> addOrUpdateRenderItem(listOf(shader)) }
+
+                AddRenderItemMenuResult.Paste -> parsePasteClipData()
+                    .also { list -> addOrUpdateRenderItem(list) }
+                    .lastOrNull()
             }
 
             // 編集画面を開く
@@ -465,9 +467,7 @@ class VideoEditorViewModel(
                     ?.also { audio -> addOrUpdateRenderItem(listOf(audio)) }
 
                 is AkaLinkTool.AkaLinkResult.Video -> createVideoItem(displayTimeStartMs, file.toIoType())
-                    .also { list ->
-                        addOrUpdateRenderItem(list)
-                    }
+                    .also { list -> addOrUpdateRenderItem(list) }
                     .firstOrNull()
             }
 
@@ -908,8 +908,8 @@ class VideoEditorViewModel(
             // エンコードして ClipData にする
             // 独自 MIME-Type でアプリ固有であることを定義
             // TODO JSON を適当に保存し、Uri を共有するように直す。これで plain-text を脱却できる上、同じアプリ間なので file:// でも行けるはず
-            val jsonString = ProjectFolderManager.renderItemToJson(resetDisplayTimeList)
-            val clipData = ClipData("akaridroid timeline copy", arrayOf(TIMELINE_COPY_MIME_TYPE), ClipData.Item(jsonString))
+            val sharedUri = ProjectFolderManager.renderItemToJson(context, resetDisplayTimeList)
+            val clipData = ClipData("akaridroid timeline copy", arrayOf(ProjectFolderManager.TIMELINE_COPY_MIME_TYPE), ClipData.Item(sharedUri))
             clipboardManager.setPrimaryClip(clipData)
         }
     }
@@ -940,30 +940,6 @@ class VideoEditorViewModel(
         }
     }
 
-    /**
-     * [ClipData]を今のプレビューの位置に挿入する
-     * [RenderData.RenderItem]の JSON データや、他アプリからコピーしたテキストや画像を受け付ける。
-     *
-     * @param clipData ドラッグアンドドロップやクリップボードから
-     */
-    fun paste(clipData: ClipData? = clipboardManager.primaryClip) {
-        clipData ?: return
-        val mimeTypeList = (0 until clipData.itemCount).map { clipData.description.getMimeType(it) }
-
-        viewModelScope.launch {
-            val insertRenderItemList = if (TIMELINE_COPY_MIME_TYPE in mimeTypeList) {
-                // クリップボードから取り出して、RenderItem の JSON がある場合はそれを優先
-                pasteInternalClipData(clipData)
-            } else {
-                // テキスト、画像、音声、動画はこっち
-                pasteBasicClipData(clipData)
-            }
-
-            // 最後のを表示
-            openEditRenderItemSheet(renderItem = insertRenderItemList.lastOrNull() ?: return@launch)
-        }
-    }
-
     /** [AddRenderItemMenuResult]をさばく */
     fun resolveRenderItemCreate(result: AddRenderItemMenuResult) {
         // Addable のみ。ボトムシートを出す必要があれば別途やる
@@ -975,15 +951,34 @@ class VideoEditorViewModel(
         floatingMenuBarMultiArmedBanditManager.reward(result.toMenu())
     }
 
+    /**
+     * [ClipData]を今のプレビューの位置に挿入する
+     * [RenderData.RenderItem]の JSON データや、他アプリからコピーしたテキストや画像を受け付ける。
+     *
+     * @param clipData ドラッグアンドドロップやクリップボードから
+     */
+    private suspend fun parsePasteClipData(clipData: ClipData? = clipboardManager.primaryClip): List<RenderData.RenderItem> {
+        clipData ?: return emptyList()
+        val mimeTypeList = (0 until clipData.itemCount).map { clipData.description.getMimeType(it) }
+
+        return if (ProjectFolderManager.TIMELINE_COPY_MIME_TYPE in mimeTypeList) {
+            // クリップボードから取り出して、RenderItem の JSON がある場合はそれを優先
+            parsePasteInternalClipData(clipData)
+        } else {
+            // テキスト、画像、音声、動画はこっち
+            pasteBasicClipData(clipData)
+        }
+    }
+
 
     /**
-     * コピーしたテキスト、画像、音声、動画をタイムラインに貼り付ける。
+     * コピーしたテキスト、画像、音声、動画をタイムラインに追加できるように変換する。
      *
      * @param clipData [ClipData]
-     * @return 追加できたタイムラインのアイテム
+     * @return 追加するべきタイムラインのアイテム
      */
     private suspend fun pasteBasicClipData(clipData: ClipData): List<RenderData.RenderItem> {
-        return (0 until clipData.itemCount).mapNotNull { index ->
+        val pasteRenderItemList = (0 until clipData.itemCount).mapNotNull { index ->
             val currentPreviewPositionMs = videoEditorPreviewPlayer.playerStatus.value.currentPositionMs
             val item = clipData.getItemAt(index)
 
@@ -1004,43 +999,47 @@ class VideoEditorViewModel(
 
             // タイムラインに追加
             when {
-                mimeType.startsWith("text/") -> createTextCanvasItem(
-                    displayTimeStartMs = currentPreviewPositionMs,
-                    text = item.text.toString()
-                ).also { image -> addOrUpdateRenderItem(listOf(image)) }
+                mimeType.startsWith("text/") -> listOfNotNull(
+                    createTextCanvasItem(
+                        displayTimeStartMs = currentPreviewPositionMs,
+                        text = item.text.toString()
+                    )
+                )
 
-                mimeType.startsWith("image/") -> createImageCanvasItem(
-                    displayTimeStartMs = currentPreviewPositionMs,
-                    ioType = copiedFile ?: return@mapNotNull null
-                )?.also { image -> addOrUpdateRenderItem(listOf(image)) }
+                mimeType.startsWith("image/") -> listOfNotNull(
+                    createImageCanvasItem(
+                        displayTimeStartMs = currentPreviewPositionMs,
+                        ioType = copiedFile ?: return@mapNotNull null
+                    )
+                )
 
-                mimeType.startsWith("audio/") -> createAudioItem(
-                    displayTimeStartMs = currentPreviewPositionMs,
-                    ioType = copiedFile ?: return@mapNotNull null
-                )?.also { audio -> addOrUpdateRenderItem(listOf(audio)) }
+                mimeType.startsWith("audio/") -> listOfNotNull(
+                    createAudioItem(
+                        displayTimeStartMs = currentPreviewPositionMs,
+                        ioType = copiedFile ?: return@mapNotNull null
+                    )
+                )
 
                 mimeType.startsWith("video/") -> createVideoItem(
                     displayTimeStartMs = currentPreviewPositionMs,
                     ioType = copiedFile ?: return@mapNotNull null
-                ).also { renderItem ->
-                    addOrUpdateRenderItem(renderItem)
-                }.firstOrNull()
+                )
 
-                else -> return@mapNotNull null
+                else -> null
             }
-        }
+        }.flatten()
+        return pasteRenderItemList
     }
 
     /**
-     * [copy]でコピーした JSON をパースしてタイムラインに追加する。
-     * アプリ固有。[TIMELINE_COPY_MIME_TYPE]
+     * [copy]でコピーした JSON をパースする。
+     * アプリ固有。[ProjectFolderManager.TIMELINE_COPY_MIME_TYPE]
      *
      * @param clipData クリップボードから取り出したデータ
-     * @return 追加できたタイムラインのアイテム
+     * @return 追加するべきタイムラインのアイテム
      */
-    private suspend fun pasteInternalClipData(clipData: ClipData): List<RenderData.RenderItem> {
-        val jsonString = clipData.getItemAt(0)?.text?.toString() ?: return emptyList()
-        val renderItemList = ProjectFolderManager.jsonRenderItemToList(jsonString)
+    private suspend fun parsePasteInternalClipData(clipData: ClipData): List<RenderData.RenderItem> {
+        val renderItemList = ProjectFolderManager.jsonRenderItemToList(context, clipData)
 
         // TODO ID が重複していないかの確認が必要。UUID にする...？
         // TODO ストレージ読み込み権限をまだ持っていないので、今のところは自前のフォルダにコピーする実装...
@@ -1087,7 +1086,7 @@ class VideoEditorViewModel(
             return this.copy(startMs = currentPreviewPositionMs + this.startMs)
         }
 
-        val addableCopyRenderItemList = renderItemList
+        var addableCopyRenderItemList = renderItemList
             // Uri ならコピーして File に置き換える
             .map {
                 when (it) {
@@ -1119,22 +1118,20 @@ class VideoEditorViewModel(
 
         // レーン番号を出す
         val laneIndexedList = calcMultipleInsertableLaneIndex(displayTimeList = addableCopyRenderItemList.map { it.displayTime })
-        // タイムラインに追加。undo/redo でまとめて移動できるように
-        addOrUpdateRenderItem(
-            renderItemList = addableCopyRenderItemList.mapIndexed { index, renderItem ->
-                val laneIndex = laneIndexedList[index].second
-                when (renderItem) {
-                    is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Effect -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Image -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Shader -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Shape -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Text -> renderItem.copy(layerIndex = laneIndex)
-                    is RenderData.CanvasItem.Video -> renderItem.copy(layerIndex = laneIndex)
-                }
+        // laneIndex を直す
+        addableCopyRenderItemList = addableCopyRenderItemList.mapIndexed { index, renderItem ->
+            val laneIndex = laneIndexedList[index].second
+            when (renderItem) {
+                is RenderData.AudioItem.Audio -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Effect -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Image -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Shader -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Shape -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.SwitchAnimation -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Text -> renderItem.copy(layerIndex = laneIndex)
+                is RenderData.CanvasItem.Video -> renderItem.copy(layerIndex = laneIndex)
             }
-        )
+        }
 
         return addableCopyRenderItemList
     }
@@ -1489,11 +1486,5 @@ class VideoEditorViewModel(
                 }
             )
         }
-    }
-
-    companion object {
-
-        /** タイムラインをコピーしたときの MIME-Type */
-        private const val TIMELINE_COPY_MIME_TYPE = "application/vnd.akaridroid.timeline.copy"
     }
 }

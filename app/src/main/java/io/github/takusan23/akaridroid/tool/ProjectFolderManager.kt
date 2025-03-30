@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.tool
 
+import android.content.ClipData
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -30,6 +31,12 @@ object ProjectFolderManager {
 
     /** [exportPortableProject]のフォルダ名 */
     private const val EXPORT_PORTABLE_PROJECT_FOLDER_NAME = "akaridroid_portable_project_20240821"
+
+    /** タイムラインのコピペ機能の JSON 保存先。List<RenderData.RenderItem> が JSON エンコードされたもの */
+    private const val CLIPBOARD_TIMELINE_JSON_PATH = "shared_clipboard.json"
+
+    /** タイムラインをコピーしたときの MIME-Type */
+    const val TIMELINE_COPY_MIME_TYPE = "application/vnd.akaridroid.timeline.copy"
 
     /** JSONパースするときに使う */
     private val jsonSerialization = Json {
@@ -156,29 +163,48 @@ object ProjectFolderManager {
     }
 
     /**
-     * [RenderData.RenderItem]を JSON にエンコードする
+     * [RenderData.RenderItem]をコピー出来るようにする。[CLIPBOARD_TIMELINE_JSON_PATH]に保存され、Uri が返される。
+     * この Uri はこのアプリのアプリ内固有ストレージを指している。
      *
+     * JSON をそのまま入れると見えてしまうため、ファイルに書き出し Uri のみをもたせる。
+     * MIME-Type もそう。
+     *
+     * @param context [Context]
      * @param renderItemList [RenderData.RenderItem]の配列
      * @return JSON 文字列
      */
-    suspend fun renderItemToJson(renderItemList: List<RenderData.RenderItem>): String {
+    suspend fun renderItemToJson(
+        context: Context,
+        renderItemList: List<RenderData.RenderItem>
+    ): Uri {
+        // ファイルに書き出す
+        val clipboardJsonFile = context.getExternalFilesDir(null)?.resolve(CLIPBOARD_TIMELINE_JSON_PATH)!!.apply { createNewFile() }
         val jsonString = withContext(Dispatchers.Default) {
             jsonSerialization.encodeToString(renderItemList)
         }
-        return jsonString
+        clipboardJsonFile.writeText(jsonString)
+        // Uri.fromFile はアプリ内で完結するため使えるはず
+        return Uri.fromFile(clipboardJsonFile)
     }
 
     /**
-     * JSON の[RenderData.RenderItem]配列を戻す
+     * タイムラインのアイテムをコピーした [clipData] から Uri を取り出しタイムラインに追加する。
      *
-     * @param jsonRenderItem JSON 文字列
+     * @param context [Context]
+     * @param clipData クリップボードから取り出したもの
      * @return [RenderData.RenderItem]の配列
      */
-    suspend fun jsonRenderItemToList(jsonRenderItem: String): List<RenderData.RenderItem> {
-        val renderItemList = withContext(Dispatchers.Default) {
-            jsonSerialization.decodeFromString<List<RenderData.RenderItem>>(jsonRenderItem)
+    suspend fun jsonRenderItemToList(
+        context: Context,
+        clipData: ClipData
+    ): List<RenderData.RenderItem> {
+        val uri = clipData.getItemAt(0).uri
+        val jsonString = withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(uri)!!.bufferedReader().readText()
         }
-        return renderItemList
+        return withContext(Dispatchers.Default) {
+            jsonSerialization.decodeFromString<List<RenderData.RenderItem>>(jsonString)
+        }
     }
 
     /**

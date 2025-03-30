@@ -267,4 +267,6 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_description">複数のアイテムを選択して、まとめて移動やコピーが出来るモードです。</string>
     <string name="video_edit_floating_multi_select_copy">コピー</string>
     <string name="video_edit_floating_multi_delete">削除</string>
+    <string name="video_edit_renderitem_paste_title">貼り付け</string>
+    <string name="video_edit_renderitem_paste_description">タイムライン上のアイテムを押してコピーができます。</string>
 </resources>

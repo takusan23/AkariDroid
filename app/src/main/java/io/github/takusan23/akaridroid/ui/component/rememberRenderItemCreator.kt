@@ -22,6 +22,7 @@ fun AddRenderItemMenuResult.toMenu() = when (this) {
     AddRenderItemMenuResult.Shader -> AddRenderItemMenu.Shader
     AddRenderItemMenuResult.SwitchAnimation -> AddRenderItemMenu.SwitchAnimation
     AddRenderItemMenuResult.Effect -> AddRenderItemMenu.Effect
+    AddRenderItemMenuResult.Paste -> AddRenderItemMenu.Paste
 }
 
 /**
@@ -36,6 +37,13 @@ enum class AddRenderItemMenu(
     val descriptionResId: Int,
     val iconResId: Int
 ) {
+    /** 貼り付け */
+    Paste(
+        R.string.video_edit_renderitem_paste_title,
+        R.string.video_edit_renderitem_paste_description,
+        R.drawable.content_paste_24px
+    ),
+
     /** テキスト */
     Text(
         R.string.video_edit_renderitem_text_title,
@@ -137,6 +145,9 @@ sealed interface AddRenderItemMenuResult {
     /** ファイルピッカーで選んだ音声の追加 */
     data class Audio(val uri: Uri) : AddRenderItemMenuResult, Addable
 
+    /** 貼り付け */
+    data object Paste : AddRenderItemMenuResult, Addable
+
     /** あかりんくの開始。こいつは別のボトムシートを出す必要があるので [BottomSheetOpenable] を継承してます */
     data object AkaLink : AddRenderItemMenuResult, BottomSheetOpenable {
         override val bottomSheet: VideoEditorBottomSheetRouteRequestData
@@ -210,7 +221,7 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             AddRenderItemMenu.Image -> AddRenderItemMenuResult.Image(uri)
             AddRenderItemMenu.Video -> AddRenderItemMenuResult.Video(uri)
             AddRenderItemMenu.Audio -> AddRenderItemMenuResult.Audio(uri)
-            AddRenderItemMenu.Text, AddRenderItemMenu.Shape, AddRenderItemMenu.AkaLink, AddRenderItemMenu.Shader, AddRenderItemMenu.SwitchAnimation, AddRenderItemMenu.Effect -> null
+            AddRenderItemMenu.Text, AddRenderItemMenu.Shape, AddRenderItemMenu.AkaLink, AddRenderItemMenu.Shader, AddRenderItemMenu.SwitchAnimation, AddRenderItemMenu.Effect, AddRenderItemMenu.Paste -> null
             null -> null
         } ?: return
         onResult(result)
@@ -232,6 +243,7 @@ class RenderItemCreator(private val onResult: (AddRenderItemMenuResult) -> Unit)
             AddRenderItemMenu.Shader -> onResult(AddRenderItemMenuResult.Shader)
             AddRenderItemMenu.SwitchAnimation -> onResult(AddRenderItemMenuResult.SwitchAnimation)
             AddRenderItemMenu.Effect -> onResult(AddRenderItemMenuResult.Effect)
+            AddRenderItemMenu.Paste -> onResult(AddRenderItemMenuResult.Paste)
         }
     }
 
