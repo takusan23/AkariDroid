@@ -939,6 +939,9 @@ class VideoEditorViewModel(
             val insertRenderItemList = pasteBasicClipData(clipData)
             val openEditItem = insertRenderItemList.lastOrNull()
 
+            // 追加する
+            addOrUpdateRenderItem(insertRenderItemList)
+
             // 編集画面を開く
             if (openEditItem != null) {
                 openEditRenderItemSheet(openEditItem)
