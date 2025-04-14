@@ -120,7 +120,7 @@ private fun RequiredSizeMultiSelectTimeLine(
 
     // 磁石モード用に、くっつける位置。
     // 再生位置と、今選択中の以外にくっつくように
-    val magnetPositionMsList = remember(selectedItemIdList, currentPositionMs()) {
+    val magnetPositionMsList = remember(timeLineState.magnetPositionList, selectedItemIdList, currentPositionMs()) {
         timeLineState.magnetPositionList
             .filter { it.id !in selectedItemIdList }
             .map { it.positionMs } + currentPositionMs()
