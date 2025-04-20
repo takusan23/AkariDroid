@@ -1,6 +1,22 @@
 # akari-core リリースノート
 更新忘れたらごめん。リリースのバージョンは適当（あかりどろいど側のリリースに合わせてる）。
 
+## 6.0.0 時代
+あかりどろいど 5.x に対応します
+
+### akaricore:6.0.0
+- 10bit-HDR で、PQ のガンマカーブが選べるようになりました
+  - これに伴い`AkariGraphicsInputSurface`のコンストラクタが変更されてます、まだ`Deprecated`で残してます
+- `AkariGraphicsProcessor`でオフスクリーンレンダリング（`Surface`なし）が出来るようになりました
+- `AkariVideoDecoder#seekTo`の返り値が`SeekResult`になりました
+  - フレームが更新されたかを追加で返します
+  - これまでどおり`Boolean`を返す方もまだ`Deprecated`で残してあります
+- `AkariGraphicsTextureRenderer#drawSurfaceTexture`の引数が変更されてます
+  - フレームを待つ場合はミリ秒でタイムアウトまでの時間を設定してください
+  - これもまだ`Deprecated`で残してあります
+- `CanvasVideoProcessor`などはもう利用していないため`video`パッケージに移動
+  - できれば`AkariGraphicsProcessor`へ移行したほうが良い、、かも
+
 ## 5.0.0 時代
 あかりどろいど 4.x に対応します
 
