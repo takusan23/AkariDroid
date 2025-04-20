@@ -7,6 +7,8 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 import android.opengl.GLUtils
 import android.opengl.Matrix
+import androidx.core.graphics.createBitmap
+import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -42,7 +44,7 @@ class AkariGraphicsTextureRenderer internal constructor(
     private var canvasTextureTextureId = 0
 
     // Canvas 描画のため Bitmap
-    private val canvasBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    private val canvasBitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
     private val canvas = Canvas(canvasBitmap)
 
     // フレームバッファーオブジェクトを交互に使うやつ（ピンポンする）
@@ -105,19 +107,34 @@ class AkariGraphicsTextureRenderer internal constructor(
         GLES20.glFinish()
     }
 
+    @Deprecated("nullOrTextureUpdateTimeout の方を使ってください")
+    suspend fun drawSurfaceTexture(
+        akariSurfaceTexture: AkariGraphicsSurfaceTexture,
+        isAwaitTextureUpdate: Boolean = false,
+        onTransform: ((mvpMatrix: FloatArray) -> Unit)? = null,
+        chromakeyThreshold: Float? = null,
+        chromaKeyColor: Int? = null
+    ) = drawSurfaceTexture(
+        akariSurfaceTexture = akariSurfaceTexture,
+        nullOrTextureUpdateTimeoutMs = if (isAwaitTextureUpdate) 1_000 else null,
+        onTransform = onTransform,
+        chromakeyThreshold = chromakeyThreshold,
+        chromaKeyColor = chromaKeyColor
+    )
+
     /**
      * SurfaceTexture を描画する。
      * GL スレッドから呼び出すこと。
      *
      * @param akariSurfaceTexture 描画する[AkariGraphicsSurfaceTexture]
-     * @param isAwaitTextureUpdate カメラ映像等、テクスチャが更新されるまで描画しない場合は true。false はテクスチャが更新されてなくても描画します。
+     * @param nullOrTextureUpdateTimeoutMs カメラ映像や動画のデコードなど、テクスチャを更新する必要がある場合は、タイムアウトするまでの時間（ミリ秒）を入れるとそれまで更新を待ちます。更新する必要がない場合は null
      * @param onTransform 位置や回転を適用するための行列を作るための関数
      * @param chromakeyThreshold クロマキーする場合。クロマキーのしきい値
      * @param chromaKeyColor クロマキーする場合。クロマキーにする色
      */
     suspend fun drawSurfaceTexture(
         akariSurfaceTexture: AkariGraphicsSurfaceTexture,
-        isAwaitTextureUpdate: Boolean = false,
+        nullOrTextureUpdateTimeoutMs: Long? = null,
         onTransform: ((mvpMatrix: FloatArray) -> Unit)? = null,
         chromakeyThreshold: Float? = null,
         chromaKeyColor: Int? = null
@@ -133,8 +150,11 @@ class AkariGraphicsTextureRenderer internal constructor(
         // 映像が到着するまで待つ
         akariSurfaceTexture.awaitAlreadyFrameAvailableCallback()
 
-        if (isAwaitTextureUpdate) {
-            akariSurfaceTexture.awaitUpdateTexImage()
+        // タイムアウトが設定されている場合は、その時間だけ awaitUpdateTexImage() を試す
+        if (nullOrTextureUpdateTimeoutMs != null) {
+            withTimeoutOrNull(nullOrTextureUpdateTimeoutMs) {
+                akariSurfaceTexture.awaitUpdateTexImage()
+            }
         } else {
             akariSurfaceTexture.checkAndUpdateTexImage()
         }

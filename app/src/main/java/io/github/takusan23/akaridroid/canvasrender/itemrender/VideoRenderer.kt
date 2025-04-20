@@ -51,6 +51,10 @@ class VideoRenderer(
     val chromaKeyColorOrNull: Int?
         get() = video.chromaKeyColor
 
+    /** [preDraw]の結果、新しいフレームがある場合は true TODO これも VideoTrackRenderer 側でキャストしてるのが良くない */
+    var isNewFrame: Boolean = false
+        private set
+
     // 動画のデコーダーは有限なので、タイムラインで必要になるまで作らない
     override suspend fun enterTimeline() {
         super.enterTimeline()
@@ -89,7 +93,8 @@ class VideoRenderer(
         // 再生速度、オフセットを考慮した、動画のフレーム取得時間を出す
         val framePositionMs = video.calcVideoFramePositionMs(currentPositionMs = currentPositionMs)
         // 指定位置のフレームを取得するためシークする
-        akariVideoDecoder.seekTo(framePositionMs)
+        val (_, isNewFrame) = akariVideoDecoder.seekTo(framePositionMs)
+        this.isNewFrame = isNewFrame
     }
 
     override suspend fun isReuse(renderItem: RenderData.CanvasItem, videoTrackRendererPrepareData: VideoTrackRendererPrepareData): Boolean {

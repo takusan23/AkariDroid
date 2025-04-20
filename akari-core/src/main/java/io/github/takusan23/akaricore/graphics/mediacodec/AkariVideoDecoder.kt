@@ -76,19 +76,25 @@ class AkariVideoDecoder {
         decodeMediaCodec?.start()
     }
 
+    @Deprecated("seekTo() を使ってください") // TODO 次消す
+    suspend fun _seekTo(seekToMs: Long): Boolean = seekTo(seekToMs).isNewFrame
+
     /**
      * シークする。
      * これを連続で呼び出しフレームを連続で取り出し再生させる。
      *
      * @param seekToMs 動画フレームの時間
-     * @return フレームが取得できた場合は true
+     * @return [SeekResult]
      */
-    suspend fun seekTo(seekToMs: Long): Boolean {
+    suspend fun seekTo(seekToMs: Long): SeekResult {
         val isSuccessDecodeFrame = when {
             // 現在の再生位置よりも戻る方向に（巻き戻し）した場合
             seekToMs < prevSeekToMs -> {
                 latestDecodePositionMs = prevSeekTo(seekToMs)
-                true
+                SeekResult(
+                    isSuccessful = true,
+                    isNewFrame = true
+                )
             }
 
             // シーク不要
@@ -96,7 +102,10 @@ class AkariVideoDecoder {
             // つまり映像のフレームレートよりも高頻度で Bitmap が要求されたら、前回取得した Bitmap がそのまま使い回せる
             seekToMs < latestDecodePositionMs -> {
                 // do nothing
-                true
+                SeekResult(
+                    isSuccessful = true,
+                    isNewFrame = false
+                )
             }
 
             else -> {
@@ -105,7 +114,10 @@ class AkariVideoDecoder {
                 if (framePositionMsOrNull != null) {
                     latestDecodePositionMs = framePositionMsOrNull
                 }
-                framePositionMsOrNull != null
+                SeekResult(
+                    isSuccessful = framePositionMsOrNull != null,
+                    isNewFrame = true
+                )
             }
         }
         prevSeekToMs = seekToMs
@@ -287,6 +299,17 @@ class AkariVideoDecoder {
 
         return returnValue
     }
+
+    /**
+     * [seekTo]の結果
+     *
+     * @param isSuccessful フレームが取得できた場合は true。もう無い場合などは false。
+     * @param isNewFrame フレームが更新された場合は true。つまり動画の fps よりも早くフレームを取り出した場合、前回のフレームが使われることがあるため、その場合は false。
+     */
+    data class SeekResult internal constructor(
+        val isSuccessful: Boolean,
+        val isNewFrame: Boolean
+    )
 
     companion object {
         /** MediaCodec タイムアウト */

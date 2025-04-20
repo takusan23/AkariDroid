@@ -352,10 +352,11 @@ class VideoTrackRenderer(private val context: Context) {
                 itemRender is DrawSurfaceTextureInterface -> {
                     // TODO 動画しかクロマキーしないため as VideoRenderer しているがどうにかしたい。
                     val videoChromaKeyOrNull = (itemRender as? VideoRenderer)?.chromaKeyColorOrNull
+                    val isNewFrame = (itemRender as? VideoRenderer)?.isNewFrame == true
 
                     akariGraphicsTextureRenderer.drawSurfaceTexture(
                         akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
-                        isAwaitTextureUpdate = false,
+                        nullOrTextureUpdateTimeoutMs = if (isNewFrame) 1_000 else 0,
                         onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoTrackPrepareData.outputWidth, videoTrackPrepareData.outputHeight) },
                         chromakeyThreshold = if (videoChromaKeyOrNull != null) VideoRenderer.CHROMAKEY_THRESHOLD else null,
                         chromaKeyColor = videoChromaKeyOrNull

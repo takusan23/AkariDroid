@@ -125,14 +125,15 @@ class VideoFrameBitmapExtractor {
         val akariGraphicsProcessor = akariGraphicsProcessor!!
         val akariGraphicsSurfaceTexture = akariGraphicsSurfaceTexture!!
 
-        val isFrameSuccessful = akariVideoDecoder.seekTo(seekToMs = seekToMs)
+        val isFrameSuccessful = akariVideoDecoder.seekTo(seekToMs = seekToMs).isSuccessful
         if (!isFrameSuccessful) return null
 
         akariGraphicsProcessor.drawOneshot {
             drawSurfaceTexture(
                 akariSurfaceTexture = akariGraphicsSurfaceTexture,
                 chromakeyThreshold = chromakeyThreshold,
-                chromaKeyColor = chromakeyColor
+                chromaKeyColor = chromakeyColor,
+                nullOrTextureUpdateTimeoutMs = null
             )
         }
         return getImageReaderBitmap()
