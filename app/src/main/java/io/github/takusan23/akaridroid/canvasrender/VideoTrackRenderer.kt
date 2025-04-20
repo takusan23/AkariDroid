@@ -356,7 +356,7 @@ class VideoTrackRenderer(private val context: Context) {
 
                     akariGraphicsTextureRenderer.drawSurfaceTexture(
                         akariSurfaceTexture = itemRender.akariGraphicsSurfaceTexture,
-                        nullOrTextureUpdateTimeoutMs = if (isNewFrame) 1_000 else 0,
+                        nullOrTextureUpdateTimeoutMs = if (isNewFrame) AkariGraphicsTextureRenderer.SURFACE_TEXTURE_UPDATE_TIMEOUT_MS else 0,
                         onTransform = { mvpMatrix -> itemRender.draw(mvpMatrix, videoTrackPrepareData.outputWidth, videoTrackPrepareData.outputHeight) },
                         chromakeyThreshold = if (videoChromaKeyOrNull != null) VideoRenderer.CHROMAKEY_THRESHOLD else null,
                         chromaKeyColor = videoChromaKeyOrNull

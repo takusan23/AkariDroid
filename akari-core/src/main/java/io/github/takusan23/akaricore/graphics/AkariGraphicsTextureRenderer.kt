@@ -116,7 +116,7 @@ class AkariGraphicsTextureRenderer internal constructor(
         chromaKeyColor: Int? = null
     ) = drawSurfaceTexture(
         akariSurfaceTexture = akariSurfaceTexture,
-        nullOrTextureUpdateTimeoutMs = if (isAwaitTextureUpdate) 1_000 else null,
+        nullOrTextureUpdateTimeoutMs = if (isAwaitTextureUpdate) SURFACE_TEXTURE_UPDATE_TIMEOUT_MS else null,
         onTransform = onTransform,
         chromakeyThreshold = chromakeyThreshold,
         chromaKeyColor = chromaKeyColor
@@ -641,6 +641,10 @@ class AkariGraphicsTextureRenderer internal constructor(
     )
 
     companion object {
+
+        /** [drawSurfaceTexture]でテクスチャの更新を待つ場合の、デフォルトタイムアウト */
+        const val SURFACE_TEXTURE_UPDATE_TIMEOUT_MS = 1_000L
+
         private const val FLOAT_SIZE_BYTES = 4
         private const val TRIANGLE_VERTICES_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES
         private const val TRIANGLE_VERTICES_DATA_POS_OFFSET = 0
