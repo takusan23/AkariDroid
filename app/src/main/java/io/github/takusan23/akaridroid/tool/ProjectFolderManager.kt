@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -223,17 +224,14 @@ object ProjectFolderManager {
         name: String,
         uri: Uri
     ): String {
-        val folder = getProjectFolder(context, name)
-        val fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString()
-        val copiedFile = folder.resolve(fileName)
-        // すでにある場合は何もしない
-        if (!copiedFile.exists()) {
-            // コピーする
-            withContext(Dispatchers.IO) {
-                MediaStoreTool.fileCopy(context, uri, copiedFile)
-            }
+        return context.contentResolver.openInputStream(uri)!!.use { inputStream ->
+            copyToProjectFolder(
+                context = context,
+                projectName = name,
+                fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString(),
+                from = inputStream
+            ).path
         }
-        return copiedFile.path
     }
 
     /** [copyToProjectFolder]の[File]版。 */
@@ -243,21 +241,14 @@ object ProjectFolderManager {
         file: File
     ): String {
         // TODO このアプリの File に限定する、もしストレージ読み込み権限が実装された際には動かないようにする必要あり
-        val folder = getProjectFolder(context, name)
-        val fileName = file.path
-        val copiedFile = folder.resolve(fileName)
-        // すでにある場合は何もしない
-        if (!copiedFile.exists()) {
-            // コピーする
-            withContext(Dispatchers.IO) {
-                file.inputStream().use { inputStream ->
-                    copiedFile.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-            }
+        return file.inputStream().use { inputStream ->
+            copyToProjectFolder(
+                context = context,
+                projectName = name,
+                fileName = file.name,
+                from = inputStream
+            ).path
         }
-        return copiedFile.path
     }
 
     /**
@@ -413,6 +404,56 @@ object ProjectFolderManager {
                 }
                 updateProgress()
             }
+        }
+    }
+
+    /**
+     * 自分のフォルダにコピーする。
+     * ファイル名が重複していれば (1) を付ける
+     *
+     * @param context [Context]
+     * @param projectName プロジェクト名
+     * @param fileName コピーするファイルの名前
+     * @param from [InputStream]
+     * @return 作ったファイル
+     */
+    private suspend fun copyToProjectFolder(
+        context: Context,
+        projectName: String,
+        fileName: String,
+        from: InputStream
+    ): File {
+        return withContext(Dispatchers.IO) {
+            // TODO このアプリの File に限定する、もしストレージ読み込み権限が実装された際には動かないようにする必要あり
+            val folder = getProjectFolder(context, projectName)
+
+            // すでにあれば (2) みたいにする
+            val uniqueFileName = if (folder.resolve(fileName).exists()) {
+                // すでにある。早期的に探す
+                val (withoutExtensionFileName, extension) = fileName.split(".")
+                var count = 1
+                var maybeFileName: String
+                while (true) {
+                    // 作って exists が false なら break
+                    maybeFileName = "$withoutExtensionFileName($count).$extension"
+                    count++
+                    if (!folder.resolve(maybeFileName).exists()) {
+                        break
+                    }
+                }
+                maybeFileName
+            } else {
+                // ない
+                fileName
+            }
+
+            // InputStream を開いてコピー
+            val file = folder.resolve(uniqueFileName)
+            file.outputStream().use { outputStream ->
+                from.copyTo(outputStream)
+            }
+
+            file
         }
     }
 
