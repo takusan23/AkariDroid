@@ -2,11 +2,11 @@ package io.github.takusan23.akaridroid.viewmodel
 
 import android.app.Application
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.media.MediaFormat
 import android.net.Uri
-import android.os.Build
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
@@ -916,31 +916,33 @@ class VideoEditorViewModel(
                 }
             }
 
-            // エンコードして ClipData にする
-            // 独自 MIME-Type でアプリ固有であることを定義
-            val sharedUri = ProjectFolderManager.renderItemToJson(context, resetDisplayTimeList)
-            val clipData = ClipData("akaridroid timeline copy", arrayOf(ProjectFolderManager.TIMELINE_COPY_MIME_TYPE), ClipData.Item(sharedUri))
-
             // あかりどろいど相手じゃない場合
             // テキストの場合は PlainText、画像とかもやる予定
             // 例えば、テキストをコピーしたとき、あかりどろいど相手には JSON(TIMELINE_COPY_MIME_TYPE) を渡すが、それ以外のメモアプリとかに対してはテキストの文字だけを渡す
             // あかりどろいどの貼り付け時は JSON(TIMELINE_COPY_MIME_TYPE) があるかをまず判定します
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                copyList.mapNotNull {
-                    when (it) {
-                        is RenderData.AudioItem.Audio -> null
-                        is RenderData.CanvasItem.Effect -> null
-                        is RenderData.CanvasItem.Image -> null
-                        is RenderData.CanvasItem.Shader -> null
-                        is RenderData.CanvasItem.Shape -> null
-                        is RenderData.CanvasItem.SwitchAnimation -> null
-                        is RenderData.CanvasItem.Text -> ClipData.Item(it.text)
-                        is RenderData.CanvasItem.Video -> null
-                    }
-                }.forEach { item ->
-                    clipData.addItem(context.contentResolver, item)
+            val withoutInternalClipMimeTypeItemList = copyList.mapNotNull {
+                when (it) {
+                    is RenderData.AudioItem.Audio -> null
+                    is RenderData.CanvasItem.Effect -> null
+                    is RenderData.CanvasItem.Image -> null
+                    is RenderData.CanvasItem.Shader -> null
+                    is RenderData.CanvasItem.Shape -> null
+                    is RenderData.CanvasItem.SwitchAnimation -> null
+                    is RenderData.CanvasItem.Text -> ClipDescription.MIMETYPE_TEXT_PLAIN to ClipData.Item(it.text)
+                    is RenderData.CanvasItem.Video -> null
                 }
             }
+
+            // エンコードして ClipData にする
+            // 独自 MIME-Type でアプリ固有であることを定義
+            val sharedUri = ProjectFolderManager.renderItemToJson(context, resetDisplayTimeList)
+            val mimeTypeList = withoutInternalClipMimeTypeItemList.map { (mimeType, _) -> mimeType } + ProjectFolderManager.TIMELINE_COPY_MIME_TYPE
+            val clipItemList = withoutInternalClipMimeTypeItemList.map { (_, clipItem) -> clipItem } + ClipData.Item(sharedUri)
+            val clipData = ClipData("akaridroid timeline copy", mimeTypeList.toTypedArray(), clipItemList.first())
+
+            // 残りの withoutInternalClipMimeTypeItemList も入れる
+            // first() したので drop(1)
+            clipItemList.drop(1).forEach { clipItem -> clipData.addItem(clipItem) }
 
             clipboardManager.setPrimaryClip(clipData)
         }
@@ -1077,8 +1079,8 @@ class VideoEditorViewModel(
         // application/json を探す
         // Uri だと画像や動画もあるため、getItemAt() だとダメ
         val akariDroidRenderDataJsonUri = (0 until clipData.itemCount)
-            .map { clipData.getItemAt(it).uri }
-            .first { context.contentResolver.getType(it) == "application/json" }
+            .mapNotNull { index -> clipData.getItemAt(index).uri }
+            .first { uri -> context.contentResolver.getType(uri) == "application/json" }
 
         // ClipData から取り出し、ID が重複しないように
         // TODO UUID とかを検討する
