@@ -159,7 +159,9 @@ object ProjectFolderManager {
                     lastModifiedDate = file.lastModified(),
                     videoDurationMs = renderData.durationMs
                 )
-            } ?: emptyList()
+            }
+            ?.sortedBy { it.lastModifiedDate }
+            ?: emptyList()
     }
 
     /**
