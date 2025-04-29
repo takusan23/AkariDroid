@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.tool
 
-import android.content.ClipData
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -189,17 +188,16 @@ object ProjectFolderManager {
     }
 
     /**
-     * タイムラインのアイテムをコピーした [clipData] から Uri を取り出しタイムラインに追加する。
+     * タイムラインのアイテムをコピーした ClipData の中にある Uri を取り出しタイムラインに追加する。
      *
      * @param context [Context]
-     * @param clipData クリップボードから取り出したもの
+     * @param uri クリップボードから JSON を取り出したもの
      * @return [RenderData.RenderItem]の配列
      */
     suspend fun jsonRenderItemToList(
         context: Context,
-        clipData: ClipData
+        uri: Uri
     ): List<RenderData.RenderItem> {
-        val uri = clipData.getItemAt(0).uri
         val jsonString = withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)!!.bufferedReader().readText()
         }
@@ -218,6 +216,7 @@ object ProjectFolderManager {
      * @param context [Context]
      * @param name プロジェクト名
      * @param uri ドラッグアンドドロップやクリップボードからのペースト
+     * @return ファイルパス
      */
     suspend fun copyToProjectFolder(
         context: Context,
