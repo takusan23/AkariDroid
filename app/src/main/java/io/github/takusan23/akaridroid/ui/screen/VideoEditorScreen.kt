@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -167,7 +168,9 @@ fun VideoEditorScreen(
                 // タイムライン
                 when (timeLineMode.value) {
                     TimeLineMode.Default -> VideoEditorDefaultTimeLine(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .systemGestureExclusion(),
                         viewModel = viewModel,
                         bottomPadding = paddingValues.calculateBottomPadding(),
                         recommendFloatingBarMenuList = recommendFloatingBarMenuList.value,
@@ -180,7 +183,9 @@ fun VideoEditorScreen(
                     )
 
                     TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .systemGestureExclusion(),
                         viewModel = viewModel,
                         bottomPadding = paddingValues.calculateBottomPadding(),
                         timeLineState = timeLineState,
