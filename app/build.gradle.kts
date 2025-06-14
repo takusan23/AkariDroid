@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "io.github.takusan23.akaridroid"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.takusan23.akaridroid"
         minSdk = 21
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 12
         versionName = "5.0.0"
 

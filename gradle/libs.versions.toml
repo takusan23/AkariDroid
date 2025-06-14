@@ -5,7 +5,7 @@ androidGradlePlugin = "8.9.3"
 kotlinCoroutine = "1.10.2"
 kotlinSerialization = "1.8.1"
 
-androidxComposeBom = "2025.05.01"
+androidxComposeBom = "2025.06.00"
 androidxCore = "1.16.0"
 androidxAppCompat = "1.7.0"
 androidxLifecycle = "2.9.0"
