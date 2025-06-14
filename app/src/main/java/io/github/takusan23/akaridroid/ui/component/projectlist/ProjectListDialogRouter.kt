@@ -98,7 +98,13 @@ private fun ExportOrImportProgressDialog(
                 )
                 LinearProgressIndicator(
                     modifier = Modifier.fillMaxWidth(),
-                    progress = { current / total.toFloat() }
+                    progress = {
+                        if (current != 0 && total != 0) {
+                            current / total.toFloat()
+                        } else {
+                            0f
+                        }
+                    }
                 )
                 Text(
                     modifier = Modifier.align(Alignment.End),
