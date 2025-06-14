@@ -37,6 +37,7 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComp
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemRotationEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
+import java.io.File
 
 /**
  * [RenderData.CanvasItem.Video]の編集ボトムシート
@@ -66,9 +67,9 @@ fun VideoRenderEditBottomSheet(
     }
 
     LaunchedEffect(key1 = videoItem.value.filePath) {
-        // Uri しか来ないので
-        (videoItem.value.filePath as? RenderData.FilePath.Uri)?.also { filePath ->
-            videoFileName.value = UriTool.getFileName(context, filePath.uriPath.toUri())
+        videoFileName.value = when (val path = videoItem.value.filePath) {
+            is RenderData.FilePath.File -> File(path.filePath).name
+            is RenderData.FilePath.Uri -> UriTool.getFileName(context, path.uriPath.toUri())
         }
     }
 
