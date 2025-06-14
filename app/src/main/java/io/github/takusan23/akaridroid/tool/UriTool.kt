@@ -39,7 +39,7 @@ object UriTool {
         // Uri が存在するかを返す処理はない
         // 仕方ないので try-catch で開けるか試す。あれば true のハズ。
         runCatching {
-            context.contentResolver.query(uri, emptyArray(), null, null, null)?.close()
+            context.contentResolver.openInputStream(uri).use { /* 存在しない、Uri が期限切れの場合は例外 */ }
         }.isSuccess
     }
 
@@ -50,9 +50,11 @@ object UriTool {
      * @return ファイル名。取れない場合は null
      */
     suspend fun getFileName(context: Context, uri: Uri) = withContext(Dispatchers.IO) {
-        return@withContext context.contentResolver.query(uri, arrayOf(MediaStore.Video.Media.DISPLAY_NAME), null, null, null)?.use { cursor ->
-            cursor.moveToFirst()
-            cursor.getString(0)
-        }
+        return@withContext runCatching {
+            context.contentResolver.query(uri, arrayOf(MediaStore.Video.Media.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                cursor.moveToFirst()
+                cursor.getString(0)
+            }
+        }.getOrNull()
     }
 }
