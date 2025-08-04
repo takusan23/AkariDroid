@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.canvasrender
 
 import android.content.Context
+import android.graphics.Color
 import android.view.Surface
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
@@ -341,6 +342,10 @@ class VideoTrackRenderer(private val context: Context) {
         akariGraphicsTextureRenderer: AkariGraphicsTextureRenderer,
         displayPositionItemList: List<RendererInterface>
     ) {
+        // 何も描画しない場合（目一杯使わない場合）に黒色で塗りつぶす、Snapdragon だと何故か砂嵐
+        // TODO akari-core 側に移動させる
+        akariGraphicsTextureRenderer.drawCanvas { drawColor(Color.BLACK) }
+
         displayPositionItemList.forEach { itemRender ->
             when {
                 itemRender is DrawCanvasInterface -> {
