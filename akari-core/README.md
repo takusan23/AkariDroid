@@ -192,8 +192,8 @@ CORE_RELEASE_NORE.md を書く
 
 ローカルでも公開できます。
 
-### OSSRH ユーザートークンを取得する
-https://central.sonatype.org/publish/generate-token/
+### CentralPortal ユーザートークンを取得する
+https://central.sonatype.com/account
 
 ↑を元に、ユーザートークンを発行してください。  
 私はすでにやってるのでやらなくて良いはず。
@@ -217,11 +217,11 @@ sonatypeStagingProfileId={SonatypeステージングプロファイルID}
 
 #### コマンドを叩く
 
-`gradle :akari-core:publishToSonatype`
+`gradle :akari-core:publishToSonatype closeSonatypeStagingRepository`
 
 ## Close と Release を行う
 
-https://s01.oss.sonatype.org/  
+https://central.sonatype.com/publishing/deployments  
 へアクセスしログインした後、`Staging Repositories`を押します。
 
 `Close` を押します。
