@@ -12,7 +12,7 @@ plugins {
 // https://docs.gradle.org/current/dsl/org.gradle.api.publish.maven.MavenPublication.html
 // https://github.com/gradle-nexus/publish-plugin
 
-// OSSRH にアップロードせずに成果物を確認する方法があります。ローカルに吐き出せばいい
+// Central Portal にアップロードせずに成果物を確認する方法があります。ローカルに吐き出せばいい
 // gradle :akari-core:publishToMavenLocal
 
 android {

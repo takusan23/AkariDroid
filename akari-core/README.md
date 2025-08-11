@@ -207,12 +207,10 @@ signing.keyId={鍵IDの最後8桁}
 signing.password={秘密鍵のパスワード}
 # Private key Base64
 signing.key={Base64にした秘密鍵}
-# Sonatype OSSRH UserToken UserName
-ossrhUsername={OSSRH UserToken ユーザー名}
-# Sonatype OSSRH UserToken Password
-ossrhPassword={OSSRH UserToken パスワード}
-# Sonatype Staging Profile Id
-sonatypeStagingProfileId={SonatypeステージングプロファイルID}
+# Sonatype Central Portal UserToken UserName
+centralPortalUsername={Central Portal で生成したユーザー名}
+# Sonatype Central Portal UserToken Password
+centralPortalPassword={Central Portal で生成したパスワード}
 ```
 
 #### コマンドを叩く

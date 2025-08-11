@@ -21,8 +21,8 @@ group = "io.github.takusan23"
 extra["signing.keyId"] = ""
 extra["signing.password"] = ""
 extra["signing.key"] = ""
-extra["ossrhUsername"] = ""
-extra["ossrhPassword"] = ""
+extra["centralPortalUsername"] = ""
+extra["centralPortalPassword"] = ""
 extra["sonatypeStagingProfileId"] = ""
 
 // 署名情報を読み出す。開発環境では local.properties に署名情報を置いている。
@@ -35,18 +35,18 @@ if (secretPropsFile.exists()) {
     properties.forEach { name, value -> extra[name as String] = value }
 } else {
     // システム環境変数から読み出す。CI/CD 用
-    extra["ossrhUsername"] = System.getenv("OSSRH_USERNAME")
-    extra["ossrhPassword"] = System.getenv("OSSRH_PASSWORD")
+    extra["centralPortalUsername"] = System.getenv("CENTRAL_PORTAL_USERNAME")
+    extra["centralPortalPassword"] = System.getenv("CENTRAL_PORTAL_PASSWORD")
     extra["sonatypeStagingProfileId"] = System.getenv("SONATYPE_STAGING_PROFILE_ID")
     extra["signing.keyId"] = System.getenv("SIGNING_KEY_ID")
     extra["signing.password"] = System.getenv("SIGNING_PASSWORD")
     extra["signing.key"] = System.getenv("SIGNING_KEY")
 }
 
-// Sonatype OSSRH リポジトリ情報
+// Sonatype centralPortal リポジトリ情報
 nexusPublishing.repositories.sonatype {
-    username.set(extra["ossrhUsername"] as String)
-    password.set(extra["ossrhPassword"] as String)
+    username.set(extra["centralPortalUsername"] as String)
+    password.set(extra["centralPortalPassword"] as String)
     nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
     snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
 }
