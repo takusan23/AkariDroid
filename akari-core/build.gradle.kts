@@ -69,7 +69,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "io.github.takusan23"
             artifactId = "akaricore"
-            version = "6.0.0" // バージョンアップの際は CORE_RELEASE_NOTE.md も更新 + release_akari_core ブランチの更新
+            version = "6.1.0" // バージョンアップの際は CORE_RELEASE_NOTE.md も更新 + release_akari_core ブランチの更新
 
             // afterEvaluate しないとエラーなる
             afterEvaluate {

@@ -4,6 +4,9 @@
 ## 6.0.0 時代
 あかりどろいど 5.x に対応します
 
+### akaricore:6.1.0
+- TargetSdk が 36 になりました。
+
 ### akaricore:6.0.0
 - 10bit-HDR で、PQ のガンマカーブが選べるようになりました
   - これに伴い`AkariGraphicsInputSurface`のコンストラクタが変更されてます、まだ`Deprecated`で残してます
