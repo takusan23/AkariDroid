@@ -220,10 +220,8 @@ centralPortalPassword={Central Portal で生成したパスワード}
 ## Close と Release を行う
 
 https://central.sonatype.com/publishing/deployments  
-へアクセスしログインした後、`Staging Repositories`を押します。
 
-`Close` を押します。
+を開いて、`Deployments`を選び、表示されているカードの`Publish`を押せば公開される。  
+やり直したい場合は`Drop`を押せば良い。
 
-![Imgur](https://imgur.com/pDPVunk.png)
-
-終わったら `Release` を押します。これで MavenCentral に公開できます。
+![drop_or_publish](https://oekakityou.negitoro.dev/original/a0a1c5f5-851b-4278-84e7-be6f090649d3.png)
