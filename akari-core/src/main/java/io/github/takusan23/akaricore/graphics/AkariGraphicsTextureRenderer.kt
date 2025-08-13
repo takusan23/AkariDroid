@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.PorterDuff
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
+import android.opengl.GLES30
 import android.opengl.GLUtils
 import android.opengl.Matrix
 import androidx.core.graphics.createBitmap
@@ -394,6 +395,28 @@ class AkariGraphicsTextureRenderer internal constructor(
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
+    }
+
+    /**
+     * glReadPixels を呼び出す。
+     * HDR の場合は RGB で 10bit 使う。
+     *
+     * [drawEnd]の後、[AkariGraphicsInputSurface.swapBuffers]の前に呼び出す必要がありそう？
+     * （swapBuffers の後だと真っ暗だった）
+     *
+     * @return [android.opengl.GLES30.glReadPixels] の結果
+     */
+    internal fun glReadPixels(): ByteArray {
+        // RGBA で 4バイト使う
+        val byteArray = ByteArray(4 * height * width)
+        val byteBuffer = ByteBuffer.wrap(byteArray)
+        if (isEnableTenBitHdr) {
+            // OpenGL ES の EGL で RGB 10 ビット、Alpha 2 ビット使っているので GL_UNSIGNED_INT_2_10_10_10_REV
+            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_INT_2_10_10_10_REV, byteBuffer)
+        } else {
+            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, byteBuffer)
+        }
+        return byteArray
     }
 
     /** 破棄時に呼び出す */

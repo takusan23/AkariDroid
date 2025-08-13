@@ -1,5 +1,6 @@
 package io.github.takusan23.akaricore.graphics
 
+import android.graphics.Bitmap
 import android.opengl.GLES20
 import android.view.Surface
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
@@ -104,6 +105,24 @@ class AkariGraphicsProcessor(
             draw(textureRenderer)
             textureRenderer.drawEnd()
             inputSurface.swapBuffers()
+        }
+    }
+
+    /**
+     * 一回だけ描画し、glReadPixels の結果を返す。
+     * 返り値の ByteArray は、[Bitmap.createBitmap]して、[Bitmap.copyPixelsFromBuffer] に渡すと Bitmap にできます。
+     *
+     * @param draw このブロックは GL スレッドから呼び出されます
+     * @return [draw]した内容を Bitmap にしたもの
+     */
+    suspend fun drawOneshotAndGlReadPixels(draw: suspend AkariGraphicsTextureRenderer.() -> Unit): ByteArray {
+        return withContext(openGlRelatedThreadDispatcher) {
+            textureRenderer.prepareDraw()
+            draw(textureRenderer)
+            textureRenderer.drawEnd()
+            val byteArray = textureRenderer.glReadPixels()
+            inputSurface.swapBuffers()
+            byteArray
         }
     }
 

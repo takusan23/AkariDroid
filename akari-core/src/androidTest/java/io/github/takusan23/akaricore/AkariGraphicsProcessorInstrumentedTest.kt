@@ -8,7 +8,6 @@ import android.graphics.PixelFormat
 import android.media.Image
 import android.media.ImageReader
 import android.media.MediaMetadataRetriever
-import android.opengl.GLES30
 import androidx.core.graphics.blue
 import androidx.core.graphics.get
 import androidx.core.graphics.green
@@ -59,7 +58,6 @@ class AkariGraphicsProcessorInstrumentedTest {
                 }
             }
 
-            // 描画
             graphicsProcessor.drawOneshot {
                 drawCanvas {
                     drawBitmap(fillRedBitmap, 0f, 0f, Paint())
@@ -180,25 +178,18 @@ class AkariGraphicsProcessorInstrumentedTest {
                 drawColor(Color.RED)
             }
         }
-        offscreenAkariGraphicsProcessor.drawOneshot {
+
+        // glReadPixels で赤色が描画出来ているか
+        // glReadPixels は上下反転するが、単色で塗りつぶしているだけなので特に見ていない
+        val byteArray = offscreenAkariGraphicsProcessor.drawOneshotAndGlReadPixels {
             drawCanvas {
                 drawBitmap(fillRedColorBitmap, 0f, 0f, Paint())
             }
         }
 
-        // glReadPixels で赤色が描画出来ているか
-        // glReadPixels は上下反転するが、単色で塗りつぶしているだけなので特に見ていない
-        val byteBuffer = ByteBuffer.allocate(CommonTestTool.TEST_VIDEO_WIDTH * CommonTestTool.TEST_VIDEO_HEIGHT * 4).apply {
-            position(0)
-        }
-        // GL スレッドで
-        offscreenAkariGraphicsProcessor.withOpenGlThread {
-            GLES30.glReadPixels(0, 0, CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, byteBuffer)
-        }
-
         // Bitmap を作って一致すること
         val glReadPixelsBitmap = Bitmap.createBitmap(CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, Bitmap.Config.ARGB_8888)
-        glReadPixelsBitmap.copyPixelsFromBuffer(byteBuffer)
+        glReadPixelsBitmap.copyPixelsFromBuffer(ByteBuffer.wrap(byteArray))
 
         assertTrue("オフスクリーンレンダリングした Bitmap と一致しません") { glReadPixelsBitmap.sameAs(fillRedColorBitmap) }
         offscreenAkariGraphicsProcessor.destroy()
@@ -216,27 +207,20 @@ class AkariGraphicsProcessorInstrumentedTest {
                 colorSpaceType = dynamicRangeType
             ).apply { prepare() }
 
-            // 真っ白
-            // 10ビットなので多分 8 ビットで 0xFF だったのが 10 ビットで 0b11_1111_1111 になるはず。
-            offscreenAkariGraphicsProcessor.drawOneshot {
+            // glReadPixels
+            // ImageReader の P010 は xperia 1 v で動かなかったので glReadPixels している
+            val byteArray = offscreenAkariGraphicsProcessor.drawOneshotAndGlReadPixels {
+                // 真っ白
+                // 10ビットなので多分 8 ビットで 0xFF だったのが 10 ビットで 0b11_1111_1111 になるはず。
                 drawCanvas {
                     drawColor(Color.WHITE)
                 }
             }
 
-            // glReadPixels
-            val byteBuffer = ByteBuffer.allocate(CommonTestTool.TEST_VIDEO_WIDTH * CommonTestTool.TEST_VIDEO_HEIGHT * 4).apply {
-                position(0)
-            }
-            offscreenAkariGraphicsProcessor.withOpenGlThread {
-                // OpenGL ES の EGL で RGB 10 ビット、Alpha 2 ビット使っているので GL_UNSIGNED_INT_2_10_10_10_REV
-                GLES30.glReadPixels(0, 0, CommonTestTool.TEST_VIDEO_WIDTH, CommonTestTool.TEST_VIDEO_HEIGHT, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_INT_2_10_10_10_REV, byteBuffer)
-            }
-
             // RGB が各 10 ビットなのでちょっと変わってる
-            val red10bit = (byteBuffer[0].toInt() shr 20) and 0b11_1111_1111
-            val green10bit = (byteBuffer[0].toInt() shr 10) and 0b11_1111_1111
-            val blue10bit = byteBuffer[0].toInt() and 0b11_1111_1111
+            val red10bit = (byteArray[0].toInt() shr 20) and 0b11_1111_1111
+            val green10bit = (byteArray[0].toInt() shr 10) and 0b11_1111_1111
+            val blue10bit = byteArray[0].toInt() and 0b11_1111_1111
             // 白なので 10 ビット全て立ってるはず
             assertEquals(0b11_1111_1111, red10bit, "[$dynamicRangeType] 10ビットの色が一致しませんでした")
             assertEquals(0b11_1111_1111, green10bit, "[$dynamicRangeType] 10ビットの色が一致しませんでした")
