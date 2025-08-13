@@ -141,21 +141,21 @@ class AkariGraphicsProcessorInstrumentedTest {
 
             // 0..1_000ms は少なくとも Red は 0xFF であること
             akariVideoDecoder.seekTo(seekToMs = 500)
-            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture) }
+            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture, null) }
             val redVideoFrameBitmap = imageReader.acquireNextImage().toRgbaBitmap()
             assertEquals(0xFF, redVideoFrameBitmap[0, 0].red, "デコードした動画と色が一致しません")
             assertEquals(0xFF, redVideoFrameBitmap[10, 10].red, "デコードした動画と色が一致しません")
 
             // 1_000..2_000ms は少なくとも Green は 0xFF であること
             akariVideoDecoder.seekTo(seekToMs = 1_500)
-            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture) }
+            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture, null) }
             val greenVideoFrameBitmap = imageReader.acquireNextImage().toRgbaBitmap()
             assertEquals(0xFF, greenVideoFrameBitmap[0, 0].green, "デコードした動画と色が一致しません")
             assertEquals(0xFF, greenVideoFrameBitmap[10, 10].green, "デコードした動画と色が一致しません")
 
             // 2_000..3_000ms は少なくとも Blue は 0xFF であること
             akariVideoDecoder.seekTo(seekToMs = 2_500)
-            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture) }
+            graphicsProcessor.drawOneshot { drawSurfaceTexture(akariGraphicsSurfaceTexture, null) }
             val blueVideoFrameBitmap = imageReader.acquireNextImage().toRgbaBitmap()
             assertEquals(0xFF, blueVideoFrameBitmap[0, 0].blue, "デコードした動画と色が一致しません")
             assertEquals(0xFF, blueVideoFrameBitmap[10, 10].blue, "デコードした動画と色が一致しません")
