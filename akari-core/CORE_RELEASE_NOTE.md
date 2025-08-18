@@ -4,6 +4,11 @@
 ## 6.0.0 時代
 あかりどろいど 5.x に対応します
 
+### akaricore:6.2.0
+- `AkariGraphicsProcessor`に描画と`glReadPixels`が出来る関数を追加しました
+  - `drawOneshotAndGlReadPixels`
+- これ以外は無いです
+
 ### akaricore:6.1.0
 - TargetSdk が 36 になりました。
 
