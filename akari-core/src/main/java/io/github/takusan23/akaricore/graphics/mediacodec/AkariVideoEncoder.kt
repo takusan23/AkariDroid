@@ -121,35 +121,53 @@ class AkariVideoEncoder {
         val bufferInfo = MediaCodec.BufferInfo()
         encodeMediaCodec.start()
 
-        try {
-            while (true) {
-                // yield() で 占有しないよう
-                yield()
-
-                // Surface経由でデータを貰って保存する
-                val encoderStatus = encodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
-                if (0 <= encoderStatus) {
-                    if (bufferInfo.size > 0) {
+        /**
+         * エンコーダーからデータをもらう関数。
+         * メインループと、signalEndOfInputStream() を投げた後の残り分をエンコードするため。
+         *
+         * @return もうデータがでてこない、最後の場合は true
+         */
+        suspend fun processEncode(): Boolean {
+            // Surface経由でデータを貰って保存する
+            val encoderStatus = encodeMediaCodec.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
+            when {
+                0 <= encoderStatus -> {
+                    if (0 < bufferInfo.size) {
                         if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                             val encodedData = encodeMediaCodec.getOutputBuffer(encoderStatus)!!
                             muxerInterface.onOutputData(encodedData, bufferInfo)
                         }
                     }
                     encodeMediaCodec.releaseOutputBuffer(encoderStatus, false)
-                } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                }
+
+                encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
                     // MediaMuxerへ映像トラックを追加するのはこのタイミングで行う
                     // このタイミングでやると固有のパラメーターがセットされたMediaFormatが手に入る(csd-0 とか)
                     // 映像がぶっ壊れている場合（緑で塗りつぶされてるとか）は多分このあたりが怪しい
                     val newFormat = encodeMediaCodec.outputFormat
                     muxerInterface.onOutputFormat(newFormat)
                 }
-                if (encoderStatus != MediaCodec.INFO_TRY_AGAIN_LATER) {
-                    continue
-                }
+            }
+            return bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
+        }
+
+        try {
+            while (true) {
+                // yield() で 占有しないよう
+                yield()
+                processEncode() // ループの中で関数呼び出ししてコストがあれかも、
             }
         } finally {
-            // エンコーダー終了
+            // エンコーダーの終了シグナルを送る
+            // 残った分をエンコード
             encodeMediaCodec.signalEndOfInputStream()
+            while (true) {
+                if (processEncode()) {
+                    break
+                }
+            }
+
             encodeMediaCodec.stop()
             encodeMediaCodec.release()
             // コンテナフォーマットに書き込む処理も終了

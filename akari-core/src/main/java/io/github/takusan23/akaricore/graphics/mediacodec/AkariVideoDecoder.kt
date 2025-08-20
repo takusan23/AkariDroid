@@ -142,8 +142,9 @@ class AkariVideoDecoder {
         val decodeMediaCodec = decodeMediaCodec!!
         val mediaExtractor = mediaExtractor!!
 
-        // advance() で false を返したことがある場合、もうデータがない。getSampleTime も -1 になる。
-        if (mediaExtractor.sampleTime == -1L) {
+        // はみ出したら null
+        // MediaExtractor の時間で見ると、もう先にデコーダーに入れた時間が帰ってきてしまう（デコードはまだ）
+        if (videoDurationMs < seekToMs) {
             return null
         }
 
@@ -162,7 +163,13 @@ class AkariVideoDecoder {
                 // デコーダーへ流す
                 val inputBuffer = decodeMediaCodec.getInputBuffer(inputBufferIndex)!!
                 val size = mediaExtractor.readSampleData(inputBuffer, 0)
-                decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
+                // データが有ればデコーダーへ、もうデータがなければ終了シグナルを送る
+                if (0 <= size) {
+                    decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
+                    mediaExtractor.advance()
+                } else {
+                    decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                }
             }
 
             // デコーダーから映像を受け取る部分
@@ -184,6 +191,14 @@ class AkariVideoDecoder {
                         // ImageReader ( Surface ) に描画する
                         val doRender = bufferInfo.size != 0
                         decodeMediaCodec.releaseOutputBuffer(outputBufferIndex, doRender)
+
+                        // もうデコーダーからデータが来ない場合はループを抜ける
+                        if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
+                            isRunning = false
+                            isDecoderOutputAvailable = false
+                            returnValue = null
+                        }
+
                         if (doRender) {
                             // 欲しいフレームの時間に到達した場合、ループを抜ける
                             val presentationTimeMs = bufferInfo.presentationTimeUs / 1000
@@ -197,17 +212,6 @@ class AkariVideoDecoder {
                 }
             }
 
-            // 次に進める。デコーダーにデータを入れた事を確認してから。
-            // advance() が false の場合はもうデータがないので、break
-            if (0 <= inputBufferIndex) {
-                val isEndOfFile = !mediaExtractor.advance()
-                if (isEndOfFile) {
-                    // return で false（フレームが取得できない旨）を返す
-                    returnValue = null
-                    break
-                }
-            }
-
             // 同様に
             if (0 <= inputBufferIndex) {
                 // 欲しいフレームが前回の呼び出しと連続していないときの処理。
@@ -217,8 +221,8 @@ class AkariVideoDecoder {
                 // この場合は一気にシーク位置に一番近いキーフレームまで進める
                 // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
                 // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
-                val isKeyFrame = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
-                val currentSampleTimeMs = mediaExtractor.sampleTime / 1000
+                val isKeyFrame = bufferInfo.flags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
+                val currentSampleTimeMs = bufferInfo.presentationTimeUs / 1000
                 if (isKeyFrame && currentSampleTimeMs < seekToMs) {
                     mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
                     decodeMediaCodec.flush()

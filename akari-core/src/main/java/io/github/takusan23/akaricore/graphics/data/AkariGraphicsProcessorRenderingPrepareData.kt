@@ -25,6 +25,7 @@ sealed interface AkariGraphicsProcessorRenderingPrepareData {
     ) : AkariGraphicsProcessorRenderingPrepareData
 
     /**
+     * TODO drawSurfaceTexture と組み合わせると eglPresentationTimeANDROID: EGL error: 0x300d エラーになるかも
      * オフスクリーンレンダリング用。
      * Surface が無いが、[io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor] を利用したい場合。
      *
