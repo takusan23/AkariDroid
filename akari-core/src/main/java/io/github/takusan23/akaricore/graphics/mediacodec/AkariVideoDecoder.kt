@@ -167,6 +167,19 @@ class AkariVideoDecoder {
                 if (0 <= size) {
                     decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, size, mediaExtractor.sampleTime, 0)
                     mediaExtractor.advance()
+
+                    // シーク先が、果てしなく遠い場所になっているときの対応
+                    // 極力シークしないことで、高速にフレームを取り出せるようにしている（シークすると戻る必要が出てくるので）
+                    // が、動画編集で、動画素材の最後をプレビューする際に、一切シークがないと遅くなってしまう
+                    // なので、果てしなく遠い、つまり、連続で取り出して先にキーフレームが来た場合、その場合は、近場のキーフレームにシークしたほうが速いので
+                    val isAvailable = mediaExtractor.sampleTime != -1L
+                    val isKeyframe = mediaExtractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
+                    val extractTimeMs = mediaExtractor.sampleTime / 1000L
+                    if (isAvailable && isKeyframe && extractTimeMs < seekToMs) {
+                        mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                        decodeMediaCodec.flush()
+                    }
+
                 } else {
                     decodeMediaCodec.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                 }
@@ -209,23 +222,6 @@ class AkariVideoDecoder {
                             }
                         }
                     }
-                }
-            }
-
-            // 同様に
-            if (0 <= inputBufferIndex) {
-                // 欲しいフレームが前回の呼び出しと連続していないときの処理。
-                // Android 10 以前はここでシークの判断をします。Android 11 以降は MediaParserKeyFrameTimeDetector でシークの判断をします。
-                // 例えば、前回の取得位置よりもさらに数秒以上先にシークした場合、指定位置になるまで待ってたら遅くなるので、数秒先にあるキーフレームまでシークする
-                // で、このシークが必要かどうかの判定がこれ。数秒先をリクエストした結果、欲しいフレームが来るよりも先にキーフレームが来てしまった
-                // この場合は一気にシーク位置に一番近いキーフレームまで進める
-                // ただし、キーフレームが来ているサンプルの時間を比べて、欲しいフレームの位置の方が大きくなっていることを確認してから。
-                // デコーダーの時間 presentationTimeUs と、MediaExtractor の sampleTime は同じじゃない？らしく、sampleTime の方がデコーダーの時間より早くなるので注意
-                val isKeyFrame = bufferInfo.flags and MediaExtractor.SAMPLE_FLAG_SYNC != 0
-                val currentSampleTimeMs = bufferInfo.presentationTimeUs / 1000
-                if (isKeyFrame && currentSampleTimeMs < seekToMs) {
-                    mediaExtractor.seekTo(seekToMs * 1000, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                    decodeMediaCodec.flush()
                 }
             }
         }
