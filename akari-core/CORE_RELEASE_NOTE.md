@@ -4,6 +4,10 @@
 ## 6.0.0 時代
 あかりどろいど 5.x に対応します
 
+### akaricore:6.3.0
+- エンコーダー・デコーダー共に、最後の 500ms くらいが無かったことにされていたのを修正しました
+  - 最後までエンコード、デコードされてませんでした、、、
+
 ### akaricore:6.2.0
 - `AkariGraphicsProcessor`に描画と`glReadPixels`が出来る関数を追加しました
   - `drawOneshotAndGlReadPixels`

@@ -181,6 +181,9 @@ limitations under the License.
 
 CORE_RELEASE_NORE.md を書く
 
+## ブランチを更新する
+`release_akari_core`を更新する。`GitHub Actions`もこのブランチでやると良い
+
 ## GitHub Actions を利用する
 
 `GitHub Actions`の`publish-library-maven-central.yml`を利用することで、ライブラリを`MavenCentral`
