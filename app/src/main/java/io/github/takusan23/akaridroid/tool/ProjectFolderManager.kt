@@ -6,12 +6,14 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager.CLIPBOARD_TIMELINE_JSON_PATH
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager.copyToProjectFolder
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager.exportPortableProject
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager.readRenderData
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStream
@@ -302,10 +304,31 @@ object ProjectFolderManager {
                     is RenderData.CanvasItem.Video -> canvasItem.filePath
                 }
             }
-            val allFileList = (audioFileList + videoFileList).distinct()
+
+            // 重複を消す
+            // ただし、ファイル名が同じだが、ファイルパスが違う場合
+            // （例えばエクスポートしたのを取り込んで、同じ名前のファイルを Uri 経由で再度取り込むなど）
+            // zip に入れる際はファイル名がユニークである必要があるため、ここで修正する
+            val insertFilePathToFixFileNameMap = (audioFileList + videoFileList).distinct().groupBy {
+                when (val path = it) {
+                    is RenderData.FilePath.File -> File(path.filePath).name
+                    is RenderData.FilePath.Uri -> UriTool.getFileName(context, path.uriPath.toUri())!!
+                }
+            }.map { (fileName, someFileNamePathList) ->
+                // 一つだけなら何もしない
+                if (someFileNamePathList.size == 1) {
+                    listOf(someFileNamePathList.first() to fileName)
+                } else {
+                    // 複数ある場合はファイル名に _index をつける
+                    someFileNamePathList.mapIndexed { index, path ->
+                        val fixFileName = "${fileName}_${index + 1}"
+                        path to fixFileName
+                    }
+                }
+            }.flatten()
 
             // 進捗用。+1 は JSON 用
-            val allFileListSize = allFileList.size + 1
+            val allFileListSize = insertFilePathToFixFileNameMap.size + 1
             var progressCount = 0
 
             /** 進捗を[onUpdateProgress]で報告する */
@@ -315,12 +338,12 @@ object ProjectFolderManager {
 
             // zip に入れる
             // もとの FilePath と zip 解凍後のパス
-            val zipEntryPathList = allFileList.associateWith { filePath ->
-                // 展開後のパスを想定する
-                val fileName = zipOutputStream.createZipEntryAndCopy(context, filePath)
+            val zipEntryPathList = insertFilePathToFixFileNameMap.associate { (filePath, fileName) ->
+                // 追加
+                zipOutputStream.createZipEntryAndCopy(context, fileName, filePath)
                 // 進捗を報告
                 updateProgress()
-                portableProjectPath.resolve(fileName).pathString
+                filePath to portableProjectPath.resolve(fileName).pathString
             }
 
             // パスを zip 展開後に置き換え
@@ -462,34 +485,31 @@ object ProjectFolderManager {
      * [ZipOutputStream]へ[RenderData.FilePath]を追加する
      *
      * @param context [Context]
+     * @param fileName [filePath]のファイル名がかぶる場合があるので、変更できるように
      * @param filePath 追加する [RenderData.FilePath]
-     * @return ファイル名
      */
     private suspend fun ZipOutputStream.createZipEntryAndCopy(
         context: Context,
+        fileName: String,
         filePath: RenderData.FilePath
-    ): String = withContext(Dispatchers.IO) {
+    ) = withContext(Dispatchers.IO) {
         when (filePath) {
             is RenderData.FilePath.File -> {
                 val file = File(filePath.filePath)
-                val fileName = file.name
                 putNextEntry(ZipEntry(fileName))
                 file.inputStream().buffered().use { inputStream ->
                     inputStream.copyTo(this@createZipEntryAndCopy)
                 }
                 closeEntry()
-                fileName
             }
 
             is RenderData.FilePath.Uri -> {
                 val uri = filePath.uriPath.toUri()
-                val fileName = UriTool.getFileName(context, uri)!!
                 putNextEntry(ZipEntry(fileName))
                 context.contentResolver.openInputStream(uri)!!.buffered().use { inputStream ->
                     inputStream.copyTo(this@createZipEntryAndCopy)
                 }
                 closeEntry()
-                fileName
             }
         }
     }
