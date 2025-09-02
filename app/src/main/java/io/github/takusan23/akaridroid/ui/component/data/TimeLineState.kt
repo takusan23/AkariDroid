@@ -1,22 +1,29 @@
 package io.github.takusan23.akaridroid.ui.component.data
 
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.gestures.rememberScrollable2DState
+import androidx.compose.foundation.gestures.scrollable2D
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 /**
  * タイムラインの状態を作る
@@ -30,8 +37,7 @@ fun rememberTimeLineState(
     msWidthPx: Int,
 ): TimeLineState {
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
-    val state = remember { DefaultTimeLineState(scope, scrollState) }
+    val state = remember { DefaultTimeLineState(scope) }
     val timeLineMillisecondsWidthPx = remember(msWidthPx) { TimeLineMillisecondsWidthPx(msWidthPx) }
 
     state.timeLineData = timeLineData
@@ -58,11 +64,12 @@ interface TimeLineState {
     /** タイムラインの拡大縮小 */
     var timeLineMillisecondsWidthPx: TimeLineMillisecondsWidthPx
 
-    /** タイムラインの横スクロール[] */
-    val horizontalScroll: ScrollState
-
-    /** タイムラインのスクロールするコンポーネントの幅 */
-    var timeLineParentWidth: Int
+    /**
+     * タイムラインの親 [io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer] につける Modifier。
+     * サイズ測定や縦横斜め方向のスクロールができる Modifier です。
+     */
+    @get:Composable
+    val timeLineContainerModifier: Modifier
 
     /**
      * 磁石モードのくっつく位置と ID
@@ -77,18 +84,12 @@ interface TimeLineState {
 }
 
 /** [TimeLineState]のデフォルト実装 */
-class DefaultTimeLineState(
-    scope: CoroutineScope,
-    override val horizontalScroll: ScrollState
-) : TimeLineState {
+class DefaultTimeLineState(scope: CoroutineScope) : TimeLineState {
     /** ViewModel が作ってる [TimeLineData] */
     var timeLineData by mutableStateOf<TimeLineData?>(null)
 
     /** タイムラインの拡大縮小 */
     override var timeLineMillisecondsWidthPx by mutableStateOf(TimeLineMillisecondsWidthPx())
-
-    /** タイムラインのスクロールするコンポーネントの幅 */
-    override var timeLineParentWidth by mutableIntStateOf(0)
 
     override var visibleTimeLineItemMap by mutableStateOf(emptyMap<Int, List<TimeLineData.Item>>())
         private set
@@ -99,6 +100,55 @@ class DefaultTimeLineState(
     override var magnetPositionList by mutableStateOf(emptyList<TimeLineState.MagnetPosition>())
         private set
 
+    /** タイムラインのスクロール位置 */
+    private var scrollOffset by mutableStateOf(Offset.Zero)
+
+    /** タイムラインのスクロールできるサイズ */
+    private var size by mutableStateOf(IntSize.Zero)
+
+    /** タイムラインの親のサイズ（スクロールのサイズではない） */
+    private var timeLineParentSize by mutableStateOf(IntSize.Zero)
+
+    override val timeLineContainerModifier: Modifier
+        @Composable
+        get() = Modifier
+            .onSizeChanged {
+                timeLineParentSize = it
+            }
+            .clipToBounds() // はみ出さない
+            .scrollable2D(state = rememberScrollable2DState { delta ->
+                // これをしないと見えないスクロール（スクロールしても UI がなかなか反映されない）が起きる
+                val newX = (scrollOffset.x + delta.x).toInt().coerceIn(-size.width..0)
+                val newY = (scrollOffset.y + delta.y).toInt().coerceIn(-size.height..0)
+                scrollOffset = Offset(newX.toFloat(), newY.toFloat())
+                // TODO 今回は面倒なのでネストスクロールを考慮していません。
+                // TODO 本来は利用した分だけ return するべきです
+                delta
+            })
+            .layout { measurable, constraints ->
+                // ここを infinity にすると左端に寄ってくれる
+                val childConstraints = constraints.copy(
+                    maxHeight = Constraints.Infinity,
+                    maxWidth = Constraints.Infinity,
+                )
+                // この辺は全部 Scroll.kt のパクリ
+                val placeable = measurable.measure(childConstraints)
+                val width = placeable.width.coerceAtMost(constraints.maxWidth)
+                val height = placeable.height.coerceAtMost(constraints.maxHeight)
+                val scrollHeight = placeable.height - height
+                val scrollWidth = placeable.width - width
+                size = IntSize(scrollWidth, scrollHeight)
+                layout(width, height) {
+                    val scrollX = scrollOffset.x.toInt().coerceIn(-scrollWidth..0)
+                    val scrollY = scrollOffset.y.toInt().coerceIn(-scrollHeight..0)
+                    val xOffset = scrollX
+                    val yOffset = scrollY
+                    withMotionFrameOfReferencePlacement {
+                        placeable.placeRelativeWithLayer(xOffset, yOffset)
+                    }
+                }
+            }
+
     init {
         // Flow にする
         val timeLineDataFlow = snapshotFlow { timeLineData }
@@ -106,9 +156,9 @@ class DefaultTimeLineState(
 
         // スクロールに対応して、今表示しているタイムラインの表示領域を計算する
         val visibleTimeLineWidthRange = combine(
-            snapshotFlow { horizontalScroll.value },
-            snapshotFlow { timeLineParentWidth },
-            { startScroll, timeLineParent -> startScroll..(startScroll + timeLineParent) }
+            flow = snapshotFlow { abs(scrollOffset.x).toInt() }, // 右にスクロール来るたびにマイナスになる、が、時間が進むに連れ増えていってほしいので abs
+            flow2 = snapshotFlow { timeLineParentSize.width },
+            transform = { startScroll, timeLineParent -> startScroll..(startScroll + timeLineParent) }
         )
 
         scope.launch {
@@ -117,10 +167,10 @@ class DefaultTimeLineState(
 
                 // スクロール位置の変更やタイムラインの追加で
                 combine(
-                    timeLineDataFlow,
-                    visibleTimeLineWidthRange,
-                    msWidthPxFlow,
-                    ::Triple
+                    flow = timeLineDataFlow,
+                    flow2 = visibleTimeLineWidthRange,
+                    flow3 = msWidthPxFlow,
+                    transform = ::Triple
                 ).collectLatest { (timeline, widthRange, widthPx) ->
                     timeline ?: return@collectLatest
 

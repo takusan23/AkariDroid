@@ -1,14 +1,10 @@
 package io.github.takusan23.akaridroid.ui.component.timeline
 
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -16,12 +12,11 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineMillisecondsWidthPx
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -41,22 +36,14 @@ const val MAGNET_THRESHOLD_DURATION_CHANGE = 200
 @Composable
 fun TimeLineContainer(
     modifier: Modifier = Modifier,
-    timeLineMillisecondsWidthPx: TimeLineMillisecondsWidthPx,
-    verticalScroll: ScrollState = rememberScrollState(),
-    horizontalScroll: ScrollState = rememberScrollState(),
+    timeLineState: TimeLineState,
     durationMs: () -> Long,
     currentPositionMs: () -> Long,
-    onScrollContainerSizeChange: (IntSize) -> Unit,
     content: @Composable () -> Unit
 ) {
     // millisecondsWidthPx を LocalTimeLineMillisecondsWidthPx で提供する
-    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides timeLineMillisecondsWidthPx) {
-        Box(
-            modifier = modifier
-                .onSizeChanged(onScrollContainerSizeChange)
-                .verticalScroll(verticalScroll)
-                .horizontalScroll(horizontalScroll),
-        ) {
+    CompositionLocalProvider(value = LocalTimeLineMillisecondsWidthPx provides timeLineState.timeLineMillisecondsWidthPx) {
+        Box(modifier = modifier then timeLineState.timeLineContainerModifier) {
 
             // 横に長ーいタイムラインを作る
             content()

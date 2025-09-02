@@ -2,7 +2,6 @@ package io.github.takusan23.akaridroid.ui.screen.about
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,12 +68,9 @@ fun AboutSushiScreen(onBack: () -> Unit) {
         Column(modifier = Modifier.padding(paddingValues)) {
             TimeLineContainer(
                 modifier = Modifier,
-                timeLineMillisecondsWidthPx = timeLineState.timeLineMillisecondsWidthPx,
-                verticalScroll = rememberScrollState(),
-                horizontalScroll = timeLineState.horizontalScroll,
+                timeLineState = timeLineState,
                 durationMs = { 60_000 },
-                currentPositionMs = { currentPositionMs.longValue },
-                onScrollContainerSizeChange = { timeLineState.timeLineParentWidth = it.width }
+                currentPositionMs = { currentPositionMs.longValue }
             ) {
 
                 DefaultTimeLine(

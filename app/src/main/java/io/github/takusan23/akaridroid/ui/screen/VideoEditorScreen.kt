@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
@@ -237,12 +236,9 @@ private fun VideoEditorDefaultTimeLine(
             // タイムラインの共有部分
             TimeLineContainer(
                 modifier = Modifier,
-                timeLineMillisecondsWidthPx = timeLineState.timeLineMillisecondsWidthPx,
-                verticalScroll = rememberScrollState(),
-                horizontalScroll = timeLineState.horizontalScroll,
+                timeLineState = timeLineState,
                 durationMs = { renderData.durationMs },
-                currentPositionMs = { previewPlayerStatus.currentPositionMs },
-                onScrollContainerSizeChange = { timeLineState.timeLineParentWidth = it.width }
+                currentPositionMs = { previewPlayerStatus.currentPositionMs }
             ) {
                 // ドラッグアンドドロップが受け入れできるように
                 FileDragAndDropReceiveContainer(
@@ -335,12 +331,9 @@ private fun VideoEditorMultiSelectTimeLine(
             // タイムラインの共有部分
             TimeLineContainer(
                 modifier = Modifier,
-                timeLineMillisecondsWidthPx = timeLineState.timeLineMillisecondsWidthPx,
-                verticalScroll = rememberScrollState(),
-                horizontalScroll = timeLineState.horizontalScroll,
+                timeLineState = timeLineState,
                 durationMs = { renderData.durationMs },
-                currentPositionMs = { previewPlayerStatus.currentPositionMs },
-                onScrollContainerSizeChange = { timeLineState.timeLineParentWidth = it.width }
+                currentPositionMs = { previewPlayerStatus.currentPositionMs }
             ) {
                 // 複数選択
                 MultiSelectTimeLine(
