@@ -7,9 +7,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -93,7 +90,7 @@ fun ExtendMenu(
             description = description,
             icon = {
                 Icon(
-                    imageVector = if (isOpen) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    painter = painterResource(id = if (isOpen) R.drawable.ic_keyboard_arrow_up_24px else R.drawable.ic_keyboard_arrow_down_24px),
                     contentDescription = null
                 )
             }
