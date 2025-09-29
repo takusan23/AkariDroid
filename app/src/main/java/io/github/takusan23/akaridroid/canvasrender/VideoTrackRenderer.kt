@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.canvasrender
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Matrix
 import android.view.Surface
@@ -27,6 +28,7 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInt
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.RendererInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
+import io.github.takusan23.libaicaroid.LibUltraHdrBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -209,9 +211,11 @@ class VideoTrackRenderer(private val context: Context) {
      * 描画した内容を ByteArray にする。
      * SDR の場合は RGBA が 8bit、HDR の場合は RGB が 10bit で、残りの 2bit が Alpha。
      *
+     * SDR の場合は Bitmap、HDR の場合は google/libultrahdr を使って UltraHDR 画像を作る
+     *
      * @return [ReadVideoFrameResultType]
      */
-    suspend fun readVideoFrame(durationMs: Long, currentPositionMs: Long): ReadVideoFrameResultType {
+    suspend fun readVideoFrame(durationMs: Long, currentPositionMs: Long): Bitmap {
         // AkariGraphicsProcessor が生成されるまで待つ
         val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
         val videoParameters = videoTrackPrepareDataFlow.filterNotNull().first()
@@ -232,21 +236,43 @@ class VideoTrackRenderer(private val context: Context) {
             )
         }
 
-        return if (videoParameters.colorSpace.isHdr) {
-            // todo rgba1010102 から UltraHDR を作る
-            ReadVideoFrameResultType.Hdr(readPixels)
+        val bitmap = if (videoParameters.colorSpace.isHdr) {
+            // 一時的なファイルを作る
+            val inputRgba1010102File = context.getExternalFilesDir(null)!!.resolve("input_rgba_1010102").apply {
+                writeBytes(readPixels)
+            }
+            val outputUltraHdrJpegFile = context.getExternalFilesDir(null)!!.resolve("output_uhdr.jpeg")
+            // UltraHDR を作る C++ コードを呼び出す
+            // ここは Android 6 以上が必要だが、HDR の関係でそもそもこっちの分岐に来ないはず
+            LibUltraHdrBridge.encodeFromRgba1010102(
+                width = videoParameters.outputWidth,
+                height = videoParameters.outputHeight,
+                rgba1010102FilePath = inputRgba1010102File.path,
+                ultraHdrResultFilePath = outputUltraHdrJpegFile.path,
+                colorSpaceType = when (videoParameters.colorSpace) {
+                    RenderData.ColorSpace.SDR_BT709 -> TODO() // ここには来ない
+                    RenderData.ColorSpace.HDR_BT2020_HLG -> LibUltraHdrBridge.HdrColorSpaceType.HLG
+                    RenderData.ColorSpace.HDR_BT2020_PQ -> LibUltraHdrBridge.HdrColorSpaceType.PQ
+                }
+            )
+            // Bitmap が出来たら消す
+            val ultraHdrBitmap = BitmapFactory.decodeFile(outputUltraHdrJpegFile.path)
+            inputRgba1010102File.delete()
+            outputUltraHdrJpegFile.delete()
+            ultraHdrBitmap
         } else {
-            val sdrBitmap = createBitmap(
+            createBitmap(
                 width = videoParameters.outputWidth,
                 height = videoParameters.outputHeight
             ).apply {
                 copyPixelsFromBuffer(ByteBuffer.wrap(readPixels))
             }
-            // 逆さまなので
-            val matrix = Matrix().apply { postScale(1f, -1f, sdrBitmap.width / 2f, sdrBitmap.height / 2f) }
-            val flippedBitmap = Bitmap.createBitmap(sdrBitmap, 0, 0, sdrBitmap.width, sdrBitmap.height, matrix, true)
-            ReadVideoFrameResultType.Sdr(flippedBitmap)
         }
+
+        // 逆さまなので
+        val matrix = Matrix().apply { postScale(1f, -1f, bitmap.width / 2f, bitmap.height / 2f) }
+        val flippedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        return flippedBitmap
     }
 
     /**
@@ -495,35 +521,6 @@ class VideoTrackRenderer(private val context: Context) {
         }
 
         return displayPositionItemList
-    }
-
-    /** フレームを画像に取り出した結果 */
-    sealed interface ReadVideoFrameResultType {
-
-        /** SDR の場合は Bitmap にしても問題ないはず */
-        data class Sdr(val bitmap: Bitmap) : ReadVideoFrameResultType
-
-        /**
-         * HDR の場合は8ビットカラーで作られた Bitmap クラスでは表現できない可能性がある
-         * よって何もせずに ByteArray を
-         * todo UltraHDR を作る方法が確立しているのでそれをいれる
-         */
-        data class Hdr(val rgba1010102ByteArray: ByteArray) : ReadVideoFrameResultType {
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (javaClass != other?.javaClass) return false
-
-                other as Hdr
-
-                if (!rgba1010102ByteArray.contentEquals(other.rgba1010102ByteArray)) return false
-
-                return true
-            }
-
-            override fun hashCode(): Int {
-                return rgba1010102ByteArray.contentHashCode()
-            }
-        }
     }
 
     /**

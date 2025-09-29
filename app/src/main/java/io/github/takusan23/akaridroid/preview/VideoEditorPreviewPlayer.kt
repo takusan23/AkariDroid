@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.preview
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.RenderData
@@ -207,10 +208,10 @@ class VideoEditorPreviewPlayer(
     }
 
     /**
-     * 今の時間の動画のフレームを取得した Bitmap/ByteArray を取得する
+     * 今の時間の動画のフレームを取得した Bitmap / UltraHDR を返す
      * @see [VideoTrackRenderer.readVideoFrame]
      */
-    suspend fun readVideoFrame(): VideoTrackRenderer.ReadVideoFrameResultType = videoRenderer.readVideoFrame(
+    suspend fun readVideoFrame(): Bitmap = videoRenderer.readVideoFrame(
         durationMs = _playerStatus.value.durationMs,
         currentPositionMs = _playerStatus.value.currentPositionMs
     )

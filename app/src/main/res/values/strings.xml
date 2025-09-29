@@ -274,7 +274,7 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_message">If you have forgotten or do not know the camera settings, please click the button below and select the video you want to edit. It will be analyzed.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">The analysis has been completed.</string>
     <string name="video_edit_bottomsheet_menu_read_video_frame_title">Save as an image</string>
-    <string name="video_edit_bottomsheet_menu_read_video_frame_description">Save the current preview as a photo. Use this to create thumbnail images.</string>
+    <string name="video_edit_bottomsheet_menu_read_video_frame_description">Save the current preview as a photo. Use this to create thumbnail images, etc. \nSDR videos are saved as well as UltraHDR images in HDR videos to capture the brightness.</string>
     <string name="video_edit_snackbar_save_frame_successful_title">Saved as an image</string>
     <string name="video_edit_snackbar_save_frame_successful_button">open</string>
 </resources>

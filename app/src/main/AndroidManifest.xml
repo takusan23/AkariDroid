@@ -11,6 +11,9 @@
         android:maxSdkVersion="34" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
 
+    <!-- 10-bit HDR の動画フレームから UltraHDR を作るライブラリは minSdk23 なので、エラーになってしまう -->
+    <uses-sdk tools:overrideLibrary="io.github.takusan23.libaicaroid" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

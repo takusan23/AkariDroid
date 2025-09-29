@@ -174,7 +174,10 @@ fun VideoEditorBottomSheetRouter(
             VideoEditorBottomSheetRouteRequestData.OpenMenu -> MenuBottomSheet(
                 onVideoInfoClick = onVideoInfoClick,
                 onEncodeClick = onEncodeClick,
-                onSaveVideoFrameClick = onSaveVideoFrameClick,
+                onSaveVideoFrameClick = {
+                    onSaveVideoFrameClick()
+                    onClose()
+                },
                 onTimeLineReset = onTimeLineReset,
                 onSettingClick = onSettingClick
             )

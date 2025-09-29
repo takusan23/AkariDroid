@@ -57,6 +57,8 @@ android {
 dependencies {
     // エンコーダー
     implementation(project(":akari-core"))
+    // 10-bit HDR 動画のフレームから UltraHDR を作るライブラリ
+    implementation(libs.libaicaroid)
 
     // Gradle Version Catalog でライブラリのバージョンを一元管理しています。
     // libs.versions.toml ファイルを参照してください

@@ -7,10 +7,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.media.MediaFormat
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
-import android.widget.Toast
-import androidx.core.content.contentValuesOf
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
@@ -19,7 +15,6 @@ import androidx.lifecycle.viewModelScope
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import io.github.takusan23.akaridroid.canvasrender.itemrender.TextRenderer
 import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
@@ -995,41 +990,13 @@ class VideoEditorViewModel(
 
     /** 現在のプレビューを画像として保存する */
     fun saveCurrentVideoFrame() {
-        // ボトムシート出っぱなしになるので
-        _bottomSheetRouteData.value = null
-
         viewModelScope.launch {
-            when (val videoFrame = videoEditorPreviewPlayer.readVideoFrame()) {
-                is VideoTrackRenderer.ReadVideoFrameResultType.Hdr -> {
-                    // TODO UltraHDR を作る
-                    // まだ用意していないので、バイト配列を保存するだけ
-                    // 保存するっても特に保存先がないので、適当にダウンロードで
-
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return@launch
-                    val contentResolver = context.contentResolver
-                    val contentValues = contentValuesOf(
-                        MediaStore.MediaColumns.DISPLAY_NAME to "akaridroid_rgba1010102_pixels",
-                        MediaStore.MediaColumns.MIME_TYPE to "image/jpg"
-                    )
-                    val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues) ?: return@launch
-                    contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        outputStream.write(videoFrame.rgba1010102ByteArray)
-                    }
-
-                    // todo まともなフィードバック
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "ダウンロードフォルダへ RGBA1010102 の形式で保存しました", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                is VideoTrackRenderer.ReadVideoFrameResultType.Sdr -> {
-                    val uri = MediaStoreTool.saveBitmapToPictureFolder(
-                        context = context,
-                        bitmap = videoFrame.bitmap
-                    )
-                    _snackbarRouteData.value = VideoEditorSnackbarRouterRequestData.SaveVideoFrame(uri ?: return@launch)
-                }
-            }
+            val bitmapOrUltraHdrBitmap = videoEditorPreviewPlayer.readVideoFrame()
+            val uri = MediaStoreTool.saveBitmapToPictureFolder(
+                context = context,
+                bitmap = bitmapOrUltraHdrBitmap
+            ) ?: return@launch
+            _snackbarRouteData.value = VideoEditorSnackbarRouterRequestData.SaveVideoFrame(uri)
         }
     }
 
