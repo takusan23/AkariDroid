@@ -276,4 +276,6 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">解析しました。</string>
     <string name="video_edit_bottomsheet_menu_read_video_frame_title">画像として保存する</string>
     <string name="video_edit_bottomsheet_menu_read_video_frame_description">今のプレビューを写真にして保存します。サムネイル画像を作るときなんかにどうぞ。</string>
+    <string name="video_edit_snackbar_save_frame_successful_title">画像として保存しました</string>
+    <string name="video_edit_snackbar_save_frame_successful_button">開く</string>
 </resources>

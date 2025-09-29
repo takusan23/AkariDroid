@@ -85,7 +85,7 @@ object MediaStoreTool {
         context: Context,
         bitmap: Bitmap,
         fileName: String = "akaridroid_image_${System.currentTimeMillis()}.jpg"
-    ) = withContext(Dispatchers.IO) {
+    ): Uri? = withContext(Dispatchers.IO) {
         val contentResolver = context.contentResolver
         // MediaStoreに入れる中身
         val contentValues = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -99,10 +99,11 @@ object MediaStoreTool {
             )
         }
         // MediaStoreへ登録
-        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return@withContext
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return@withContext null
         contentResolver.openOutputStream(uri)?.use { outputStream ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
         }
+        uri
     }
 
     /**

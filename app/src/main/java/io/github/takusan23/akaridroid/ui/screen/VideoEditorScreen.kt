@@ -49,6 +49,8 @@ import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitl
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
+import io.github.takusan23.akaridroid.ui.snackbar.VideoEditorSnackbarRouter
+import io.github.takusan23.akaridroid.ui.snackbar.VideoEditorSnackbarRouterRequestData
 import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 
 /**
@@ -79,6 +81,8 @@ fun VideoEditorScreen(
     val previewPlayerStatus = viewModel.videoEditorPreviewPlayer.playerStatus.collectAsStateWithLifecycle()
     // ボトムシート
     val bottomSheetRouteData = viewModel.bottomSheetRouteData.collectAsStateWithLifecycle()
+    // Snackbar
+    val snackbarRouteData = viewModel.snackbarRouteData.collectAsStateWithLifecycle()
     // タイムライン
     val timeLineData = viewModel.timeLineData.collectAsStateWithLifecycle()
     // タッチ編集
@@ -179,6 +183,7 @@ fun VideoEditorScreen(
                         previewPlayerStatus = previewPlayerStatus.value,
                         timeLineMsWidthPx = timeLineMsWidthPx.intValue,
                         historyState = historyState.value,
+                        snackbarRouterRequestData = snackbarRouteData.value,
                         onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it }
                     )
 
@@ -214,6 +219,7 @@ private fun VideoEditorDefaultTimeLine(
     previewPlayerStatus: VideoEditorPreviewPlayer.PlayerStatus,
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
+    snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
     onChangeTimeLineMsWidthPx: (Int) -> Unit
 ) {
     Box(modifier = modifier) {
@@ -266,31 +272,45 @@ private fun VideoEditorDefaultTimeLine(
             }
         }
 
-        // フローティングしているバー
-        // ナビゲーションバーの分も padding 入れておく
-        FloatingTimeLineBar(
+        Column(
             modifier = Modifier
                 .padding(vertical = 10.dp, horizontal = 20.dp)
                 .padding(bottom = bottomPadding)
-                .align(Alignment.BottomCenter)
+                .align(Alignment.BottomCenter),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            FloatingTimeLineTitledItem(
-                title = stringResource(id = R.string.video_edit_floating_add_bar_add),
-                iconResId = R.drawable.ic_outlined_add_24px,
-                onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
-            )
-
-            // 使うメニュー推論
-            recommendFloatingBarMenuList.forEach { recommendMenu ->
-                val creator = rememberRenderItemCreator(onResult = { viewModel.resolveRenderItemCreate(it) })
-
-                FloatingTimeLineItem(
-                    iconResId = recommendMenu.iconResId,
-                    onClick = { creator.create(recommendMenu) }
+            // Snackbar
+            // バーの上に出すため
+            if (snackbarRouterRequestData != null) {
+                VideoEditorSnackbarRouter(
+                    routerRequestData = snackbarRouterRequestData,
+                    onDismiss = { viewModel.closeSnackbar() }
                 )
             }
+
+            // フローティングしているバー
+            // ナビゲーションバーの分も padding 入れておく
+            FloatingTimeLineBar {
+
+                FloatingTimeLineTitledItem(
+                    title = stringResource(id = R.string.video_edit_floating_add_bar_add),
+                    iconResId = R.drawable.ic_outlined_add_24px,
+                    onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
+                )
+
+                // 使うメニュー推論
+                recommendFloatingBarMenuList.forEach { recommendMenu ->
+                    val creator = rememberRenderItemCreator(onResult = { viewModel.resolveRenderItemCreate(it) })
+
+                    FloatingTimeLineItem(
+                        iconResId = recommendMenu.iconResId,
+                        onClick = { creator.create(recommendMenu) }
+                    )
+                }
+            }
         }
+
     }
 }
 

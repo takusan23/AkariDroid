@@ -39,6 +39,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import io.github.takusan23.akaridroid.ui.component.toMenu
+import io.github.takusan23.akaridroid.ui.snackbar.VideoEditorSnackbarRouterRequestData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +72,7 @@ class VideoEditorViewModel(
 
     private val _renderData = MutableStateFlow(RenderData())
     private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
+    private val _snackbarRouteData = MutableStateFlow<VideoEditorSnackbarRouterRequestData?>(null)
     private val _timeLineData = MutableStateFlow(
         TimeLineData(
             durationMs = _renderData.value.durationMs,
@@ -119,6 +121,9 @@ class VideoEditorViewModel(
 
     /** ボトムシートのルーティング */
     val bottomSheetRouteData = _bottomSheetRouteData.asStateFlow()
+
+    /** Snackbar */
+    val snackbarRouteData = _snackbarRouteData.asStateFlow()
 
     /** タイムラインに表示するデータ。[RenderData]と同期する */
     val timeLineData = _timeLineData.asStateFlow()
@@ -983,8 +988,16 @@ class VideoEditorViewModel(
         }
     }
 
+    /** Snackbar を消す */
+    fun closeSnackbar() {
+        _snackbarRouteData.value = null
+    }
+
     /** 現在のプレビューを画像として保存する */
     fun saveCurrentVideoFrame() {
+        // ボトムシート出っぱなしになるので
+        _bottomSheetRouteData.value = null
+
         viewModelScope.launch {
             when (val videoFrame = videoEditorPreviewPlayer.readVideoFrame()) {
                 is VideoTrackRenderer.ReadVideoFrameResultType.Hdr -> {
@@ -1010,10 +1023,11 @@ class VideoEditorViewModel(
                 }
 
                 is VideoTrackRenderer.ReadVideoFrameResultType.Sdr -> {
-                    MediaStoreTool.saveBitmapToPictureFolder(context = context, bitmap = videoFrame.bitmap)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "写真フォルダへ保存しました", Toast.LENGTH_SHORT).show()
-                    }
+                    val uri = MediaStoreTool.saveBitmapToPictureFolder(
+                        context = context,
+                        bitmap = videoFrame.bitmap
+                    )
+                    _snackbarRouteData.value = VideoEditorSnackbarRouterRequestData.SaveVideoFrame(uri ?: return@launch)
                 }
             }
         }
@@ -1029,6 +1043,7 @@ class VideoEditorViewModel(
         // 報酬を与える
         floatingMenuBarMultiArmedBanditManager.reward(result.toMenu())
     }
+
 
     /**
      * [ClipData]を今のプレビューの位置に挿入する
@@ -1047,7 +1062,6 @@ class VideoEditorViewModel(
             pasteBasicClipData(clipData)
         }
     }
-
 
     /**
      * コピーしたテキスト、画像、音声、動画をタイムラインに追加できるように変換する。
