@@ -115,6 +115,7 @@ fun VideoEditorScreen(
             },
             onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
             onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize, renderData.value.colorSpace)) },
+            onSaveVideoFrameClick = { viewModel.saveCurrentVideoFrame() },
             onTimeLineReset = { viewModel.resetRenderItemList() },
             onSettingClick = { onNavigate(NavigationPaths.Setting) },
             onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },

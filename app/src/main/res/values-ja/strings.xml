@@ -274,4 +274,6 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_pq">HDR で撮影した動画で、ガンマカーブが PQ (ST 2084) の場合はこちらを選んでください。\nHDR10 や HDR10+ と呼ばれていることもあります。</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_message">カメラの設定を忘れた場合や、そもそも分からない場合は、以下のボタンを押して編集したい動画を選んでください。解析します。</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">解析しました。</string>
+    <string name="video_edit_bottomsheet_menu_read_video_frame_title">画像として保存する</string>
+    <string name="video_edit_bottomsheet_menu_read_video_frame_description">今のプレビューを写真にして保存します。サムネイル画像を作るときなんかにどうぞ。</string>
 </resources>

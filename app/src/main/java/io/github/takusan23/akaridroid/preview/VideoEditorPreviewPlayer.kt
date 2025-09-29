@@ -201,14 +201,19 @@ class VideoEditorPreviewPlayer(
         _playerStatus.update { it.copy(currentPositionMs = seekToMs) }
     }
 
-    /**
-     * プレビュー再生を開始する。停止するまで時間が進み続けます。
-     * プレビュー再生は動画のフレーム（画像）生成に時間がかかるのでかくかくします。
-     * （これでも自前クラス[io.github.takusan23.akaricore.video.VideoFrameBitmapExtractor]のおかげでかなり早いです）
-     */
+    /** プレビュー再生を開始する。停止するまで時間が進み続けます。*/
     fun playInRepeat() {
         _playerStatus.update { it.copy(isPlaying = true) }
     }
+
+    /**
+     * 今の時間の動画のフレームを取得した Bitmap/ByteArray を取得する
+     * @see [VideoTrackRenderer.readVideoFrame]
+     */
+    suspend fun readVideoFrame(): VideoTrackRenderer.ReadVideoFrameResultType = videoRenderer.readVideoFrame(
+        durationMs = _playerStatus.value.durationMs,
+        currentPositionMs = _playerStatus.value.currentPositionMs
+    )
 
     /** 再生を一時停止する */
     fun pause() {

@@ -273,4 +273,6 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_menu_hdr_pq">Select this if your video was shot in HDR and the gamma curve is PQ (ST 2084).\nThis is sometimes called HDR10 or HDR10+.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_message">If you have forgotten or do not know the camera settings, please click the button below and select the video you want to edit. It will be analyzed.</string>
     <string name="video_edit_bottomsheet_videoinfo_ten_bit_hdr_analyze_complete">The analysis has been completed.</string>
+    <string name="video_edit_bottomsheet_menu_read_video_frame_title">Save as an image</string>
+    <string name="video_edit_bottomsheet_menu_read_video_frame_description">Save the current preview as a photo. Use this to create thumbnail images.</string>
 </resources>

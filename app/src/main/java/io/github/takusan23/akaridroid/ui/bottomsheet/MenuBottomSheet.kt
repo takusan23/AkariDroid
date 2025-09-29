@@ -23,6 +23,7 @@ import io.github.takusan23.akaridroid.ui.component.MessageCard
  * メニューボトムシート
  *
  * @param onEncodeClick 動画を保存する画面（エンコード画面）を開く
+ * @param onSaveVideoFrame 画像として保存するを押した
  * @param onVideoInfoClick 動画情報の編集画面を開く
  * @param onSettingClick 設定画面を開く
  * @param onTimeLineReset タイムラインのリセット
@@ -31,6 +32,7 @@ import io.github.takusan23.akaridroid.ui.component.MessageCard
 fun MenuBottomSheet(
     onVideoInfoClick: () -> Unit,
     onEncodeClick: () -> Unit,
+    onSaveVideoFrameClick: () -> Unit,
     onTimeLineReset: () -> Unit,
     onSettingClick: () -> Unit
 ) {
@@ -59,6 +61,12 @@ fun MenuBottomSheet(
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_encode_video_description),
             iconResId = R.drawable.ic_outline_save_24,
             onClick = onEncodeClick
+        )
+        BottomSheetMenuItem(
+            title = stringResource(id = R.string.video_edit_bottomsheet_menu_read_video_frame_title),
+            description = stringResource(id = R.string.video_edit_bottomsheet_menu_read_video_frame_description),
+            iconResId = R.drawable.ic_photo_camera_24px,
+            onClick = onSaveVideoFrameClick
         )
         TimeLineResetMenuItem(
             onResetTimeLine = onTimeLineReset

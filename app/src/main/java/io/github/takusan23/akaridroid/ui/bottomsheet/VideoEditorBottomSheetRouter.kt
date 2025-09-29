@@ -27,6 +27,7 @@ fun VideoEditorBottomSheetRouter(
     onEncode: (String, EncoderParameters) -> Unit,
     onVideoInfoClick: () -> Unit,
     onEncodeClick: () -> Unit,
+    onSaveVideoFrameClick: () -> Unit,
     onTimeLineReset: () -> Unit,
     onSettingClick: () -> Unit,
     onStartAkaLink: () -> Unit,
@@ -173,6 +174,7 @@ fun VideoEditorBottomSheetRouter(
             VideoEditorBottomSheetRouteRequestData.OpenMenu -> MenuBottomSheet(
                 onVideoInfoClick = onVideoInfoClick,
                 onEncodeClick = onEncodeClick,
+                onSaveVideoFrameClick = onSaveVideoFrameClick,
                 onTimeLineReset = onTimeLineReset,
                 onSettingClick = onSettingClick
             )

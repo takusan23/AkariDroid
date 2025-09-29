@@ -1,9 +1,12 @@
 package io.github.takusan23.akaridroid.canvasrender
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.view.Surface
 import android.view.SurfaceHolder
+import androidx.core.graphics.createBitmap
 import io.github.takusan23.akaricore.graphics.AkariGraphicsProcessor
 import io.github.takusan23.akaricore.graphics.AkariGraphicsTextureRenderer
 import io.github.takusan23.akaricore.graphics.data.AkariGraphicsProcessorColorSpaceType
@@ -40,6 +43,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 
 /**
  * タイムラインの素材を描画して、動画フレームとして出力する。
@@ -198,6 +202,50 @@ class VideoTrackRenderer(private val context: Context) {
                 akariGraphicsTextureRenderer = this,
                 displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
             )
+        }
+    }
+
+    /**
+     * 描画した内容を ByteArray にする。
+     * SDR の場合は RGBA が 8bit、HDR の場合は RGB が 10bit で、残りの 2bit が Alpha。
+     *
+     * @return [ReadVideoFrameResultType]
+     */
+    suspend fun readVideoFrame(durationMs: Long, currentPositionMs: Long): ReadVideoFrameResultType {
+        // AkariGraphicsProcessor が生成されるまで待つ
+        val akariGraphicsProcessor = akariGraphicsProcessorFlow.filterNotNull().first()
+        val videoParameters = videoTrackPrepareDataFlow.filterNotNull().first()
+
+        // 描画すべき動画素材を取得
+        val displayPositionItemList = withContext(Dispatchers.Default) {
+            prepareDraw(akariGraphicsProcessor, durationMs, currentPositionMs)
+        }
+
+        // TODO 上下が反転しているので、core 側で治しても良いかも...
+        val readPixels = akariGraphicsProcessor.drawOneshotAndGlReadPixels {
+            drawItemRendererToAkariGraphicsProcessor(
+                durationMs = durationMs,
+                currentPositionMs = currentPositionMs,
+                videoTrackPrepareData = videoParameters,
+                akariGraphicsTextureRenderer = this,
+                displayPositionItemList = displayPositionItemList.sortedBy { it.layerIndex }
+            )
+        }
+
+        return if (videoParameters.colorSpace.isHdr) {
+            // todo rgba1010102 から UltraHDR を作る
+            ReadVideoFrameResultType.Hdr(readPixels)
+        } else {
+            val sdrBitmap = createBitmap(
+                width = videoParameters.outputWidth,
+                height = videoParameters.outputHeight
+            ).apply {
+                copyPixelsFromBuffer(ByteBuffer.wrap(readPixels))
+            }
+            // 逆さまなので
+            val matrix = Matrix().apply { postScale(1f, -1f, sdrBitmap.width / 2f, sdrBitmap.height / 2f) }
+            val flippedBitmap = Bitmap.createBitmap(sdrBitmap, 0, 0, sdrBitmap.width, sdrBitmap.height, matrix, true)
+            ReadVideoFrameResultType.Sdr(flippedBitmap)
         }
     }
 
@@ -447,6 +495,35 @@ class VideoTrackRenderer(private val context: Context) {
         }
 
         return displayPositionItemList
+    }
+
+    /** フレームを画像に取り出した結果 */
+    sealed interface ReadVideoFrameResultType {
+
+        /** SDR の場合は Bitmap にしても問題ないはず */
+        data class Sdr(val bitmap: Bitmap) : ReadVideoFrameResultType
+
+        /**
+         * HDR の場合は8ビットカラーで作られた Bitmap クラスでは表現できない可能性がある
+         * よって何もせずに ByteArray を
+         * todo UltraHDR を作る方法が確立しているのでそれをいれる
+         */
+        data class Hdr(val rgba1010102ByteArray: ByteArray) : ReadVideoFrameResultType {
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (javaClass != other?.javaClass) return false
+
+                other as Hdr
+
+                if (!rgba1010102ByteArray.contentEquals(other.rgba1010102ByteArray)) return false
+
+                return true
+            }
+
+            override fun hashCode(): Int {
+                return rgba1010102ByteArray.contentHashCode()
+            }
+        }
     }
 
     /**

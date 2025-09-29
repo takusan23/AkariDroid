@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.tool
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -71,6 +72,36 @@ object MediaStoreTool {
             file.inputStream().use { inputStream ->
                 inputStream.copyTo(outputStream)
             }
+        }
+    }
+
+    /**
+     * [Bitmap]を写真フォルダに保存する
+     *
+     * @param context [Context]
+     * @param bitmap 保存したい[Bitmap]
+     */
+    suspend fun saveBitmapToPictureFolder(
+        context: Context,
+        bitmap: Bitmap,
+        fileName: String = "akaridroid_image_${System.currentTimeMillis()}.jpg"
+    ) = withContext(Dispatchers.IO) {
+        val contentResolver = context.contentResolver
+        // MediaStoreに入れる中身
+        val contentValues = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValuesOf(
+                MediaStore.MediaColumns.DISPLAY_NAME to fileName,
+                MediaStore.MediaColumns.RELATIVE_PATH to "${Environment.DIRECTORY_PICTURES}/AkariDroid"
+            )
+        } else {
+            contentValuesOf(
+                MediaStore.MediaColumns.DISPLAY_NAME to fileName
+            )
+        }
+        // MediaStoreへ登録
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues) ?: return@withContext
+        contentResolver.openOutputStream(uri)?.use { outputStream ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
         }
     }
 
