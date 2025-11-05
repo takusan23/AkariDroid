@@ -69,7 +69,15 @@ class AkariVideoDecoder {
             mediaFormat.setInteger(MediaFormat.KEY_COLOR_TRANSFER_REQUEST, MediaFormat.COLOR_TRANSFER_SDR_VIDEO)
         }
 
-        val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!
+        // ドルビービジョンには対応していないので（よくわからない、ライセンスは、エンコーダーがあるのかも不明）
+        // そのため HEVC へフォールバックする
+        val codecName = mediaFormat.getString(MediaFormat.KEY_MIME)!!.let { mimeType ->
+            if (mimeType == MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION) {
+                MediaFormat.MIMETYPE_VIDEO_HEVC
+            } else {
+                mimeType
+            }
+        }
         decodeMediaCodec = MediaCodec.createDecoderByType(codecName).apply {
             configure(mediaFormat, outputSurface, null, 0)
         }
