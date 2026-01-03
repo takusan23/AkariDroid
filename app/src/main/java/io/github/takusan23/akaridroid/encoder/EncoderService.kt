@@ -18,6 +18,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
@@ -46,6 +47,7 @@ class EncoderService : Service() {
     // DI 経由でインスタンスを取得
     private val projectFolderManager by inject<ProjectFolderManager>()
     private val mediaStoreTool by inject<MediaStoreTool>()
+    private val fileTool by inject<FileTool>()
     private val fontManager by inject<FontManager>()
 
     private val _encodeStatusFlow = MutableStateFlow<AkariCoreEncoder.EncodeStatus?>(null)
@@ -105,10 +107,10 @@ class EncoderService : Service() {
 
                 // エンコード
                 AkariCoreEncoder.encode(
-                    context = this@EncoderService,
-                    fontManager = fontManager,
                     mediaStoreTool = mediaStoreTool,
                     projectFolderManager = projectFolderManager,
+                    fileTool = fileTool,
+                    fontManager = fontManager,
                     projectName = projectName,
                     renderData = renderData,
                     encoderParameters = encoderParameters,

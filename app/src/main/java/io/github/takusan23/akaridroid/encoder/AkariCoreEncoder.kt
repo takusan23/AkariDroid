@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.encoder
 
-import android.content.Context
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.os.Build
@@ -12,6 +11,7 @@ import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
@@ -65,7 +65,10 @@ object AkariCoreEncoder {
     /**
      * エンコードする
      *
-     * @param context [Context]
+     * @param mediaStoreTool Koin 経由で
+     * @param projectFolderManager Koin 経由で
+     * @param fileTool File Koin 経由で
+     * @param fontManager Koin 経由で
      * @param projectName プロジェクト名
      * @param resultFileName ファイル名
      * @param encoderParameters エンコーダーのパラメーター
@@ -73,10 +76,10 @@ object AkariCoreEncoder {
      * @param renderData 描画する内容。[RenderData]
      */
     suspend fun encode(
-        context: Context,
-        fontManager: FontManager,
         mediaStoreTool: MediaStoreTool,
         projectFolderManager: ProjectFolderManager,
+        fileTool: FileTool,
+        fontManager: FontManager,
         projectName: String,
         renderData: RenderData,
         encoderParameters: EncoderParameters,
@@ -84,14 +87,19 @@ object AkariCoreEncoder {
         onUpdateStatus: (EncodeStatus) -> Unit
     ) {
         // 映像トラック生成器
-        val videoRenderer = VideoTrackRenderer(context, fontManager)
+        val videoRenderer = VideoTrackRenderer(
+            mediaStoreTool = mediaStoreTool,
+            fileTool = fileTool,
+            fontManager = fontManager
+        )
 
         // 音声トラック生成器
         // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。TODO DI する
         val projectFolder = projectFolderManager.getProjectFolder(projectName)
         val outPcmFile = projectFolder.resolve(ENCODE_OUT_PCM_FILE_NAME)
         val audioRender = AudioRender(
-            context = context,
+            mediaStoreTool = mediaStoreTool,
+            fileTool = fileTool,
             outPcmFile = outPcmFile,
             outputDecodePcmFolder = projectFolder.resolve(VideoEditorPreviewPlayer.DECODE_PCM_FOLDER_NAME).apply { mkdir() },
             tempFolder = projectFolder.resolve(TEMP_FOLDER_NAME).apply { mkdir() }

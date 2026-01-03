@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.contentValuesOf
+import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -143,6 +144,9 @@ class MediaStoreTool(private val context: Context) {
     suspend fun getMimeType(uri: Uri) = withContext(Dispatchers.IO) {
         context.contentResolver.getType(uri)
     }
+
+    /** akari-core の [toAkariCoreInputOutputData] を呼び出す。Context が必要なので、、、 */
+    fun Uri.toInvokeAkariCoreInputOutputData() = this.toAkariCoreInputOutputData(context)
 
     companion object {
 

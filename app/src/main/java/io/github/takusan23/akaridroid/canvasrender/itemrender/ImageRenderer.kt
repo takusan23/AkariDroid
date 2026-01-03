@@ -1,20 +1,17 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import com.bumptech.glide.Glide
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRendererPrepareData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawCanvasInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import io.github.takusan23.akaridroid.tool.FileTool
 
 /** 写真を描画する */
 class ImageRenderer(
-    private val context: Context,
+    private val fileTool: FileTool,
     private val image: RenderData.CanvasItem.Image
 ) : TimelineLifecycleRenderer(), DrawCanvasInterface {
 
@@ -37,21 +34,9 @@ class ImageRenderer(
 
     override suspend fun enterTimeline() {
         super.enterTimeline()
-        val request = Glide
-            .with(context)
-            .asBitmap()
-            .load(
-                when (image.filePath) {
-                    is RenderData.FilePath.File -> image.filePath.filePath
-                    is RenderData.FilePath.Uri -> image.filePath.uriPath
-                }
-            )
-
         // リサイズする
         val (width, height) = image.size
-        bitmap = withContext(Dispatchers.IO) {
-            request.submit(width, height).get()
-        }
+        bitmap = fileTool.getBitmap(image.filePath, width, height)
     }
 
     override suspend fun leaveTimeline() {

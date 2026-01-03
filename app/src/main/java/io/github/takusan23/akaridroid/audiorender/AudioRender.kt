@@ -1,10 +1,11 @@
 package io.github.takusan23.akaridroid.audiorender
 
-import android.content.Context
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaricore.audio.AudioMixingProcessor
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.FileTool
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -13,21 +14,23 @@ import java.io.InputStream
 /**
  * 音声を合成して PCM を返す
  *
- * @param context Uri を扱う場合に
+ * @param mediaStoreTool MediaStore 便利関数たち
+ * @param fileTool ハッシュを出すために
  * @param outPcmFile 合成済みの PCM データ保存先
  * @param outputDecodePcmFolder デコードした PCM データの保存先
  * @param tempFolder 一時的な保存先
  */
 class AudioRender(
-    context: Context,
+    mediaStoreTool: MediaStoreTool,
+    fileTool: FileTool,
     private val outPcmFile: File,
     private val outputDecodePcmFolder: File,
     private val tempFolder: File
 ) {
-
     /** 素材をデコードしてくれるやつ */
     private val audioDecodeManager = AudioDecodeManager(
-        context = context,
+        fileTool = fileTool,
+        mediaStoreTool = mediaStoreTool,
         tempFolder = tempFolder,
         outputDecodePcmFolder = outputDecodePcmFolder
     )
