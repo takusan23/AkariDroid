@@ -83,8 +83,8 @@ object AkariCoreEncoder {
         val videoRenderer = VideoTrackRenderer(context)
 
         // 音声トラック生成器
-        // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。
-        val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
+        // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。TODO DI する
+        val projectFolder = ProjectFolderManager(context).getProjectFolder(projectName)
         val outPcmFile = projectFolder.resolve(ENCODE_OUT_PCM_FILE_NAME)
         val audioRender = AudioRender(
             context = context,

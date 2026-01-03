@@ -2,16 +2,8 @@ package io.github.takusan23.akaridroid.ui.screen
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.HasDefaultViewModelProviderFactory
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.createSavedStateHandle
-import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -21,8 +13,9 @@ import io.github.takusan23.akaridroid.ui.screen.about.AboutScreen
 import io.github.takusan23.akaridroid.ui.screen.about.AboutSushiScreen
 import io.github.takusan23.akaridroid.ui.screen.setting.FontSettingScreen
 import io.github.takusan23.akaridroid.ui.screen.setting.LicenseScreen
-import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 import kotlinx.serialization.Serializable
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /** 画面の切り替えを担当する */
 @Composable
@@ -41,13 +34,7 @@ fun AkariDroidMainScreen() {
         entryProvider = entryProvider {
             entry<NavigationPaths.ProjectList> {
                 ProjectListScreen(
-                    viewModel = viewModel(
-                        extras = MutableCreationExtras(
-                            initialExtras = (viewModelStoreOwner as? HasDefaultViewModelProviderFactory)?.defaultViewModelCreationExtras ?: CreationExtras.Empty
-                        ).apply {
-                            set(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY, activity!!.application)
-                        }
-                    ),
+                    viewModel = koinViewModel(),
                     onOpen = { projectName, isCreateNew -> backStack += NavigationPaths.VideoEditor(projectName, isCreateNew) },
                     onNavigate = { navigationPaths -> backStack += navigationPaths }
                 )
@@ -59,22 +46,9 @@ fun AkariDroidMainScreen() {
                     // navigation3 は extras に Application のインスタンスが入ってない
                     // 自前で入れる
                     // また、ナビゲーションの引数を savedStateHandle に入れる機能もなくなっているため、ViewModel の Factory する
-                    viewModel = viewModel(
-                        extras = MutableCreationExtras(
-                            initialExtras = (viewModelStoreOwner as? HasDefaultViewModelProviderFactory)?.defaultViewModelCreationExtras ?: CreationExtras.Empty
-                        ).apply {
-                            set(ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY, activity!!.application)
-                        },
-                        factory = viewModelFactory {
-                            initializer {
-                                VideoEditorViewModel(
-                                    application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!,
-                                    savedStateHandle = createSavedStateHandle(),
-                                    key = path
-                                )
-                            }
-                        }
-                    )
+                    viewModel = koinViewModel {
+                        parametersOf(path)
+                    },
                 )
             }
             entry<NavigationPaths.Setting> {

@@ -61,13 +61,12 @@ import kotlin.random.Random
  * @param key navigation3 で受け取ったパラメーター
  */
 class VideoEditorViewModel(
-    private val application: Application,
-    savedStateHandle: SavedStateHandle,
+    private val projectFolderManager: ProjectFolderManager,
     private val key: NavigationPaths.VideoEditor
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     private val context: Context
-        get() = application.applicationContext
+        get() = TODO() // TODO koin にすべて移行すれば消せる
 
     private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
@@ -101,7 +100,7 @@ class VideoEditorViewModel(
     val projectName = key.projectName
 
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
-    private val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
+    private val projectFolder = projectFolderManager.getProjectFolder(projectName)
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
@@ -141,7 +140,7 @@ class VideoEditorViewModel(
             // 読み取る
             // 多分今後のアップデートで互換性が崩壊するので、try-catch する
             val readRenderData = runCatching {
-                ProjectFolderManager.readRenderData(context, projectName)
+                projectFolderManager.readRenderData(projectName)
             }.getOrNull() ?: renderData.value
 
             /** ファイルが有効かどうか。もし存在しない場合は false。
@@ -183,7 +182,7 @@ class VideoEditorViewModel(
             // クラッシュ対策
             launch {
                 renderData.collectLatest { renderData ->
-                    ProjectFolderManager.writeRenderData(context, renderData, projectName)
+                    projectFolderManager.writeRenderData(renderData, projectName)
                 }
             }
 
@@ -947,7 +946,7 @@ class VideoEditorViewModel(
 
             // エンコードして ClipData にする
             // 独自 MIME-Type でアプリ固有であることを定義
-            val sharedUri = ProjectFolderManager.renderItemToJson(context, resetDisplayTimeList)
+            val sharedUri = projectFolderManager.renderItemToJson(resetDisplayTimeList)
             val mimeTypeList = withoutInternalClipMimeTypeItemList.map { (mimeType, _) -> mimeType } + ProjectFolderManager.TIMELINE_COPY_MIME_TYPE
             val clipItemList = withoutInternalClipMimeTypeItemList.map { (_, clipItem) -> clipItem } + ClipData.Item(sharedUri)
             val clipData = ClipData("akaridroid timeline copy", mimeTypeList.toTypedArray(), clipItemList.first())
@@ -1059,7 +1058,7 @@ class VideoEditorViewModel(
             // もし Uri がある場合はアプリ内にコピー
             // Uri は有効期限があるため自分のところにコピーするか、ストレージ読み込み権限がいる
             val copiedFile = item.uri
-                ?.let { ProjectFolderManager.copyToProjectFolder(context, projectName, it) }
+                ?.let { projectFolderManager.copyToProjectFolder(projectName, it) }
                 ?.let { File(it).toIoType() }
 
             // タイムラインに追加
@@ -1114,8 +1113,8 @@ class VideoEditorViewModel(
         // ClipData から取り出し、ID が重複しないように
         // TODO UUID とかを検討する
         val startId = System.currentTimeMillis()
-        val renderItemList = ProjectFolderManager
-            .jsonRenderItemToList(context, akariDroidRenderDataJsonUri)
+        val renderItemList = projectFolderManager
+            .jsonRenderItemToList(akariDroidRenderDataJsonUri)
             .mapIndexed { index, renderItem ->
                 when (renderItem) {
                     is RenderData.AudioItem.Audio -> renderItem.copy(id = startId + index)
@@ -1154,8 +1153,8 @@ class VideoEditorViewModel(
                 is RenderData.FilePath.Uri -> path.uriPath
             }
             val replace = when (path) {
-                is RenderData.FilePath.File -> ProjectFolderManager.copyToProjectFolder(context, projectName, File(path.filePath))
-                is RenderData.FilePath.Uri -> ProjectFolderManager.copyToProjectFolder(context, projectName, path.uriPath.toUri())
+                is RenderData.FilePath.File -> projectFolderManager.copyToProjectFolder(projectName, File(path.filePath))
+                is RenderData.FilePath.Uri -> projectFolderManager.copyToProjectFolder(projectName, path.uriPath.toUri())
             }
             origin to replace
         }

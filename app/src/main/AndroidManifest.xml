@@ -15,6 +15,7 @@
     <uses-sdk tools:overrideLibrary="io.github.takusan23.libaicaroid" />
 
     <application
+        android:name=".AkariDroidApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"

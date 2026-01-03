@@ -6,10 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.tool.ProjectFolderManager.CLIPBOARD_TIMELINE_JSON_PATH
-import io.github.takusan23.akaridroid.tool.ProjectFolderManager.copyToProjectFolder
-import io.github.takusan23.akaridroid.tool.ProjectFolderManager.exportPortableProject
-import io.github.takusan23.akaridroid.tool.ProjectFolderManager.readRenderData
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager.Companion.CLIPBOARD_TIMELINE_JSON_PATH
 import io.github.takusan23.akaridroid.tool.data.ProjectItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -25,20 +22,12 @@ import kotlin.io.path.pathString
 /**
  * プロジェクト関連
  * プロジェクト名がフォルダ名になる
+ *
+ * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
+ *
+ * @param context DI により注入されます
  */
-object ProjectFolderManager {
-
-    /** [RenderData]を JSON にしたときのファイル名 */
-    private const val RENDER_DATA_JSON_FILE_NAME = "render_data.json"
-
-    /** [exportPortableProject]のフォルダ名 */
-    private const val EXPORT_PORTABLE_PROJECT_FOLDER_NAME = "akaridroid_portable_project_20240821"
-
-    /** タイムラインのコピペ機能の JSON 保存先。List<RenderData.RenderItem> が JSON エンコードされたもの */
-    private const val CLIPBOARD_TIMELINE_JSON_PATH = "shared_clipboard.json"
-
-    /** タイムラインをコピーしたときの MIME-Type */
-    const val TIMELINE_COPY_MIME_TYPE = "application/vnd.akaridroid.timeline.copy"
+class ProjectFolderManager(private val context: Context) {
 
     /** JSONパースするときに使う */
     private val jsonSerialization = Json {
@@ -52,30 +41,22 @@ object ProjectFolderManager {
      * プロジェクトで利用できるフォルダを返す。
      * デコードした音声とか、エンコード中の一次保存先のとかに使われる。
      *
-     * @param context [Context]
      * @param name プロジェクト名
      */
-    fun getProjectFolder(
-        context: Context,
-        name: String
-    ): File = context.getExternalFilesDir(null)!!.resolve(name).apply { mkdir() }
+    fun getProjectFolder(name: String): File = context.getExternalFilesDir(null)!!.resolve(name).apply { mkdir() }
 
     /**
      * [RenderData]を読み出す
      *
-     * @param context [Context]
      * @return [RenderData]。初回起動時等で存在しない場合は null
      */
-    suspend fun readRenderData(
-        context: Context,
-        name: String
-    ): RenderData? {
+    suspend fun readRenderData(name: String): RenderData? {
         // ないなら null
-        val jsonFile = getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME)
+        val jsonFile = getProjectFolder(name).resolve(RENDER_DATA_JSON_FILE_NAME)
         if (!jsonFile.exists()) return null
 
         val renderDataJson = withContext(Dispatchers.IO) {
-            getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME).readText()
+            getProjectFolder(name).resolve(RENDER_DATA_JSON_FILE_NAME).readText()
         }
         val renderData = withContext(Dispatchers.Default) {
             jsonSerialization.decodeFromString<RenderData>(renderDataJson)
@@ -86,15 +67,14 @@ object ProjectFolderManager {
     /**
      * [RenderData] を JSON にして保存する
      *
-     * @param context [Context]
+     * @param name プロジェクト名
      * @param renderData [RenderData]
      */
     suspend fun writeRenderData(
-        context: Context,
         renderData: RenderData,
         name: String
     ) {
-        val jsonFile = getProjectFolder(context, name).resolve(RENDER_DATA_JSON_FILE_NAME)
+        val jsonFile = getProjectFolder(name).resolve(RENDER_DATA_JSON_FILE_NAME)
 
         val jsonString = withContext(Dispatchers.Default) {
             jsonSerialization.encodeToString(renderData)
@@ -107,19 +87,25 @@ object ProjectFolderManager {
     /**
      * プロジェクトを作成する。
      * [RenderData]を作成する。
+     *
+     * @param name プロジェクト名
      */
-    suspend fun createProject(context: Context, name: String) {
+    suspend fun createProject(name: String) {
         // 重複チェック TODO 重複していればエラー
-        if (readRenderData(context, name) != null) return
+        if (readRenderData(name) != null) return
 
         val defaultRenderData = RenderData()
-        writeRenderData(context, defaultRenderData, name)
+        writeRenderData(defaultRenderData, name)
     }
 
-    /** プロジェクトを削除する */
-    suspend fun deleteProject(context: Context, name: String) {
+    /**
+     * プロジェクトを削除する
+     *
+     * @param name プロジェクト名
+     */
+    suspend fun deleteProject(name: String) {
         // Uri へのアクセスを破棄する。takePermission は上限があるので
-        val renderData = readRenderData(context, name)
+        val renderData = readRenderData(name)
         renderData?.audioRenderItem?.mapNotNull {
             when (it) {
                 is RenderData.AudioItem.Audio -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
@@ -139,23 +125,22 @@ object ProjectFolderManager {
         }?.forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
 
         // 再帰的に消す
-        val projectFolder = getProjectFolder(context, name)
+        val projectFolder = getProjectFolder(name)
         projectFolder.deleteRecursively()
     }
 
     /**
      * プロジェクト一覧を取得する
      *
-     * @param context [Context]
      * @return [ProjectItem]配列
      */
-    suspend fun loadProjectList(context: Context): List<ProjectItem> = withContext(Dispatchers.IO) {
+    suspend fun loadProjectList(): List<ProjectItem> = withContext(Dispatchers.IO) {
         // フォルダ内に render_data.json があれば
         return@withContext context.getExternalFilesDir(null)
             ?.listFiles()
             ?.mapNotNull { file ->
                 val projectName = file.name
-                val renderData = readRenderData(context, projectName) ?: return@mapNotNull null
+                val renderData = readRenderData(projectName) ?: return@mapNotNull null
                 ProjectItem(
                     projectName = projectName,
                     lastModifiedDate = file.lastModified(),
@@ -173,14 +158,10 @@ object ProjectFolderManager {
      * JSON をそのまま入れると見えてしまうため、ファイルに書き出し Uri のみをもたせる。
      * MIME-Type もそう。
      *
-     * @param context [Context]
      * @param renderItemList [RenderData.RenderItem]の配列
      * @return JSON 文字列
      */
-    suspend fun renderItemToJson(
-        context: Context,
-        renderItemList: List<RenderData.RenderItem>
-    ): Uri {
+    suspend fun renderItemToJson(renderItemList: List<RenderData.RenderItem>): Uri {
         // 共有する Uri は content:// が必要なので、あかりんくの実装を間借りする...
         val (clipboardJsonFile, sharedUri) = AkaLinkTool.createAkaLinkFileUri(context, CLIPBOARD_TIMELINE_JSON_PATH)
         // ファイルに書き出す
@@ -198,10 +179,7 @@ object ProjectFolderManager {
      * @param uri クリップボードから JSON を取り出したもの
      * @return [RenderData.RenderItem]の配列
      */
-    suspend fun jsonRenderItemToList(
-        context: Context,
-        uri: Uri
-    ): List<RenderData.RenderItem> {
+    suspend fun jsonRenderItemToList(uri: Uri): List<RenderData.RenderItem> {
         val jsonString = withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)!!.bufferedReader().readText()
         }
@@ -217,19 +195,16 @@ object ProjectFolderManager {
      * TODO ファイル読み込み権限を追加した場合、ContentProvider で _DATA カラムがあればそれを返し、ない場合のみコピーする
      * TODO Uri はローカル以外（Google フォトのバックアップ済み端末に無い写真など）からも取ってこれるので、その場合はやっぱりコピーが必要
      *
-     * @param context [Context]
      * @param name プロジェクト名
      * @param uri ドラッグアンドドロップやクリップボードからのペースト
      * @return ファイルパス
      */
     suspend fun copyToProjectFolder(
-        context: Context,
         name: String,
         uri: Uri
     ): String {
         return context.contentResolver.openInputStream(uri)!!.use { inputStream ->
             copyToProjectFolder(
-                context = context,
                 projectName = name,
                 fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString(),
                 from = inputStream
@@ -239,14 +214,12 @@ object ProjectFolderManager {
 
     /** [copyToProjectFolder]の[File]版。 */
     suspend fun copyToProjectFolder(
-        context: Context,
         name: String,
         file: File
     ): String {
         // TODO このアプリの File に限定する、もしストレージ読み込み権限が実装された際には動かないようにする必要あり
         return file.inputStream().use { inputStream ->
             copyToProjectFolder(
-                context = context,
                 projectName = name,
                 fileName = file.name,
                 from = inputStream
@@ -263,19 +236,17 @@ object ProjectFolderManager {
      * 持ち出せるよう、端末依存の[RenderData.FilePath.Uri]を全て別のファイルにコピーし[RenderData.FilePath.File]にパスを書き直す。
      * フォルダごと移動させたあと[readRenderData]で出来るはず。
      *
-     * @param context [Context]
      * @param name プロジェクト名
      * @param zipUri zip ファイルの保存先。[Uri]
      * @param onUpdateProgress zip 圧縮の進捗。現在の進捗と合計ファイル数。
      */
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun exportPortableProject(
-        context: Context,
         name: String,
         zipUri: Uri,
         onUpdateProgress: (current: Int, total: Int) -> Unit
     ) = withContext(Dispatchers.IO) {
-        val renderData = readRenderData(context, name) ?: return@withContext
+        val renderData = readRenderData(name) ?: return@withContext
         // 保存先のファイル名を出す
         val portableName = UriTool.getFileName(context, zipUri)!!
         // 拡張子 zip を消す
@@ -340,7 +311,7 @@ object ProjectFolderManager {
             // もとの FilePath と zip 解凍後のパス
             val zipEntryPathList = insertFilePathToFixFileNameMap.associate { (filePath, fileName) ->
                 // 追加
-                zipOutputStream.createZipEntryAndCopy(context, fileName, filePath)
+                zipOutputStream.createZipEntryAndCopy(fileName, filePath)
                 // 進捗を報告
                 updateProgress()
                 filePath to portableProjectPath.resolve(fileName).pathString
@@ -384,7 +355,6 @@ object ProjectFolderManager {
      * @param onUpdateProgress zip 解凍の進捗。現在の進捗と合計ファイル数。
      */
     suspend fun importPortableProject(
-        context: Context,
         zipUri: Uri,
         onUpdateProgress: (current: Int, total: Int) -> Unit
     ) = withContext(Dispatchers.IO) {
@@ -392,7 +362,7 @@ object ProjectFolderManager {
         // zip じゃない場合は何もしない
         if (!zipFileName.endsWith(".zip")) return@withContext
 
-        val projectFolder = getProjectFolder(context, zipFileName.fileNameWithoutExtension)
+        val projectFolder = getProjectFolder(zipFileName.fileNameWithoutExtension)
 
         // TODO ファイル数を出す。本当は ZipFile#getSize() を使えばいいが、File API だけなので
         // TODO でもこれのせいで余計な時間がかかっている。。。
@@ -435,21 +405,19 @@ object ProjectFolderManager {
      * 自分のフォルダにコピーする。
      * ファイル名が重複していれば (1) を付ける
      *
-     * @param context [Context]
      * @param projectName プロジェクト名
      * @param fileName コピーするファイルの名前
      * @param from [InputStream]
      * @return 作ったファイル
      */
     private suspend fun copyToProjectFolder(
-        context: Context,
         projectName: String,
         fileName: String,
         from: InputStream
     ): File {
         return withContext(Dispatchers.IO) {
             // TODO このアプリの File に限定する、もしストレージ読み込み権限が実装された際には動かないようにする必要あり
-            val folder = getProjectFolder(context, projectName)
+            val folder = getProjectFolder(projectName)
 
             // すでにあれば (2) みたいにする
             val uniqueFileName = if (folder.resolve(fileName).exists()) {
@@ -484,12 +452,10 @@ object ProjectFolderManager {
     /**
      * [ZipOutputStream]へ[RenderData.FilePath]を追加する
      *
-     * @param context [Context]
      * @param fileName [filePath]のファイル名がかぶる場合があるので、変更できるように
      * @param filePath 追加する [RenderData.FilePath]
      */
     private suspend fun ZipOutputStream.createZipEntryAndCopy(
-        context: Context,
         fileName: String,
         filePath: RenderData.FilePath
     ) = withContext(Dispatchers.IO) {
@@ -517,5 +483,21 @@ object ProjectFolderManager {
     /** 拡張子を除く */
     private val String.fileNameWithoutExtension
         get() = this.split(".").first()
+
+    companion object {
+
+        /** [RenderData]を JSON にしたときのファイル名 */
+        private const val RENDER_DATA_JSON_FILE_NAME = "render_data.json"
+
+        /** [exportPortableProject]のフォルダ名 */
+        private const val EXPORT_PORTABLE_PROJECT_FOLDER_NAME = "akaridroid_portable_project_20240821"
+
+        /** タイムラインのコピペ機能の JSON 保存先。List<RenderData.RenderItem> が JSON エンコードされたもの */
+        private const val CLIPBOARD_TIMELINE_JSON_PATH = "shared_clipboard.json"
+
+        /** タイムラインをコピーしたときの MIME-Type */
+        const val TIMELINE_COPY_MIME_TYPE = "application/vnd.akaridroid.timeline.copy"
+
+    }
 
 }
