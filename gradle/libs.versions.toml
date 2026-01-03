@@ -1,19 +1,19 @@
 [versions]
-kotlin = "2.2.20"
-androidGradlePlugin = "8.13.0"
+kotlin = "2.3.0"
+androidGradlePlugin = "8.13.2"
 
 kotlinCoroutine = "1.10.2"
 kotlinSerialization = "1.9.0"
 
-androidxComposeBom = "2025.10.00"
+androidxComposeBom = "2025.12.01"
 androidxCore = "1.17.0"
 androidxAppCompat = "1.7.1"
-androidxLifecycle = "2.9.4"
-androidxActivity = "1.11.0"
-androidxDataStore = "1.1.7"
+androidxLifecycle = "2.10.0"
+androidxActivity = "1.12.2"
+androidxDataStore = "1.2.0"
 
 androidMaterial = "1.7.0"
-glide = "5.0.4"
+glide = "5.0.5"
 libaicaroid = "1.0.0"
 
 [plugins]
@@ -33,7 +33,7 @@ kotlinx-coroutine = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android
 kotlinx-coroutine-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinCoroutine" }
 
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
-androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version = "1.0.1" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version = "1.2.0" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
@@ -47,7 +47,7 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.9.4" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.9.6" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
