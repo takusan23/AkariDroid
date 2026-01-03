@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.tool.FontManager
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import java.io.File
 
 /** フォント設定画面 */
@@ -50,7 +51,7 @@ fun FontSettingScreen(onBack: () -> Unit) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     // フォント管理するクラス
-    val fontManager = remember { FontManager(context) }
+    val fontManager = koinInject<FontManager>()
     val fontList = remember { mutableStateOf<List<File>>(emptyList()) }
 
     fun getFileList() {

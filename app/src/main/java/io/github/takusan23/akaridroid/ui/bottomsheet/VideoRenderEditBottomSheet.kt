@@ -37,6 +37,7 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComp
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemRotationEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
+import org.koin.compose.koinInject
 import java.io.File
 
 /**
@@ -59,6 +60,7 @@ fun VideoRenderEditBottomSheet(
     onOpenVideoInfo: () -> Unit
 ) {
     val context = LocalContext.current
+    val uriTool = koinInject<UriTool>()
     val videoItem = remember { mutableStateOf(renderItem) }
     val videoFileName = remember { mutableStateOf<String?>(null) }
 
@@ -69,7 +71,7 @@ fun VideoRenderEditBottomSheet(
     LaunchedEffect(key1 = videoItem.value.filePath) {
         videoFileName.value = when (val path = videoItem.value.filePath) {
             is RenderData.FilePath.File -> File(path.filePath).name
-            is RenderData.FilePath.Uri -> UriTool.getFileName(context, path.uriPath.toUri())
+            is RenderData.FilePath.Uri -> uriTool.getFileName(path.uriPath.toUri())
         }
     }
 

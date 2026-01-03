@@ -14,20 +14,20 @@ import kotlinx.coroutines.withContext
 /**
  * 音声、映像、画像の解析をする
  * 意味深な名前
+ *
+ * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
+ *
+ * @param context Koin 経由で
  */
-object AvAnalyze {
+class AvAnalyze(private val context: Context) {
 
     /**
      * 画像を解析する
      *
      * @param ioType Uri か File
-     * @param context [Context]
      * @return [AvAnalyzeResult.Image]
      */
-    suspend fun analyzeImage(
-        context: Context,
-        ioType: IoType
-    ): AvAnalyzeResult.Image? = withContext(Dispatchers.IO) {
+    suspend fun analyzeImage(ioType: IoType): AvAnalyzeResult.Image? = withContext(Dispatchers.IO) {
 
         // Uri の場合は、MediaStore に問い合わせてみる
         // 早期 return
@@ -66,13 +66,9 @@ object AvAnalyze {
      * 音声を解析する
      *
      * @param ioType Uri か File
-     * @param context [Context]
      * @return [AvAnalyzeResult.Audio]
      */
-    suspend fun analyzeAudio(
-        context: Context,
-        ioType: IoType
-    ): AvAnalyzeResult.Audio? = withContext(Dispatchers.IO) {
+    suspend fun analyzeAudio(ioType: IoType): AvAnalyzeResult.Audio? = withContext(Dispatchers.IO) {
         // MediaStore じゃ取れなかった
         MediaMetadataRetriever().compatUse { mediaMetadataRetriever ->
             when (ioType) {
@@ -88,13 +84,9 @@ object AvAnalyze {
      * 動画を解析する
      *
      * @param ioType Uri か File
-     * @param context [Context]
      * @return [AnalyzeResult.Video]
      */
-    suspend fun analyzeVideo(
-        context: Context,
-        ioType: IoType
-    ): AvAnalyzeResult.Video? = withContext(Dispatchers.IO) {
+    suspend fun analyzeVideo(ioType: IoType): AvAnalyzeResult.Video? = withContext(Dispatchers.IO) {
         // MediaStore じゃ取れなかった
         MediaMetadataRetriever().compatUse { mediaMetadataRetriever ->
             when (ioType) {

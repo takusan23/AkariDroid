@@ -1,8 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen
 
-import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -20,9 +18,6 @@ import org.koin.core.parameter.parametersOf
 /** 画面の切り替えを担当する */
 @Composable
 fun AkariDroidMainScreen() {
-    val activity = LocalActivity.current
-    val viewModelStoreOwner = LocalViewModelStoreOwner.current
-
     // 画面遷移
     val backStack = rememberNavBackStack(NavigationPaths.ProjectList)
     NavDisplay(
@@ -46,9 +41,7 @@ fun AkariDroidMainScreen() {
                     // navigation3 は extras に Application のインスタンスが入ってない
                     // 自前で入れる
                     // また、ナビゲーションの引数を savedStateHandle に入れる機能もなくなっているため、ViewModel の Factory する
-                    viewModel = koinViewModel {
-                        parametersOf(path)
-                    },
+                    viewModel = koinViewModel { parametersOf(path) }
                 )
             }
             entry<NavigationPaths.Setting> {

@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
-import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -12,7 +11,7 @@ import io.github.takusan23.akaridroid.tool.FontManager
 
 /** 文字を描画する */
 class TextRenderer(
-    private val context: Context,
+    private val fontManager: FontManager,
     private val text: RenderData.CanvasItem.Text
 ) : TimelineLifecycleRenderer(), DrawCanvasInterface {
 
@@ -41,7 +40,6 @@ class TextRenderer(
     override suspend fun enterTimeline() {
         super.enterTimeline()
         // フォントをロードする
-        val fontManager = FontManager(context)
         text.fontName
             ?.let { fontName -> fontManager.createTypeface(fontName) }
             ?.also { typeface ->
