@@ -28,6 +28,7 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInt
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.RendererInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
+import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.libaicaroid.LibUltraHdrBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,9 @@ import java.nio.ByteBuffer
  *
  * TODO なんとかしてテストを書きたい
  */
-class VideoTrackRenderer(private val context: Context) {
+class VideoTrackRenderer(
+    private val fontManager: FontManager
+) {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
 
     /** SurfaceView の Surface はコールバックで受け取る必要があり、コンストラクタでは受け取れない。Flow でいい感じに受け取る。null で破棄判定 */
@@ -402,7 +405,7 @@ class VideoTrackRenderer(private val context: Context) {
                 is RenderData.CanvasItem.Shader -> ShaderRenderer(renderItem)
                 is RenderData.CanvasItem.Shape -> ShapeRenderer(renderItem)
                 is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderer(renderItem)
-                is RenderData.CanvasItem.Text -> TextRenderer(context, renderItem)
+                is RenderData.CanvasItem.Text -> TextRenderer(fontManager, renderItem)
                 is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, videoTrackPrepareData, texId) }
             }
         }

@@ -12,6 +12,7 @@ import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +74,9 @@ object AkariCoreEncoder {
      */
     suspend fun encode(
         context: Context,
+        fontManager: FontManager,
+        mediaStoreTool: MediaStoreTool,
+        projectFolderManager: ProjectFolderManager,
         projectName: String,
         renderData: RenderData,
         encoderParameters: EncoderParameters,
@@ -80,11 +84,11 @@ object AkariCoreEncoder {
         onUpdateStatus: (EncodeStatus) -> Unit
     ) {
         // 映像トラック生成器
-        val videoRenderer = VideoTrackRenderer(context)
+        val videoRenderer = VideoTrackRenderer(context, fontManager)
 
         // 音声トラック生成器
         // outputDecodePcmFolder は使い回せる。ファイルのハッシュを使っているので。TODO DI する
-        val projectFolder = ProjectFolderManager(context).getProjectFolder(projectName)
+        val projectFolder = projectFolderManager.getProjectFolder(projectName)
         val outPcmFile = projectFolder.resolve(ENCODE_OUT_PCM_FILE_NAME)
         val audioRender = AudioRender(
             context = context,
@@ -219,10 +223,7 @@ object AkariCoreEncoder {
 
             // 動画フォルダへコピーする
             onUpdateStatus(EncodeStatus.MoveFile(projectName = projectName))
-            MediaStoreTool.copyToVideoFolder(
-                context = context,
-                file = resultVideoFile
-            )
+            mediaStoreTool.copyToVideoFolder(file = resultVideoFile)
         } finally {
             // 消す
             videoTrackFile.delete()

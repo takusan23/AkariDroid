@@ -1,21 +1,14 @@
 package io.github.takusan23.akaridroid.viewmodel
 
-import android.app.Application
 import android.content.ClipData
 import android.content.ClipDescription
-import android.content.ClipboardManager
 import android.content.Context
 import android.media.MediaFormat
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -24,10 +17,13 @@ import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.tool.AvAnalyze
+import io.github.takusan23.akaridroid.tool.ClipboardManagerTool
+import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.MultiArmedBanditManager
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import io.github.takusan23.akaridroid.tool.UriTool
+import io.github.takusan23.akaridroid.tool.ViewModelResourceTool
 import io.github.takusan23.akaridroid.tool.data.IoType
 import io.github.takusan23.akaridroid.tool.data.toIoType
 import io.github.takusan23.akaridroid.tool.data.toRenderDataFilePath
@@ -62,13 +58,14 @@ import kotlin.random.Random
  */
 class VideoEditorViewModel(
     private val projectFolderManager: ProjectFolderManager,
+    private val mediaStoreTool: MediaStoreTool,
+    private val fontManager: FontManager,
+    private val uriTool: UriTool,
+    private val avAnalyze: AvAnalyze,
+    private val viewModelResourceTool: ViewModelResourceTool,
+    private val clipboardManagerTool: ClipboardManagerTool,
     private val key: NavigationPaths.VideoEditor
 ) : ViewModel() {
-
-    private val context: Context
-        get() = TODO() // TODO koin にすべて移行すれば消せる
-
-    private val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     private val _renderData = MutableStateFlow(RenderData())
     private val _bottomSheetRouteData = MutableStateFlow<VideoEditorBottomSheetRouteRequestData?>(null)
@@ -104,8 +101,8 @@ class VideoEditorViewModel(
 
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
-        context = context,
-        projectFolder = projectFolder
+        projectName = projectName,
+        projectFolderManager = TODO()
     )
 
     /** フローティングバーに出すボタンを決定するやつ */
@@ -149,10 +146,10 @@ class VideoEditorViewModel(
             suspend fun RenderData.FilePath.existsFilePath(): Boolean = when (this) {
                 is RenderData.FilePath.File -> File(this.filePath).exists()
                 is RenderData.FilePath.Uri -> {
-                    val exists = UriTool.existsContentUri(context, this.uriPath.toUri())
+                    val exists = uriTool.existsContentUri(this.uriPath.toUri())
                     if (!exists) {
                         // 存在しない Uri は releasePersistableUriPermission する
-                        UriTool.revokePersistableUriPermission(context, this.uriPath.toUri())
+                        uriTool.revokePersistableUriPermission(this.uriPath.toUri())
                     }
                     exists
                 }
@@ -211,7 +208,7 @@ class VideoEditorViewModel(
                 deleteFilePathList.forEach { filePath ->
                     when (filePath) {
                         is RenderData.FilePath.File -> File(filePath.filePath).delete()
-                        is RenderData.FilePath.Uri -> UriTool.revokePersistableUriPermission(context, filePath.uriPath.toUri())
+                        is RenderData.FilePath.Uri -> uriTool.revokePersistableUriPermission(filePath.uriPath.toUri())
                     }
                 }
             }
@@ -222,7 +219,7 @@ class VideoEditorViewModel(
              */
             suspend fun RenderData.FilePath.add() = withContext(Dispatchers.IO) {
                 if (this@add is RenderData.FilePath.Uri) {
-                    UriTool.takePersistableUriPermission(context, this@add.uriPath.toUri())
+                    uriTool.takePersistableUriPermission(this@add.uriPath.toUri())
                 }
             }
 
@@ -955,7 +952,7 @@ class VideoEditorViewModel(
             // first() したので drop(1)
             clipItemList.drop(1).forEach { clipItem -> clipData.addItem(clipItem) }
 
-            clipboardManager.setPrimaryClip(clipData)
+            clipboardManagerTool.setPrimaryClip(clipData)
         }
     }
 
@@ -997,10 +994,7 @@ class VideoEditorViewModel(
     fun saveCurrentVideoFrame() {
         viewModelScope.launch {
             val bitmapOrUltraHdrBitmap = videoEditorPreviewPlayer.readVideoFrame()
-            val uri = MediaStoreTool.saveBitmapToPictureFolder(
-                context = context,
-                bitmap = bitmapOrUltraHdrBitmap
-            ) ?: return@launch
+            val uri = mediaStoreTool.saveBitmapToPictureFolder(bitmap = bitmapOrUltraHdrBitmap) ?: return@launch
             _snackbarRouteData.value = VideoEditorSnackbarRouterRequestData.SaveVideoFrame(uri)
         }
     }
@@ -1023,7 +1017,7 @@ class VideoEditorViewModel(
      *
      * @param clipData ドラッグアンドドロップやクリップボードから
      */
-    private suspend fun parsePasteClipData(clipData: ClipData? = clipboardManager.primaryClip): List<RenderData.RenderItem> {
+    private suspend fun parsePasteClipData(clipData: ClipData? = clipboardManagerTool.primaryClip): List<RenderData.RenderItem> {
         clipData ?: return emptyList()
 
         return if (clipData.description.hasMimeType(ProjectFolderManager.TIMELINE_COPY_MIME_TYPE)) {
@@ -1051,7 +1045,7 @@ class VideoEditorViewModel(
             // Uri の場合は MediaStore に問い合わせる
             val mimeType = when {
                 item.text != null -> "text/"
-                item.uri != null -> withContext(Dispatchers.IO) { context.contentResolver.getType(item.uri) }
+                item.uri != null -> mediaStoreTool.getMimeType(item.uri)
                 else -> null
             } ?: return@mapNotNull null
 
@@ -1108,7 +1102,7 @@ class VideoEditorViewModel(
         // Uri だと画像や動画もあるため、getItemAt() だとダメ
         val akariDroidRenderDataJsonUri = (0 until clipData.itemCount)
             .mapNotNull { index -> clipData.getItemAt(index).uri }
-            .first { uri -> context.contentResolver.getType(uri) == "application/json" }
+            .first { uri -> mediaStoreTool.getMimeType(uri) == "application/json" }
 
         // ClipData から取り出し、ID が重複しないように
         // TODO UUID とかを検討する
@@ -1359,7 +1353,7 @@ class VideoEditorViewModel(
      * @return [RenderData.CanvasItem.Image]
      */
     private suspend fun createImageCanvasItem(displayTimeStartMs: Long, ioType: IoType): RenderData.CanvasItem.Image? {
-        val size = AvAnalyze.analyzeImage(context, ioType)?.size ?: return null
+        val size = avAnalyze.analyzeImage(ioType)?.size ?: return null
         val displayTime = RenderData.DisplayTime(
             startMs = displayTimeStartMs,
             durationMs = 10_000
@@ -1382,7 +1376,7 @@ class VideoEditorViewModel(
      * @return [RenderData.AudioItem.Audio]
      */
     private suspend fun createAudioItem(displayTimeStartMs: Long, ioType: IoType): RenderData.AudioItem.Audio? {
-        val durationMs = AvAnalyze.analyzeAudio(context, ioType)?.durationMs ?: return null
+        val durationMs = avAnalyze.analyzeAudio(ioType)?.durationMs ?: return null
         val displayTime = RenderData.DisplayTime(
             startMs = displayTimeStartMs,
             durationMs = durationMs
@@ -1403,7 +1397,7 @@ class VideoEditorViewModel(
      * @return 動画トラックと音声トラックが入った配列
      */
     private suspend fun createVideoItem(displayTimeStartMs: Long, ioType: IoType): List<RenderData.RenderItem> {
-        val analyzeVideo = AvAnalyze.analyzeVideo(context, ioType) ?: return emptyList()
+        val analyzeVideo = avAnalyze.analyzeVideo(ioType) ?: return emptyList()
         val durationMs = analyzeVideo.durationMs
         val displayTime = RenderData.DisplayTime(
             startMs = displayTimeStartMs,
@@ -1557,13 +1551,13 @@ class VideoEditorViewModel(
         // FilePath or Uri で名前を取り出す
         suspend fun RenderData.FilePath.name(): String = when (this) {
             is RenderData.FilePath.File -> File(this.filePath).name
-            is RenderData.FilePath.Uri -> UriTool.getFileName(context, this.uriPath.toUri()) ?: "null" // TODO 真面目にやる。というか期限切れ Uri はここに来ないようにする
+            is RenderData.FilePath.Uri -> uriTool.getFileName(this.uriPath.toUri()) ?: "null" // TODO 真面目にやる。というか期限切れ Uri はここに来ないようにする
         }
 
         return when (this) {
             is RenderData.AudioItem.Audio -> this.filePath.name()
             is RenderData.CanvasItem.Image -> this.filePath.name()
-            is RenderData.CanvasItem.Shape -> context.getString(
+            is RenderData.CanvasItem.Shape -> viewModelResourceTool.getString(
                 when (this.shapeType) {
                     RenderData.CanvasItem.Shape.ShapeType.Rect -> R.string.video_edit_bottomsheet_shape_rect
                     RenderData.CanvasItem.Shape.ShapeType.Circle -> R.string.video_edit_bottomsheet_shape_circle
@@ -1573,7 +1567,7 @@ class VideoEditorViewModel(
             is RenderData.CanvasItem.Text -> this.text
             is RenderData.CanvasItem.Video -> this.filePath.name()
             is RenderData.CanvasItem.Shader -> this.name
-            is RenderData.CanvasItem.SwitchAnimation -> context.getString(
+            is RenderData.CanvasItem.SwitchAnimation -> viewModelResourceTool.getString(
                 when (this.animationType) {
                     RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out
                     RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT_WHITE -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out_white
@@ -1582,7 +1576,7 @@ class VideoEditorViewModel(
                 }
             )
 
-            is RenderData.CanvasItem.Effect -> context.getString(
+            is RenderData.CanvasItem.Effect -> viewModelResourceTool.getString(
                 when (this.effectType) {
                     RenderData.CanvasItem.Effect.EffectType.MOSAIC -> R.string.video_edit_bottomsheet_effect_type_mosaic
                     RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> R.string.video_edit_bottomsheet_effect_type_monochrome

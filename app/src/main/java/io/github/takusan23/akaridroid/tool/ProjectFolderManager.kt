@@ -25,9 +25,15 @@ import kotlin.io.path.pathString
  *
  * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
  *
- * @param context DI により注入されます
+ * @param context Koin 経由で
+ * @param uriTool Koin 経由で
+ * @param mediaStoreTool Koin 経由で
  */
-class ProjectFolderManager(private val context: Context) {
+class ProjectFolderManager(
+    private val context: Context,
+    private val uriTool: UriTool,
+    private val mediaStoreTool: MediaStoreTool
+) {
 
     /** JSONパースするときに使う */
     private val jsonSerialization = Json {
@@ -110,7 +116,7 @@ class ProjectFolderManager(private val context: Context) {
             when (it) {
                 is RenderData.AudioItem.Audio -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
             }
-        }?.forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+        }?.forEach { uri -> uriTool.revokePersistableUriPermission( uri) }
         renderData?.canvasRenderItem?.mapNotNull {
             when (it) {
                 is RenderData.CanvasItem.Effect,
@@ -122,7 +128,7 @@ class ProjectFolderManager(private val context: Context) {
                 is RenderData.CanvasItem.Image -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
                 is RenderData.CanvasItem.Video -> (it.filePath as? RenderData.FilePath.Uri)?.uriPath?.toUri()
             }
-        }?.forEach { uri -> UriTool.revokePersistableUriPermission(context, uri) }
+        }?.forEach { uri -> uriTool.revokePersistableUriPermission( uri) }
 
         // 再帰的に消す
         val projectFolder = getProjectFolder(name)
@@ -206,7 +212,7 @@ class ProjectFolderManager(private val context: Context) {
         return context.contentResolver.openInputStream(uri)!!.use { inputStream ->
             copyToProjectFolder(
                 projectName = name,
-                fileName = MediaStoreTool.getFileName(context, uri) ?: System.currentTimeMillis().toString(),
+                fileName = mediaStoreTool.getFileName(uri) ?: System.currentTimeMillis().toString(),
                 from = inputStream
             ).path
         }
@@ -248,7 +254,7 @@ class ProjectFolderManager(private val context: Context) {
     ) = withContext(Dispatchers.IO) {
         val renderData = readRenderData(name) ?: return@withContext
         // 保存先のファイル名を出す
-        val portableName = UriTool.getFileName(context, zipUri)!!
+        val portableName = uriTool.getFileName( zipUri)!!
         // 拡張子 zip を消す
         val portableNameWithoutExtension = portableName.fileNameWithoutExtension
         val portableProjectPath = context.getExternalFilesDir(null)!!.resolve(portableNameWithoutExtension).toPath()
@@ -283,7 +289,7 @@ class ProjectFolderManager(private val context: Context) {
             val insertFilePathToFixFileNameMap = (audioFileList + videoFileList).distinct().groupBy {
                 when (val path = it) {
                     is RenderData.FilePath.File -> File(path.filePath).name
-                    is RenderData.FilePath.Uri -> UriTool.getFileName(context, path.uriPath.toUri())!!
+                    is RenderData.FilePath.Uri -> uriTool.getFileName( path.uriPath.toUri())!!
                 }
             }.map { (fileName, someFileNamePathList) ->
                 // 一つだけなら何もしない
@@ -358,7 +364,7 @@ class ProjectFolderManager(private val context: Context) {
         zipUri: Uri,
         onUpdateProgress: (current: Int, total: Int) -> Unit
     ) = withContext(Dispatchers.IO) {
-        val zipFileName = UriTool.getFileName(context, zipUri)!!
+        val zipFileName = uriTool.getFileName( zipUri)!!
         // zip じゃない場合は何もしない
         if (!zipFileName.endsWith(".zip")) return@withContext
 

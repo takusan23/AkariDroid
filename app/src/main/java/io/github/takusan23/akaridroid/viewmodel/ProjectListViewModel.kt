@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
  *
  * koin DI により Context が必要な処理を注入しています
  *
- * @param projectFolderManager [ProjectFolderManager]
+ * @param projectFolderManager Koin 経由で
  */
 class ProjectListViewModel(private val projectFolderManager: ProjectFolderManager) : ViewModel() {
 

@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -28,6 +27,7 @@ import io.github.takusan23.akaridroid.ui.component.OutlinedFloatTextField
 import io.github.takusan23.akaridroid.ui.component.RenderItemColorEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
+import org.koin.compose.koinInject
 
 /**
  * [RenderData.CanvasItem.Text]の編集ボトムシート
@@ -113,8 +113,7 @@ private fun FontEditComponent(
     fontName: String?,
     onUpdate: (String?) -> Unit
 ) {
-    val context = LocalContext.current
-    val fontManager = remember { FontManager(context) }
+    val fontManager = koinInject<FontManager>()
     val fontNameList = remember { mutableStateOf<List<String>>(emptyList()) }
 
     val isShowFontMenu = remember { mutableStateOf(fontName != null) }

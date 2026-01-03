@@ -8,8 +8,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** 自分の好きなフォントを追加できる */
-class FontManager(private val context: Context) {
+/**
+ * 自分の好きなフォントを追加できる
+ * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
+ *
+ * @param context Koin 経由で
+ * @param mediaStoreTool Koin 経由で
+ */
+class FontManager(
+    private val context: Context,
+    private val mediaStoreTool: MediaStoreTool
+) {
 
     private val fontFolder = context.getExternalFilesDir(null)!!.resolve(CUSTOM_FONT_FOLDER_NAME).apply { mkdir() }
 
@@ -25,7 +34,7 @@ class FontManager(private val context: Context) {
         // 保存する
         withContext(Dispatchers.IO) {
             val fontFile = fontFolder.resolve(fileName)
-            MediaStoreTool.fileCopy(context, uri, fontFile)
+            mediaStoreTool.fileCopy(uri, fontFile)
         }
     }
 

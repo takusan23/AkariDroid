@@ -18,6 +18,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.tool.FontManager
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 import java.lang.ref.WeakReference
 
 /** エンコーダーサービス */
@@ -38,6 +42,11 @@ class EncoderService : Service() {
 
     /** エンコードキャンセル用 [Job] */
     private var encoderJob: Job? = null
+
+    // DI 経由でインスタンスを取得
+    private val projectFolderManager by inject<ProjectFolderManager>()
+    private val mediaStoreTool by inject<MediaStoreTool>()
+    private val fontManager by inject<FontManager>()
 
     private val _encodeStatusFlow = MutableStateFlow<AkariCoreEncoder.EncodeStatus?>(null)
 
@@ -97,6 +106,9 @@ class EncoderService : Service() {
                 // エンコード
                 AkariCoreEncoder.encode(
                     context = this@EncoderService,
+                    fontManager = fontManager,
+                    mediaStoreTool = mediaStoreTool,
+                    projectFolderManager = projectFolderManager,
                     projectName = projectName,
                     renderData = renderData,
                     encoderParameters = encoderParameters,
