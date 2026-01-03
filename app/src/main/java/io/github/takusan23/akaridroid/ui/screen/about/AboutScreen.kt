@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.dropUnlessResumed
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.tool.CodeNames
 import io.github.takusan23.akaridroid.ui.component.about.AdvDateView
@@ -72,7 +73,7 @@ fun AboutScreen(
             TopAppBar(
                 title = { /* TODO */ },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = dropUnlessResumed(block = onBack)) {
                         Icon(painter = painterResource(id = R.drawable.ic_outline_arrow_back_24px), contentDescription = null)
                     }
                 }

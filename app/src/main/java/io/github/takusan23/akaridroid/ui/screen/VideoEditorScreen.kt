@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderService
@@ -63,7 +62,7 @@ import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
 fun VideoEditorScreen(
     onNavigate: (NavigationPaths) -> Unit,
     onBack: () -> Unit,
-    viewModel: VideoEditorViewModel = viewModel()
+    viewModel: VideoEditorViewModel
 ) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current

@@ -11,7 +11,11 @@ import androidx.core.net.toUri
 import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
@@ -34,6 +38,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.groupByLane
 import io.github.takusan23.akaridroid.ui.component.toMenu
+import io.github.takusan23.akaridroid.ui.screen.NavigationPaths
 import io.github.takusan23.akaridroid.ui.snackbar.VideoEditorSnackbarRouterRequestData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -53,11 +58,12 @@ import kotlin.random.Random
 /**
  * [io.github.takusan23.akaridroid.ui.screen.VideoEditorScreen]用の ViewModel
  *
- * @param savedStateHandle プロジェクト名を Navigation で渡してもらうので、SavedStateHandle 経由で受け取る
+ * @param key navigation3 で受け取ったパラメーター
  */
 class VideoEditorViewModel(
     private val application: Application,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val key: NavigationPaths.VideoEditor
 ) : AndroidViewModel(application) {
 
     private val context: Context
@@ -92,7 +98,7 @@ class VideoEditorViewModel(
     )
 
     /** プロジェクト名 */
-    val projectName: String = savedStateHandle["projectName"]!!
+    val projectName = key.projectName
 
     /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
     private val projectFolder = ProjectFolderManager.getProjectFolder(context, projectName)
@@ -404,7 +410,7 @@ class VideoEditorViewModel(
         }
 
         // プロジェクト作成直後は動画情報編集ボトムシートを出す
-        if (savedStateHandle.get<String>("openVideoInfo").toBoolean()) {
+        if (key.isOpenVideoInfo) {
             openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value))
         }
     }

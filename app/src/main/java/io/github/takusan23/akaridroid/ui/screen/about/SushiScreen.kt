@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.dropUnlessResumed
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
@@ -58,7 +59,7 @@ fun AboutSushiScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(text = "てすと") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = dropUnlessResumed(block = onBack)) {
                         Icon(painter = painterResource(id = R.drawable.ic_outline_arrow_back_24px), contentDescription = null)
                     }
                 }
