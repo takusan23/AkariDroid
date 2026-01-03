@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.audiorender
 
-import android.content.Context
 import android.media.MediaFormat
 import androidx.core.net.toUri
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
@@ -9,7 +8,8 @@ import io.github.takusan23.akaricore.audio.AudioMonoToStereoProcessor
 import io.github.takusan23.akaricore.audio.AudioSonicProcessor
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.tool.FileHashTool
+import io.github.takusan23.akaridroid.tool.FileTool
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,12 +31,14 @@ import java.io.File
  *
  * [RenderData.AudioItem]ではなく、[RenderData.FilePath]をキーにしているのは同じファイルの[RenderData.AudioItem]ならスキップさせるため
  *
- * @param context [Context]
+ * @param mediaStoreTool MediaStore 便利関数たち
+ * @param fileHashTool ハッシュを出すために
  * @param tempFolder 一時的な保存先
  * @param outputDecodePcmFolder PCM デコード結果を保存するフォルダ
  */
 class AudioDecodeManager(
-    private val context: Context,
+    private val mediaStoreTool: MediaStoreTool,
+    private val fileTool: FileTool,
     private val tempFolder: File,
     private val outputDecodePcmFolder: File
 ) {
@@ -144,7 +146,7 @@ class AudioDecodeManager(
      * @return ファイル
      */
     private suspend fun createPcmFile(filePath: RenderData.FilePath): File = withContext(Dispatchers.IO) {
-        val fileHash = FileHashTool.calcMd5(context, filePath)
+        val fileHash = fileTool.calcMd5(filePath)
         outputDecodePcmFolder.resolve("$PREFIX_DECODE_PCM_FILE$fileHash")
     }
 
@@ -172,7 +174,7 @@ class AudioDecodeManager(
             AudioEncodeDecodeProcessor.decode(
                 input = when (filePath) {
                     is RenderData.FilePath.File -> File(filePath.filePath).toAkariCoreInputOutputData()
-                    is RenderData.FilePath.Uri -> filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
+                    is RenderData.FilePath.Uri -> with(mediaStoreTool) { filePath.uriPath.toUri().toInvokeAkariCoreInputOutputData() }
                 },
                 output = decodeFile.toAkariCoreInputOutputData(),
                 onOutputFormat = { decoderMediaFormat = it }

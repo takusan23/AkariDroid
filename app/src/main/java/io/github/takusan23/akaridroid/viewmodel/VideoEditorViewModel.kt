@@ -2,7 +2,6 @@ package io.github.takusan23.akaridroid.viewmodel
 
 import android.content.ClipData
 import android.content.ClipDescription
-import android.content.Context
 import android.media.MediaFormat
 import android.net.Uri
 import androidx.core.net.toUri
@@ -18,6 +17,7 @@ import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.tool.AvAnalyze
 import io.github.takusan23.akaridroid.tool.ClipboardManagerTool
+import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.MultiArmedBanditManager
@@ -64,6 +64,7 @@ class VideoEditorViewModel(
     private val avAnalyze: AvAnalyze,
     private val viewModelResourceTool: ViewModelResourceTool,
     private val clipboardManagerTool: ClipboardManagerTool,
+    private val fileTool: FileTool,
     private val key: NavigationPaths.VideoEditor
 ) : ViewModel() {
 
@@ -96,13 +97,13 @@ class VideoEditorViewModel(
     /** プロジェクト名 */
     val projectName = key.projectName
 
-    /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
-    private val projectFolder = projectFolderManager.getProjectFolder(projectName)
-
     /** プレビュー用プレイヤー */
     val videoEditorPreviewPlayer = VideoEditorPreviewPlayer(
         projectName = projectName,
-        projectFolderManager = TODO()
+        projectFolderManager = projectFolderManager,
+        mediaStoreTool = mediaStoreTool,
+        fileTool = fileTool,
+        fontManager = fontManager
     )
 
     /** フローティングバーに出すボタンを決定するやつ */

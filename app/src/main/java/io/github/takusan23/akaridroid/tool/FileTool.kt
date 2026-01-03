@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid.tool
 
 import android.content.Context
 import androidx.core.net.toUri
+import com.bumptech.glide.Glide
 import io.github.takusan23.akaridroid.RenderData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -11,16 +12,25 @@ import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
 
-/** ファイルのハッシュ値を出す */
-object FileHashTool {
+/**
+ * ファイル読み書きを Koin DI 経由で提供する
+ * getExternalFilesDir みたいな
+ *
+ * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
+ *
+ * @param context Koin 経由で
+ */
+class FileTool(private val context: Context) {
+
+    /** [Context.getExternalFilesDir] を呼び出す */
+    fun getExternalFilesDir() = context.getExternalFilesDir(null)!!
 
     /**
      * [RenderData.FilePath] の MD5 ハッシュ値をを計算する
      *
-     * @param context [Context]
      * @param filePath Uri か File
      */
-    suspend fun calcMd5(context: Context, filePath: RenderData.FilePath): String {
+    suspend fun calcMd5(filePath: RenderData.FilePath): String {
         return when (filePath) {
             is RenderData.FilePath.File -> File(filePath.filePath).inputStream().buffered()
             is RenderData.FilePath.Uri -> context.contentResolver.openInputStream(filePath.uriPath.toUri())
@@ -43,6 +53,31 @@ object FileHashTool {
             }
             digestInputStream.messageDigest.digest().toHexString()
         }
+    }
+
+    /**
+     * 画像をロードする
+     *
+     * @param filePath Uri か ファイルパスか
+     * @param width よこはば
+     * @param height たてはば
+     */
+    suspend fun getBitmap(
+        filePath: RenderData.FilePath,
+        width: Int,
+        height: Int
+    ) = withContext(Dispatchers.IO) {
+        Glide
+            .with(context)
+            .asBitmap()
+            .load(
+                when (filePath) {
+                    is RenderData.FilePath.File -> filePath.filePath
+                    is RenderData.FilePath.Uri -> filePath.uriPath
+                }
+            )
+            .submit(width, height)
+            .get()
     }
 
 }

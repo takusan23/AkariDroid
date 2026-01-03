@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.canvasrender
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -28,7 +27,9 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInt
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.RendererInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
+import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.libaicaroid.LibUltraHdrBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,8 @@ import java.nio.ByteBuffer
  * TODO なんとかしてテストを書きたい
  */
 class VideoTrackRenderer(
+    private val mediaStoreTool: MediaStoreTool,
+    private val fileTool: FileTool,
     private val fontManager: FontManager
 ) {
     private val scope = CoroutineScope(Dispatchers.Default + Job())
@@ -241,10 +244,10 @@ class VideoTrackRenderer(
 
         val bitmap = if (videoParameters.colorSpace.isHdr) {
             // 一時的なファイルを作る
-            val inputRgba1010102File = context.getExternalFilesDir(null)!!.resolve("input_rgba_1010102").apply {
+            val inputRgba1010102File = fileTool.getExternalFilesDir().resolve("input_rgba_1010102").apply {
                 writeBytes(readPixels)
             }
-            val outputUltraHdrJpegFile = context.getExternalFilesDir(null)!!.resolve("output_uhdr.jpeg")
+            val outputUltraHdrJpegFile = fileTool.getExternalFilesDir().resolve("output_uhdr.jpeg")
             // UltraHDR を作る C++ コードを呼び出す
             // ここは Android 6 以上が必要だが、HDR の関係でそもそもこっちの分岐に来ないはず
             LibUltraHdrBridge.encodeFromRgba1010102(
@@ -401,12 +404,12 @@ class VideoTrackRenderer(
             // データが変化していない場合は使い回す
             itemRenderList.firstOrNull { it.isReuse(renderItem, videoTrackPrepareData) } ?: when (renderItem) { // 無ければ作る
                 is RenderData.CanvasItem.Effect -> EffectRenderer(renderItem)
-                is RenderData.CanvasItem.Image -> ImageRenderer(context, renderItem)
+                is RenderData.CanvasItem.Image -> ImageRenderer(fileTool, renderItem)
                 is RenderData.CanvasItem.Shader -> ShaderRenderer(renderItem)
                 is RenderData.CanvasItem.Shape -> ShapeRenderer(renderItem)
                 is RenderData.CanvasItem.SwitchAnimation -> SwitchAnimationRenderer(renderItem)
                 is RenderData.CanvasItem.Text -> TextRenderer(fontManager, renderItem)
-                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(context, renderItem, videoTrackPrepareData, texId) }
+                is RenderData.CanvasItem.Video -> akariGraphicsProcessor.genTextureId { texId -> VideoRenderer(mediaStoreTool, renderItem, videoTrackPrepareData, texId) }
             }
         }
     }

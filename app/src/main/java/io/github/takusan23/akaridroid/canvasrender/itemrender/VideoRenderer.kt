@@ -1,6 +1,5 @@
 package io.github.takusan23.akaridroid.canvasrender.itemrender
 
-import android.content.Context
 import android.opengl.Matrix
 import androidx.core.net.toUri
 import io.github.takusan23.akaricore.common.toAkariCoreInputOutputData
@@ -12,6 +11,7 @@ import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.DrawSurfac
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.PreDrawInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.ProcessorDestroyInterface
 import io.github.takusan23.akaridroid.canvasrender.itemrender.feature.TimelineLifecycleRenderer
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import java.io.File
 
 /**
@@ -32,7 +32,7 @@ fun RenderData.CanvasItem.Video.calcVideoFramePositionMs(currentPositionMs: Long
 }
 
 class VideoRenderer(
-    private val context: Context,
+    private val mediaStoreTool: MediaStoreTool,
     private val video: RenderData.CanvasItem.Video,
     private val videoTrackRendererPrepareData: VideoTrackRendererPrepareData,
     texId: Int
@@ -62,7 +62,7 @@ class VideoRenderer(
             prepare(
                 input = when (video.filePath) {
                     is RenderData.FilePath.File -> File(video.filePath.filePath).toAkariCoreInputOutputData()
-                    is RenderData.FilePath.Uri -> video.filePath.uriPath.toUri().toAkariCoreInputOutputData(context)
+                    is RenderData.FilePath.Uri -> with(mediaStoreTool) { video.filePath.uriPath.toUri().toInvokeAkariCoreInputOutputData() }
                 },
                 outputSurface = akariGraphicsSurfaceTexture.surface,
                 isSdrToneMapping = if (videoTrackRendererPrepareData.colorSpace.isHdr) {

@@ -10,6 +10,7 @@ import java.io.File
 
 /**
  * 自分の好きなフォントを追加できる
+ *
  * Koin DI ライブラリ経由でこのクラスのインスタンスが取得できます
  *
  * @param context Koin 経由で

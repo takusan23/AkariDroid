@@ -2,6 +2,7 @@ package io.github.takusan23.akaridroid
 
 import io.github.takusan23.akaridroid.tool.AvAnalyze
 import io.github.takusan23.akaridroid.tool.ClipboardManagerTool
+import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
@@ -23,6 +24,7 @@ val akariDroidAppModule = module {
     singleOf(::AvAnalyze)
     singleOf(::ViewModelResourceTool)
     singleOf(::ClipboardManagerTool)
+    singleOf(::FileTool)
 
     singleOf(::ProjectFolderManager)
     singleOf(::FontManager)

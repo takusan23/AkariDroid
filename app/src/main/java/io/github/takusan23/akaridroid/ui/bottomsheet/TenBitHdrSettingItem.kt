@@ -41,6 +41,7 @@ import io.github.takusan23.akaridroid.ui.component.ExtendMenu
 import io.github.takusan23.akaridroid.ui.component.ExtendMenuItem
 import io.github.takusan23.akaridroid.ui.component.MessageCard
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 /**
  * 10-bit HDR を有効にするスイッチ。
@@ -185,12 +186,13 @@ private fun AnalyzeMessage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val avAnalyze = koinInject<AvAnalyze>()
     val videoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = {
             it ?: return@rememberLauncherForActivityResult
             scope.launch {
-                val result = AvAnalyze.analyzeVideo(context, it.toIoType())
+                val result = avAnalyze.analyzeVideo(it.toIoType())
                 val hdrInfo = result?.tenBitHdrInfoOrSdrNull
                 val colorSpace = when {
                     hdrInfo?.colorStandard == MediaFormat.COLOR_STANDARD_BT2020 && hdrInfo.colorTransfer == MediaFormat.COLOR_TRANSFER_HLG -> RenderData.ColorSpace.HDR_BT2020_HLG

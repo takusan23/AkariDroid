@@ -1,12 +1,15 @@
 package io.github.takusan23.akaridroid.preview
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.view.SurfaceHolder
 import io.github.takusan23.akaricore.audio.AkariCoreAudioProperties
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.audiorender.AudioRender
 import io.github.takusan23.akaridroid.canvasrender.VideoTrackRenderer
+import io.github.takusan23.akaridroid.tool.FileTool
+import io.github.takusan23.akaridroid.tool.FontManager
+import io.github.takusan23.akaridroid.tool.MediaStoreTool
+import io.github.takusan23.akaridroid.tool.ProjectFolderManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,12 +30,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** [RenderData.CanvasItem]をプレビューする */
 class VideoEditorPreviewPlayer(
-    context: Context,
-    projectFolder: File
+    projectName: String,
+    projectFolderManager: ProjectFolderManager,
+    mediaStoreTool: MediaStoreTool,
+    fileTool: FileTool,
+    fontManager: FontManager
 ) {
     /** プレイヤー再生用コルーチンスコープ。キャンセル用 */
     private val playerScope = CoroutineScope(Dispatchers.Default + Job())
@@ -43,9 +48,17 @@ class VideoEditorPreviewPlayer(
      */
     private val canvasRenderMutex = Mutex()
 
-    private val videoRenderer = VideoTrackRenderer(context = context)
+    /** 作業用フォルダ。ここにデコードした音声素材とかが来る */
+    private val projectFolder = projectFolderManager.getProjectFolder(projectName)
+
+    private val videoRenderer = VideoTrackRenderer(
+        mediaStoreTool = mediaStoreTool,
+        fileTool = fileTool,
+        fontManager = fontManager
+    )
     private val audioRender = AudioRender(
-        context = context,
+        mediaStoreTool = mediaStoreTool,
+        fileTool = fileTool,
         outPcmFile = projectFolder.resolve(OUT_PCM_FILE_NAME),
         outputDecodePcmFolder = projectFolder.resolve(DECODE_PCM_FOLDER_NAME).apply { mkdir() },
         tempFolder = projectFolder.resolve(TEMP_FOLDER_NAME).apply { mkdir() }
