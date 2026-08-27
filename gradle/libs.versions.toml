@@ -1,29 +1,28 @@
 [versions]
-kotlin = "2.3.0"
-androidGradlePlugin = "8.13.2"
+kotlin = "2.4.10"
+androidGradlePlugin = "9.3.1"
 
-kotlinCoroutine = "1.10.2"
-kotlinSerialization = "1.9.0"
+kotlinCoroutine = "1.11.0"
+kotlinSerialization = "1.11.0"
 
-androidxComposeBom = "2025.12.01"
-androidxCore = "1.17.0"
-androidxAppCompat = "1.7.1"
-androidxLifecycle = "2.10.0"
-androidxActivity = "1.12.2"
-androidxDataStore = "1.2.0"
-nav3Core = "1.0.0"
-lifecycleViewmodelNav3 = "2.10.0"
+androidxComposeBom = "2026.08.00"
+androidxCore = "1.19.0"
+androidxAppCompat = "1.8.0"
+androidxLifecycle = "2.11.0"
+androidxActivity = "1.13.0"
+androidxDataStore = "1.2.1"
+nav3Core = "1.1.7"
+lifecycleViewmodelNav3 = "2.11.0"
 
-koin-bom = "4.2.0-beta2" # nav3 のため
+koin-bom = "4.2.2" # nav3 のため
 
 androidMaterial = "1.7.0"
-glide = "5.0.5"
+glide = "5.0.9"
 libaicaroid = "1.0.0"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 gradle-nexus-publish-plugin = { id = "io.github.gradle-nexus.publish-plugin", version = "2.0.0" }

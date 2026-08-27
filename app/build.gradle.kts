@@ -1,18 +1,19 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     alias(libs.plugins.compose.compiler)
     kotlin("plugin.serialization").version(libs.versions.kotlin.get())
 }
 
 android {
     namespace = "io.github.takusan23.akaridroid"
-    compileSdk = 36
+    compileSdk {
+        version = release(37)
+    }
 
     defaultConfig {
         applicationId = "io.github.takusan23.akaridroid"
-        minSdk = 23
-        targetSdk = 36
+        minSdk = 26
+        targetSdk = 37
         versionCode = 13
         versionName = "5.1.0"
 
@@ -27,22 +28,18 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            optimization {
+                enable = false
+            }
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         compose = true
-    }
-    // Strong Skipping Mode を有効
-    // React のメモ化を自動でやってくれるやつみたいな
-    // タイムラインの操作がちょっとだけ軽くなるかも
-    composeCompiler {
-        enableStrongSkippingMode = true
+        resValues = true
     }
     packagingOptions {
         resources {
@@ -53,7 +50,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
     }
 }
 
