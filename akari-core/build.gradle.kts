@@ -19,7 +19,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 23
         // targetSdk = 36
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -72,7 +72,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "io.github.takusan23"
             artifactId = "akaricore"
-            version = "6.4.0" // バージョンアップの際は CORE_RELEASE_NOTE.md も更新 + release_akari_core ブランチの更新
+            version = "6.4.1" // バージョンアップの際は CORE_RELEASE_NOTE.md も更新 + release_akari_core ブランチの更新
 
             // afterEvaluate しないとエラーなる
             afterEvaluate {

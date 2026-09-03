@@ -4,6 +4,9 @@
 ## 6.0.0 時代
 あかりどろいど 5.x に対応します
 
+### akaricore:6.4.1
+- まちがえて minSdkVersion が 26 になっていたので 23 に修正
+
 ### akaricore:6.4.0
 - TargetSdk が 37、Kotlin が 2.4.10 になりました
 

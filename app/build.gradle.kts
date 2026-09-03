@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.takusan23.akaridroid"
-        minSdk = 26
+        minSdk = 23
         targetSdk = 37
         versionCode = 13
         versionName = "5.1.0"
