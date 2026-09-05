@@ -1,5 +1,8 @@
 package io.github.takusan23.akaridroid.ui.screen
 
+import android.content.ClipData
+import android.view.SurfaceHolder
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -12,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,20 +28,26 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.view.DragAndDropPermissionsCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
+import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.encoder.EncoderService
 import io.github.takusan23.akaridroid.preview.HistoryManager
 import io.github.takusan23.akaridroid.preview.VideoEditorPreviewPlayer
+import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
+import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
+import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineMode
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineState
+import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
 import io.github.takusan23.akaridroid.ui.component.rememberRenderItemCreator
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
@@ -58,6 +69,7 @@ import io.github.takusan23.akaridroid.viewmodel.VideoEditorViewModel
  * @param onNavigate 画面遷移時に呼ばれる
  * @param onBack 戻ってほしいときに呼ばれる
  */
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun VideoEditorScreen(
     onNavigate: (NavigationPaths) -> Unit,
@@ -96,35 +108,155 @@ fun VideoEditorScreen(
         msWidthPx = timeLineMsWidthPx.intValue
     )
 
+    val windowSizeClass = calculateWindowSizeClass(LocalActivity.current!!)
+
+    SmartphonePortraitLayout(
+        renderData = renderData.value,
+        touchEditorData = touchEditorData.value,
+        playerStatus = previewPlayerStatus.value,
+        bottomSheetRouteData = bottomSheetRouteData.value,
+        timeLineMode = timeLineMode.value,
+        recommendFloatingBarMenuList = recommendFloatingBarMenuList.value,
+        timeLineState = timeLineState,
+        previewPlayerStatus = previewPlayerStatus.value,
+        timeLineMsWidthPx = timeLineMsWidthPx.intValue,
+        historyState = historyState.value,
+        snackbarRouterRequestData = snackbarRouteData.value,
+        onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
+        onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
+        onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
+        onAddRenderItemResult = { viewModel.resolveRenderItemCreate(it) },
+        onReceiveAkaLink = { viewModel.resolveAkaLinkResult(it) },
+        onRenderDataUpdate = { viewModel.updateRenderData(it) },
+        onEncode = { fileName, parameters ->
+            encoderService.value?.encodeAkariCore(
+                renderData = renderData.value,
+                projectName = viewModel.projectName,
+                resultFileName = fileName,
+                encoderParameters = parameters
+            )
+            // TODO ここで戻しているのは AudioDecodeManager を破棄させるため。エンコード側でも AudioDecodeManager を使うのでプレビュー側を破棄
+            onBack()
+        },
+        onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
+        onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize, renderData.value.colorSpace)) },
+        onSaveVideoFrameClick = { viewModel.saveCurrentVideoFrame() },
+        onTimeLineReset = { viewModel.resetRenderItemList() },
+        onSettingClick = { onNavigate(NavigationPaths.Setting) },
+        onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },
+        onClose = { viewModel.closeBottomSheet() },
+        onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
+        onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+        onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
+        onSizeChanged = { _, _ -> /* do nothing */ },
+        onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) },
+        onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
+        onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
+        onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
+        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() },
+        onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) },
+        onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it },
+        onExitMultiSelectTimeLine = { timeLineMode.value = TimeLineMode.Default },
+        onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
+        onUndo = { viewModel.renderDataUndo() },
+        onRedo = { viewModel.renderDataRedo() },
+        onFileReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) },
+        onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(request) },
+        onEdit = { timeLineItem ->
+            viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
+                viewModel.openEditRenderItemSheet(renderItem)
+            }
+        },
+        onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
+        onDelete = { deleteItem -> viewModel.deleteTimeLineItemFromId(listOf(deleteItem.id)) },
+        onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
+        onCopy = { copyItem -> viewModel.copyFromId(listOf(copyItem.id)) },
+        onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) },
+        onSnackbarDismiss = { viewModel.closeSnackbar() },
+        onRequestAddItemBottomSheet = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) },
+        onRecommendResult = { viewModel.resolveRenderItemCreate(it) },
+        onMultipleCopy = { viewModel.copyFromId(idList = it) },
+        onMultipleDelete = { viewModel.deleteTimeLineItemFromId(idList = it) }
+    )
+}
+
+/** スマホ縦持ちレイアウト */
+@Composable
+private fun SmartphonePortraitLayout(
+    bottomSheetRouteData: VideoEditorBottomSheetRouteRequestData? = null,
+    renderData: RenderData,
+    touchEditorData: TouchEditorData,
+    playerStatus: VideoEditorPreviewPlayer.PlayerStatus,
+    timeLineMode: TimeLineMode,
+    recommendFloatingBarMenuList: List<AddRenderItemMenu>,
+    timeLineState: TimeLineState,
+    previewPlayerStatus: VideoEditorPreviewPlayer.PlayerStatus,
+    timeLineMsWidthPx: Int,
+    historyState: HistoryManager.HistoryState,
+    snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
+    onAudioUpdate: (RenderData.AudioItem) -> Unit,
+    onCanvasUpdate: (RenderData.CanvasItem) -> Unit,
+    onDeleteItem: (RenderData.RenderItem) -> Unit,
+    onAddRenderItemResult: (AddRenderItemMenuResult) -> Unit,
+    onReceiveAkaLink: (AkaLinkTool.AkaLinkResult) -> Unit,
+    onRenderDataUpdate: (RenderData) -> Unit,
+    onEncode: (String, EncoderParameters) -> Unit,
+    onVideoInfoClick: () -> Unit,
+    onEncodeClick: () -> Unit,
+    onSaveVideoFrameClick: () -> Unit,
+    onTimeLineReset: () -> Unit,
+    onSettingClick: () -> Unit,
+    onStartAkaLink: () -> Unit,
+    onClose: () -> Unit,
+    onDefaultClick: () -> Unit,
+    onMultiSelectClick: () -> Unit,
+    onCreateSurface: (SurfaceHolder) -> Unit,
+    onSizeChanged: (width: Int, height: Int) -> Unit,
+    onDestroySurface: () -> Unit,
+    onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
+    onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit,
+    onPlayOrPause: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onMenuClick: () -> Unit,
+    onChangeTimeLineMsWidthPx: (Int) -> Unit,
+    onExitMultiSelectTimeLine: () -> Unit,
+    onModeChangeClick: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onFileReceive: (ClipData, DragAndDropPermissionsCompat) -> Unit,
+    onDragAndDropRequest: (List<TimeLineData.DragAndDropRequest>) -> Unit,
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit,
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
+    onSnackbarDismiss: () -> Unit,
+    onRequestAddItemBottomSheet: () -> Unit,
+    onRecommendResult: (AddRenderItemMenuResult) -> Unit,
+    onMultipleDelete: (List<Long>) -> Unit,
+    onMultipleCopy: (List<Long>) -> Unit
+) {
     // ボトムシート
-    if (bottomSheetRouteData.value != null) {
+    if (bottomSheetRouteData != null) {
         VideoEditorBottomSheetRouter(
-            videoEditorBottomSheetRouteRequestData = bottomSheetRouteData.value!!,
-            onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
-            onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
-            onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
-            onAddRenderItemResult = { viewModel.resolveRenderItemCreate(it) },
-            onReceiveAkaLink = { viewModel.resolveAkaLinkResult(it) },
-            onRenderDataUpdate = { viewModel.updateRenderData(it) },
-            onEncode = { fileName, parameters ->
-                encoderService.value?.encodeAkariCore(
-                    renderData = renderData.value,
-                    projectName = viewModel.projectName,
-                    resultFileName = fileName,
-                    encoderParameters = parameters
-                )
-                // TODO ここで戻しているのは AudioDecodeManager を破棄させるため。エンコード側でも AudioDecodeManager を使うのでプレビュー側を破棄
-                onBack()
-            },
-            onVideoInfoClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenVideoInfo(renderData.value)) },
-            onEncodeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenEncode(renderData.value.videoSize, renderData.value.colorSpace)) },
-            onSaveVideoFrameClick = { viewModel.saveCurrentVideoFrame() },
-            onTimeLineReset = { viewModel.resetRenderItemList() },
-            onSettingClick = { onNavigate(NavigationPaths.Setting) },
-            onStartAkaLink = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAkaLink) },
-            onClose = { viewModel.closeBottomSheet() },
-            onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
-            onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect }
+            videoEditorBottomSheetRouteRequestData = bottomSheetRouteData,
+            onAudioUpdate = onAudioUpdate,
+            onCanvasUpdate = onCanvasUpdate,
+            onDeleteItem = onDeleteItem,
+            onAddRenderItemResult = onAddRenderItemResult,
+            onReceiveAkaLink = onReceiveAkaLink,
+            onRenderDataUpdate = onRenderDataUpdate,
+            onEncode = onEncode,
+            onVideoInfoClick = onVideoInfoClick,
+            onEncodeClick = onEncodeClick,
+            onSaveVideoFrameClick = onSaveVideoFrameClick,
+            onTimeLineReset = onTimeLineReset,
+            onSettingClick = onSettingClick,
+            onStartAkaLink = onStartAkaLink,
+            onClose = onClose,
+            onDefaultClick = onDefaultClick,
+            onMultiSelectClick = onMultiSelectClick
         )
     }
 
@@ -150,55 +282,74 @@ fun VideoEditorScreen(
                 ) {
 
                     ComposeSurfaceView(
-                        modifier = Modifier.aspectRatio(renderData.value.videoSize.width / renderData.value.videoSize.height.toFloat()),
-                        onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
-                        onSizeChanged = { _, _ -> /* do nothing */ },
-                        onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) }
+                        modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
+                        onCreateSurface = onCreateSurface,
+                        onSizeChanged = onSizeChanged,
+                        onDestroySurface = onDestroySurface
                     )
 
                     PreviewContainer(
                         modifier = Modifier.matchParentSize(),
-                        touchEditorData = touchEditorData.value,
-                        onDragAndDropEnd = { request -> viewModel.resolveTouchEditorDragAndDropRequest(request) },
-                        onSizeChangeRequest = { request -> viewModel.resolveTouchEditorSizeChangeRequest(request) },
-                        playerStatus = previewPlayerStatus.value,
-                        onSeek = { viewModel.videoEditorPreviewPlayer.seekTo(it) },
-                        onPlayOrPause = { if (previewPlayerStatus.value.isPlaying) viewModel.videoEditorPreviewPlayer.pause() else viewModel.videoEditorPreviewPlayer.playInRepeat() },
-                        onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) }
+                        touchEditorData = touchEditorData,
+                        onDragAndDropEnd = onDragAndDropEnd,
+                        onSizeChangeRequest = onSizeChangeRequest,
+                        playerStatus = playerStatus,
+                        onPlayOrPause = onPlayOrPause,
+                        onSeek = onSeek,
+                        onMenuClick = onMenuClick
                     )
                 }
 
                 // タイムライン
-                when (timeLineMode.value) {
+                when (timeLineMode) {
                     TimeLineMode.Default -> VideoEditorDefaultTimeLine(
                         modifier = Modifier
                             .weight(1f)
                             .systemGestureExclusion(),
-                        viewModel = viewModel,
                         bottomPadding = paddingValues.calculateBottomPadding(),
-                        recommendFloatingBarMenuList = recommendFloatingBarMenuList.value,
+                        recommendFloatingBarMenuList = recommendFloatingBarMenuList,
                         timeLineState = timeLineState,
-                        renderData = renderData.value,
-                        previewPlayerStatus = previewPlayerStatus.value,
-                        timeLineMsWidthPx = timeLineMsWidthPx.intValue,
-                        historyState = historyState.value,
-                        snackbarRouterRequestData = snackbarRouteData.value,
-                        onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it }
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        snackbarRouterRequestData = snackbarRouterRequestData,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onModeChangeClick = onModeChangeClick,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onFileReceive = onFileReceive,
+                        onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
+                        onSeek = onSeek,
+                        onEdit = onEdit,
+                        onCut = onCut,
+                        onDelete = onDelete,
+                        onDuplicate = onDuplicate,
+                        onCopy = onCopy,
+                        onDurationChange = onDurationChange,
+                        onSnackbarDismiss = onSnackbarDismiss,
+                        onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
+                        onRecommendResult = onRecommendResult
                     )
 
                     TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
                         modifier = Modifier
                             .weight(1f)
                             .systemGestureExclusion(),
-                        viewModel = viewModel,
                         bottomPadding = paddingValues.calculateBottomPadding(),
                         timeLineState = timeLineState,
-                        renderData = renderData.value,
-                        previewPlayerStatus = previewPlayerStatus.value,
-                        timeLineMsWidthPx = timeLineMsWidthPx.intValue,
-                        historyState = historyState.value,
-                        onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it },
-                        onExitMultiSelectTimeLine = { timeLineMode.value = TimeLineMode.Default }
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onDragAndDropRequest = onDragAndDropRequest,
+                        onSeek = onSeek,
+                        onMultipleDelete = onMultipleDelete,
+                        onMultipleCopy = onMultipleCopy
                     )
                 }
             }
@@ -210,7 +361,6 @@ fun VideoEditorScreen(
 @Composable
 private fun VideoEditorDefaultTimeLine(
     modifier: Modifier = Modifier,
-    viewModel: VideoEditorViewModel,
     bottomPadding: Dp,
     recommendFloatingBarMenuList: List<AddRenderItemMenu>,
     timeLineState: TimeLineState,
@@ -219,7 +369,22 @@ private fun VideoEditorDefaultTimeLine(
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
     snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
-    onChangeTimeLineMsWidthPx: (Int) -> Unit
+    onChangeTimeLineMsWidthPx: (Int) -> Unit,
+    onModeChangeClick: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onFileReceive: (ClipData, DragAndDropPermissionsCompat) -> Unit,
+    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Unit,
+    onSeek: (positionMs: Long) -> Unit,
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit,
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
+    onSnackbarDismiss: () -> Unit,
+    onRequestAddItemBottomSheet: () -> Unit,
+    onRecommendResult: (AddRenderItemMenuResult) -> Unit
 ) {
     Box(modifier = modifier) {
 
@@ -227,13 +392,13 @@ private fun VideoEditorDefaultTimeLine(
             // 戻る進むとかのヘッダー
             DefaultTimeLineHeader(
                 msWidthPx = timeLineMsWidthPx,
-                onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
+                onModeChangeClick = onModeChangeClick,
                 onZoomIn = { onChangeTimeLineMsWidthPx(timeLineMsWidthPx + 1) },
                 onZoomOut = { onChangeTimeLineMsWidthPx(maxOf(timeLineMsWidthPx - 1, 1)) },
                 hasUndo = historyState.hasUndo,
                 hasRedo = historyState.hasRedo,
-                onUndo = { viewModel.renderDataUndo() },
-                onRedo = { viewModel.renderDataRedo() }
+                onUndo = onUndo,
+                onRedo = onRedo
             )
 
             // 線
@@ -247,25 +412,19 @@ private fun VideoEditorDefaultTimeLine(
                 currentPositionMs = { previewPlayerStatus.currentPositionMs }
             ) {
                 // ドラッグアンドドロップが受け入れできるように
-                FileDragAndDropReceiveContainer(
-                    onReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) }
-                ) {
+                FileDragAndDropReceiveContainer(onReceive = onFileReceive) {
                     DefaultTimeLine(
                         modifier = Modifier,
                         timeLineState = timeLineState,
                         currentPositionMs = { previewPlayerStatus.currentPositionMs },
-                        onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                        onDragAndDropRequest = { request -> viewModel.resolveTimeLineDragAndDropRequest(listOf(request)) },
-                        onEdit = { timeLineItem ->
-                            viewModel.getRenderItem(timeLineItem.id)?.also { renderItem ->
-                                viewModel.openEditRenderItemSheet(renderItem)
-                            }
-                        },
-                        onCut = { timeLineItem -> viewModel.resolveTimeLineCutRequest(timeLineItem) },
-                        onDelete = { deleteItem -> viewModel.deleteTimeLineItemFromId(listOf(deleteItem.id)) },
-                        onDuplicate = { duplicateFromItem -> viewModel.duplicateRenderItem(duplicateFromItem.id) },
-                        onCopy = { copyItem -> viewModel.copyFromId(listOf(copyItem.id)) },
-                        onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) }
+                        onDragAndDropRequest = onDragAndDropRequest,
+                        onSeek = onSeek,
+                        onEdit = onEdit,
+                        onCut = onCut,
+                        onDelete = onDelete,
+                        onDuplicate = onDuplicate,
+                        onCopy = onCopy,
+                        onDurationChange = onDurationChange
                     )
                 }
             }
@@ -284,7 +443,7 @@ private fun VideoEditorDefaultTimeLine(
             if (snackbarRouterRequestData != null) {
                 VideoEditorSnackbarRouter(
                     routerRequestData = snackbarRouterRequestData,
-                    onDismiss = { viewModel.closeSnackbar() }
+                    onSnackbarDismiss = onSnackbarDismiss
                 )
             }
 
@@ -295,12 +454,12 @@ private fun VideoEditorDefaultTimeLine(
                 FloatingTimeLineTitledItem(
                     title = stringResource(id = R.string.video_edit_floating_add_bar_add),
                     iconResId = R.drawable.ic_outlined_add_24px,
-                    onClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) }
+                    onClick = onRequestAddItemBottomSheet
                 )
 
                 // 使うメニュー推論
                 recommendFloatingBarMenuList.forEach { recommendMenu ->
-                    val creator = rememberRenderItemCreator(onResult = { viewModel.resolveRenderItemCreate(it) })
+                    val creator = rememberRenderItemCreator(onResult = onRecommendResult)
 
                     FloatingTimeLineItem(
                         iconResId = recommendMenu.iconResId,
@@ -317,7 +476,6 @@ private fun VideoEditorDefaultTimeLine(
 @Composable
 private fun VideoEditorMultiSelectTimeLine(
     modifier: Modifier = Modifier,
-    viewModel: VideoEditorViewModel,
     bottomPadding: Dp,
     timeLineState: TimeLineState,
     renderData: RenderData,
@@ -325,7 +483,13 @@ private fun VideoEditorMultiSelectTimeLine(
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
     onChangeTimeLineMsWidthPx: (Int) -> Unit,
-    onExitMultiSelectTimeLine: () -> Unit
+    onExitMultiSelectTimeLine: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onDragAndDropRequest: (request: List<TimeLineData.DragAndDropRequest>) -> Unit,
+    onSeek: (positionMs: Long) -> Unit,
+    onMultipleDelete: (List<Long>) -> Unit,
+    onMultipleCopy: (List<Long>) -> Unit
 ) {
     // 複数選択中のアイテム
     val multiSelectItemIdList = remember { mutableStateOf(emptyList<Long>()) }
@@ -341,8 +505,8 @@ private fun VideoEditorMultiSelectTimeLine(
                 onZoomOut = { onChangeTimeLineMsWidthPx(maxOf(timeLineMsWidthPx - 1, 1)) },
                 hasUndo = historyState.hasUndo,
                 hasRedo = historyState.hasRedo,
-                onUndo = { viewModel.renderDataUndo() },
-                onRedo = { viewModel.renderDataRedo() }
+                onUndo = onUndo,
+                onRedo = onRedo
             )
 
             // 線
@@ -370,8 +534,8 @@ private fun VideoEditorMultiSelectTimeLine(
                             multiSelectItemIdList.value += id
                         }
                     },
-                    onSeek = { positionMs -> viewModel.videoEditorPreviewPlayer.seekTo(positionMs) },
-                    onDragAndDropRequest = { requestList -> viewModel.resolveTimeLineDragAndDropRequest(requestList) }
+                    onSeek = onSeek,
+                    onDragAndDropRequest = onDragAndDropRequest
                 )
             }
         }
@@ -387,13 +551,13 @@ private fun VideoEditorMultiSelectTimeLine(
             FloatingTimeLineTitledItem(
                 title = stringResource(R.string.video_edit_floating_multi_select_copy),
                 iconResId = R.drawable.content_paste_24px,
-                onClick = { viewModel.copyFromId(multiSelectItemIdList.value) }
+                onClick = { onMultipleCopy(multiSelectItemIdList.value) }
             )
             FloatingTimeLineTitledItem(
                 title = stringResource(R.string.video_edit_floating_multi_delete),
                 iconResId = R.drawable.ic_outline_delete_24px,
                 onClick = {
-                    viewModel.deleteTimeLineItemFromId(multiSelectItemIdList.value)
+                    onMultipleDelete(multiSelectItemIdList.value)
                     multiSelectItemIdList.value = emptyList()
                 }
             )

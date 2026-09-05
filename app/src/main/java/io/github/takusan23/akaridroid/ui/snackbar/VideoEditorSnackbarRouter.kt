@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun VideoEditorSnackbarRouter(
     modifier: Modifier = Modifier,
     routerRequestData: VideoEditorSnackbarRouterRequestData,
-    onDismiss: () -> Unit
+    onSnackbarDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -48,7 +48,7 @@ fun VideoEditorSnackbarRouter(
                 }
             } finally {
                 // キャンセルや表示終了時など
-                onDismiss()
+                onSnackbarDismiss()
             }
         }
     }
