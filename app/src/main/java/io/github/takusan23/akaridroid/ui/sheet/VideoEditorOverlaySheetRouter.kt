@@ -1,33 +1,29 @@
 package io.github.takusan23.akaridroid.ui.sheet
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.encoder.EncoderParameters
 import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 /**
  * 大画面レイアウトで使う上に重なるシート
@@ -57,11 +53,13 @@ fun VideoEditorOverlaySheetRouter(
     onDefaultClick: () -> Unit,
     onMultiSelectClick: () -> Unit
 ) {
-
     if (videoEditorBottomSheetRouteRequestData != null) {
+        val visible = remember { mutableStateOf(true) }
+        BackHandler { visible.value = false }
         OverlaySheet(
             modifier = modifier,
-            onClose = onClose
+            visible = visible.value,
+            onAnimationEnd = onClose
         ) {
             VideoEditorSheetCommonRouter(
                 videoEditorBottomSheetRouteRequestData = videoEditorBottomSheetRouteRequestData,
@@ -78,7 +76,7 @@ fun VideoEditorOverlaySheetRouter(
                 onTimeLineReset = onTimeLineReset,
                 onSettingClick = onSettingClick,
                 onStartAkaLink = onStartAkaLink,
-                onClose = onClose,
+                onSheetClose = { visible.value = false }, // false にしたあと、アニメーションを終えると onAnimationEnd が呼ばれる
                 onDefaultClick = onDefaultClick,
                 onMultiSelectClick = onMultiSelectClick
             )
@@ -89,17 +87,22 @@ fun VideoEditorOverlaySheetRouter(
 @Composable
 private fun OverlaySheet(
     modifier: Modifier = Modifier,
-    onClose: () -> Unit,
+    visible: Boolean,
+    onAnimationEnd: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val state = remember { MutableTransitionState(false).apply { targetState = true } }
+    val state = remember { MutableTransitionState(false) }
+    val latestVisible = rememberUpdatedState(visible)
 
-    fun animateAndClose() {
-        scope.launch {
-            state.targetState = false
-            snapshotFlow { !state.currentState && state.isIdle }.first { it /* == true */ }
-            onClose()
+    LaunchedEffect(key1 = Unit) {
+        snapshotFlow { latestVisible.value }.collect { visible ->
+            if (visible) {
+                state.targetState = true
+            } else {
+                state.targetState = false
+                snapshotFlow { !state.currentState && state.isIdle }.first { it /* == true */ }
+                onAnimationEnd()
+            }
         }
     }
 
@@ -115,19 +118,7 @@ private fun OverlaySheet(
                 .fillMaxWidth(fraction = 0.5f),
             elevation = CardDefaults.outlinedCardElevation(defaultElevation = 10.dp)
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                IconButton(
-                    modifier = Modifier.align(alignment = Alignment.End),
-                    onClick = { animateAndClose() }
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_outline_close_24),
-                        contentDescription = null
-                    )
-                }
-
-                content()
-            }
+            content()
         }
     }
 }

@@ -11,9 +11,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemFloatEditComponent
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 
 /**
  * [RenderData.AudioItem.Audio]の編集ボトムシート
@@ -21,12 +21,14 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemFloatEditComponent
  * @param renderItem 音声素材の情報
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun AudioEditBottomSheet(
     renderItem: RenderData.AudioItem.Audio,
     onUpdate: (RenderData.AudioItem.Audio) -> Unit,
     onDelete: (RenderData.AudioItem.Audio) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val audioItem = remember { mutableStateOf(renderItem) }
 
@@ -39,10 +41,11 @@ fun AudioEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_audio_title),
             onComplete = { onUpdate(audioItem.value) },
-            onDelete = { onDelete(audioItem.value) }
+            onDelete = { onDelete(audioItem.value) },
+            onClose = onCloseClick
         )
 
         RenderItemFloatEditComponent(

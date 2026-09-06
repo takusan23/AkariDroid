@@ -29,7 +29,6 @@ import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.canvasrender.itemrender.calcVideoFramePositionMs
 import io.github.takusan23.akaridroid.tool.ColorTool
 import io.github.takusan23.akaridroid.tool.UriTool
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.ChromaKeyColorDialog
 import io.github.takusan23.akaridroid.ui.component.ColorItem
 import io.github.takusan23.akaridroid.ui.component.MessageCard
@@ -37,6 +36,7 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComp
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemRotationEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 import org.koin.compose.koinInject
 import java.io.File
 
@@ -49,6 +49,7 @@ import java.io.File
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
  * @param onOpenVideoInfo 動画情報編集ボトムシートを開いて欲しいときに呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun VideoRenderEditBottomSheet(
@@ -57,7 +58,8 @@ fun VideoRenderEditBottomSheet(
     isProjectHdr: Boolean,
     onUpdate: (RenderData.CanvasItem.Video) -> Unit,
     onDelete: (RenderData.CanvasItem.Video) -> Unit,
-    onOpenVideoInfo: () -> Unit
+    onOpenVideoInfo: () -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
     val uriTool = koinInject<UriTool>()
@@ -80,10 +82,11 @@ fun VideoRenderEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_video_title),
             onComplete = { onUpdate(videoItem.value) },
-            onDelete = { onDelete(videoItem.value) }
+            onDelete = { onDelete(videoItem.value) },
+            onClose = onCloseClick
         )
 
         Text(text = "${stringResource(id = R.string.video_edit_bottomsheet_video_file_name)} : ${videoFileName.value}")

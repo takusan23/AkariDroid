@@ -21,12 +21,12 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.tool.FontManager
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
 import io.github.takusan23.akaridroid.ui.component.OutlinedFloatTextField
 import io.github.takusan23.akaridroid.ui.component.RenderItemColorEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 import org.koin.compose.koinInject
 
 /**
@@ -35,12 +35,14 @@ import org.koin.compose.koinInject
  * @param renderItem キャンバスのテキストの情報
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun TextRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Text,
     onUpdate: (RenderData.CanvasItem.Text) -> Unit,
     onDelete: (RenderData.CanvasItem.Text) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val textItem = remember { mutableStateOf(renderItem) }
 
@@ -53,10 +55,11 @@ fun TextRenderEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_text_title),
             onComplete = { onUpdate(textItem.value) },
-            onDelete = { onDelete(textItem.value) }
+            onDelete = { onDelete(textItem.value) },
+            onClose = onCloseClick
         )
 
         OutlinedTextField(

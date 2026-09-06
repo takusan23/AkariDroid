@@ -52,7 +52,7 @@ fun VideoEditorBottomSheetRouter(
             onTimeLineReset = onTimeLineReset,
             onSettingClick = onSettingClick,
             onStartAkaLink = onStartAkaLink,
-            onClose = onClose,
+            onSheetClose = onClose,
             onDefaultClick = onDefaultClick,
             onMultiSelectClick = onMultiSelectClick
         )

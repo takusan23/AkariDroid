@@ -28,12 +28,12 @@ import io.github.takusan23.akaricore.graphics.GlslSyntaxErrorException
 import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.CommonDialog
 import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 import kotlinx.coroutines.launch
 
 /** コンパイル結果 */
@@ -54,12 +54,14 @@ private sealed interface CompileResult {
  * @param renderItem シェーダーを含む情報
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun ShaderRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Shader,
     onUpdate: (RenderData.CanvasItem.Shader) -> Unit,
-    onDelete: (RenderData.CanvasItem.Shader) -> Unit
+    onDelete: (RenderData.CanvasItem.Shader) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
@@ -100,10 +102,11 @@ fun ShaderRenderEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_shader_title),
             onComplete = { onUpdate(shaderItem.value) },
-            onDelete = { onDelete(shaderItem.value) }
+            onDelete = { onDelete(shaderItem.value) },
+            onClose = onCloseClick
         )
 
         OutlinedTextField(

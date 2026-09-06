@@ -423,7 +423,10 @@ private fun LargeScreenLayout(
                             .weight(1f)
                             .fillMaxHeight()
                     ) {
-                        AddRenderItemBottomSheet(onAddRenderItemResult = { })
+                        AddRenderItemBottomSheet(
+                            onAddRenderItemResult = {},
+                            onCloseClick = {}
+                        )
                     }
                 }
 

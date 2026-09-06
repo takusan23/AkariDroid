@@ -10,7 +10,7 @@ import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
  * BottomSheetRouter と OverlaySheetRouter で使われる共通部分
  *
  * @param videoEditorBottomSheetRouteRequestData ボトムシートの表示に必要なデータ
- * @param onClose ボトムシート閉じたときに呼ばれる
+ * @param onSheetClose ボトムシート閉じたときに呼ばれる
  */
 @Composable
 fun VideoEditorSheetCommonRouter(
@@ -28,7 +28,7 @@ fun VideoEditorSheetCommonRouter(
     onTimeLineReset: () -> Unit,
     onSettingClick: () -> Unit,
     onStartAkaLink: () -> Unit,
-    onClose: () -> Unit,
+    onSheetClose: () -> Unit,
     onDefaultClick: () -> Unit,
     onMultiSelectClick: () -> Unit
 ) {
@@ -40,72 +40,78 @@ fun VideoEditorSheetCommonRouter(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.audio,
                 onUpdate = {
                     onAudioUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Effect -> EffectRenderEditBottomSheet(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.effect,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Image -> ImageRenderEditBottomSheet(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.image,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shader -> ShaderRenderEditBottomSheet(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.shader,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Shape -> ShapeRenderEditBottomSheet(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.shape,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.SwitchAnimation -> SwitchAnimationRenderEditBottomSheet(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.switchAnimation,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
 
@@ -113,12 +119,13 @@ fun VideoEditorSheetCommonRouter(
                 renderItem = videoEditorBottomSheetRouteRequestData.editRenderItem.text,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
 
             is VideoEditorBottomSheetRouteRequestData.OpenEditor.EditRenderItemType.Video -> VideoRenderEditBottomSheet(
@@ -128,12 +135,13 @@ fun VideoEditorSheetCommonRouter(
                 onOpenVideoInfo = onVideoInfoClick,
                 onUpdate = {
                     onCanvasUpdate(it)
-                    onClose()
+                    onSheetClose()
                 },
                 onDelete = {
                     onDeleteItem(it)
-                    onClose()
-                }
+                    onSheetClose()
+                },
+                onCloseClick = onSheetClose
             )
         }
 
@@ -142,15 +150,16 @@ fun VideoEditorSheetCommonRouter(
             renderData = videoEditorBottomSheetRouteRequestData.renderData,
             onUpdate = {
                 onRenderDataUpdate(it)
-                onClose()
-            }
+                onSheetClose()
+            },
+            onCloseClick = onSheetClose
         )
 
         // あかりんく画面
         VideoEditorBottomSheetRouteRequestData.OpenAkaLink -> AkaLinkBottomSheet(
             onAkaLinkResult = { akaLinkResult ->
                 onReceiveAkaLink(akaLinkResult)
-                onClose()
+                onSheetClose()
             }
         )
 
@@ -160,8 +169,9 @@ fun VideoEditorSheetCommonRouter(
             colorSpace = videoEditorBottomSheetRouteRequestData.colorSpace,
             onEncode = { fileName, parameters ->
                 onEncode(fileName, parameters)
-                onClose()
-            }
+                onSheetClose()
+            },
+            onCloseClick = onSheetClose
         )
 
         // メニュー画面
@@ -170,27 +180,30 @@ fun VideoEditorSheetCommonRouter(
             onEncodeClick = onEncodeClick,
             onSaveVideoFrameClick = {
                 onSaveVideoFrameClick()
-                onClose()
+                onSheetClose()
             },
             onTimeLineReset = onTimeLineReset,
-            onSettingClick = onSettingClick
+            onSettingClick = onSettingClick,
+            onCloseClick = onSheetClose
         )
 
         // 素材追加画面
         VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem -> AddRenderItemBottomSheet(
-            onAddRenderItemResult = onAddRenderItemResult
+            onAddRenderItemResult = onAddRenderItemResult,
+            onCloseClick = onSheetClose
         )
 
         // タイムラインのモード変更
         VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange -> TimeLineModeChangeBottomSheet(
             onDefaultClick = {
                 onDefaultClick()
-                onClose()
+                onSheetClose()
             },
             onMultiSelectClick = {
                 onMultiSelectClick()
-                onClose()
-            }
+                onSheetClose()
+            },
+            onCloseClick = onSheetClose
         )
     }
 }

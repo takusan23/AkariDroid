@@ -48,6 +48,7 @@ import io.github.takusan23.akaridroid.ui.component.ExtendMenuItem
 import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.NoOpenableExtendMenu
 import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 
 /** コンテナフォーマットの説明 */
 private val ContainerFormatMenu = listOf(
@@ -119,12 +120,14 @@ private enum class EncodeBottomSheetPage(val labelResId: Int) {
  * @param videoSize 動画の縦横サイズ
  * @param isEnableTenBitHdr 10-bit HDR が有効の場合は true
  * @param onEncode エンコードを押した時に呼ばれる。ファイル名とエンコーダーに渡す設定
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun EncodeBottomSheet(
     videoSize: RenderData.Size,
     colorSpace: RenderData.ColorSpace,
-    onEncode: (String, EncoderParameters) -> Unit
+    onEncode: (String, EncoderParameters) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val currentPage = remember { mutableStateOf(EncodeBottomSheetPage.Basic) }
 
@@ -148,12 +151,10 @@ fun EncodeBottomSheet(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
 
-            Column {
-                Text(
-                    text = stringResource(id = R.string.video_edit_bottomsheet_encode_title),
-                    fontSize = 24.sp
-                )
-            }
+            SheetHeader(
+                title = stringResource(id = R.string.video_edit_bottomsheet_encode_title),
+                onClose = onCloseClick
+            )
 
             // ファイル名
             FileNameInput(

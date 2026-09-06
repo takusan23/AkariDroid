@@ -14,9 +14,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
 import io.github.takusan23.akaridroid.ui.component.DurationInput
 import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 
 /**
  * 動画情報編集ボトムシート。
@@ -24,11 +24,13 @@ import io.github.takusan23.akaridroid.ui.component.OutlinedIntTextField
  *
  * @param renderData 動画情報
  * @param onUpdate 更新時に呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun VideoInfoEditorBottomSheet(
     renderData: RenderData,
-    onUpdate: (RenderData) -> Unit
+    onUpdate: (RenderData) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val renderData = remember { mutableStateOf(renderData) }
 
@@ -41,9 +43,10 @@ fun VideoInfoEditorBottomSheet(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_videoinfo_title),
-            onComplete = { onUpdate(renderData.value) }
+            onComplete = { onUpdate(renderData.value) },
+            onClose = onCloseClick
         )
 
         Row(

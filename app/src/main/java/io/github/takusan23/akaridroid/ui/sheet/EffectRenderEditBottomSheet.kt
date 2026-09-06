@@ -14,7 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
@@ -26,12 +26,14 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
  * @param renderItem 切り替えアニメーションの詳細
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
+ * @param onCloseClick 閉じるを押したとき
  */
 @Composable
 fun EffectRenderEditBottomSheet(
     renderItem: RenderData.CanvasItem.Effect,
     onUpdate: (RenderData.CanvasItem.Effect) -> Unit,
-    onDelete: (RenderData.CanvasItem.Effect) -> Unit
+    onDelete: (RenderData.CanvasItem.Effect) -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
     val effectItem = remember { mutableStateOf(renderItem) }
@@ -47,10 +49,11 @@ fun EffectRenderEditBottomSheet(
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
-        BottomSheetHeader(
+        SheetHeader(
             title = stringResource(id = R.string.video_edit_bottomsheet_effect_title),
             onComplete = { onUpdate(effectItem.value) },
-            onDelete = { onDelete(effectItem.value) }
+            onDelete = { onDelete(effectItem.value) },
+            onClose = onCloseClick
         )
 
         OutlinedDropDownMenu(

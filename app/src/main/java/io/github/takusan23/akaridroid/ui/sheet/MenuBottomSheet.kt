@@ -14,22 +14,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 import io.github.takusan23.akaridroid.ui.component.MessageCard
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 
 /**
  * メニューボトムシート
  *
  * @param onEncodeClick 動画を保存する画面（エンコード画面）を開く
- * @param onSaveVideoFrame 画像として保存するを押した
+ * @param onSaveVideoFrameClick 画像として保存するを押した
  * @param onVideoInfoClick 動画情報の編集画面を開く
  * @param onSettingClick 設定画面を開く
  * @param onTimeLineReset タイムラインのリセット
  */
 @Composable
 fun MenuBottomSheet(
+    onCloseClick: () -> Unit,
     onVideoInfoClick: () -> Unit,
     onEncodeClick: () -> Unit,
     onSaveVideoFrameClick: () -> Unit,
@@ -41,9 +42,9 @@ fun MenuBottomSheet(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
-        Text(
-            text = stringResource(id = R.string.video_edit_bottomsheet_menu_title),
-            fontSize = 24.sp
+        SheetHeader(
+            title = stringResource(id = R.string.video_edit_bottomsheet_menu_title),
+            onClose = onCloseClick
         )
 
         MessageCard(
