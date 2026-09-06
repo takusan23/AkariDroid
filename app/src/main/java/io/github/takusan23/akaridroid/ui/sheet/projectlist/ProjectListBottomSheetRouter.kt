@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet.projectlist
+package io.github.takusan23.akaridroid.ui.sheet.projectlist
 
 import android.net.Uri
 import androidx.compose.material3.ExperimentalMaterial3Api

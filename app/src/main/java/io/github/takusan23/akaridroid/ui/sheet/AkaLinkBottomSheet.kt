@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet
+package io.github.takusan23.akaridroid.ui.sheet
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts

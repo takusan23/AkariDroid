@@ -9,7 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.bottomsheet.VideoEditorBottomSheetRouteRequestData
+import io.github.takusan23.akaridroid.ui.sheet.VideoEditorBottomSheetRouteRequestData
 
 /** [AddRenderItemMenuResult]からメニューを探す */
 fun AddRenderItemMenuResult.toMenu() = when (this) {
@@ -157,7 +157,7 @@ sealed interface AddRenderItemMenuResult {
 
 /**
  * タイムラインにアイテム（テキスト、画像）を追加するボタンが2箇所あるので、まとめた。以下2つの箇所から使われる。
- * [io.github.takusan23.akaridroid.ui.bottomsheet.AddRenderItemBottomSheet]、[FloatingAddRenderItemBar]
+ * [io.github.takusan23.akaridroid.ui.sheet.AddRenderItemBottomSheet]、[FloatingAddRenderItemBar]
  *
  * 基本的には [RenderItemCreator.create] を使って呼び出して [onResult] で受け取る。
  *

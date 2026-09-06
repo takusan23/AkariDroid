@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet
+package io.github.takusan23.akaridroid.ui.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaricore.graphics.GlslSyntaxErrorException
+import io.github.takusan23.akaricore.video.GpuShaderImageProcessor
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
 import io.github.takusan23.akaridroid.ui.component.BottomSheetHeader

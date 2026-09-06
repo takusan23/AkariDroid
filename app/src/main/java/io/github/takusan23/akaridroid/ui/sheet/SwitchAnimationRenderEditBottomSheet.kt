@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet
+package io.github.takusan23.akaridroid.ui.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,23 +21,23 @@ import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditCompone
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
 
 /**
- * [RenderData.CanvasItem.Effect]の編集ボトムシート
+ * [RenderData.CanvasItem.SwitchAnimation]の編集ボトムシート
  *
  * @param renderItem 切り替えアニメーションの詳細
  * @param onUpdate 更新時に呼ばれる
  * @param onDelete 削除時に呼ばれる
  */
 @Composable
-fun EffectRenderEditBottomSheet(
-    renderItem: RenderData.CanvasItem.Effect,
-    onUpdate: (RenderData.CanvasItem.Effect) -> Unit,
-    onDelete: (RenderData.CanvasItem.Effect) -> Unit
+fun SwitchAnimationRenderEditBottomSheet(
+    renderItem: RenderData.CanvasItem.SwitchAnimation,
+    onUpdate: (RenderData.CanvasItem.SwitchAnimation) -> Unit,
+    onDelete: (RenderData.CanvasItem.SwitchAnimation) -> Unit
 ) {
     val context = LocalContext.current
-    val effectItem = remember { mutableStateOf(renderItem) }
+    val shaderItem = remember { mutableStateOf(renderItem) }
 
-    fun update(copy: (RenderData.CanvasItem.Effect) -> RenderData.CanvasItem.Effect) {
-        effectItem.value = copy(effectItem.value)
+    fun update(copy: (RenderData.CanvasItem.SwitchAnimation) -> RenderData.CanvasItem.SwitchAnimation) {
+        shaderItem.value = copy(shaderItem.value)
     }
 
     Column(
@@ -48,41 +48,42 @@ fun EffectRenderEditBottomSheet(
     ) {
 
         BottomSheetHeader(
-            title = stringResource(id = R.string.video_edit_bottomsheet_effect_title),
-            onComplete = { onUpdate(effectItem.value) },
-            onDelete = { onDelete(effectItem.value) }
+            title = stringResource(id = R.string.video_edit_bottomsheet_switch_animation_title),
+            onComplete = { onUpdate(shaderItem.value) },
+            onDelete = { onDelete(shaderItem.value) }
         )
 
         OutlinedDropDownMenu(
             modifier = Modifier.fillMaxWidth(),
-            label = stringResource(id = R.string.video_edit_bottomsheet_effect_type),
-            currentSelectIndex = RenderData.CanvasItem.Effect.EffectType.entries.indexOf(effectItem.value.effectType),
-            menuList = RenderData.CanvasItem.Effect.EffectType.entries.map {
+            label = stringResource(id = R.string.video_edit_bottomsheet_switch_animation_type),
+            currentSelectIndex = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.entries.indexOf(shaderItem.value.animationType),
+            menuList = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.entries.map {
                 context.getString(
                     when (it) {
-                        RenderData.CanvasItem.Effect.EffectType.MOSAIC -> R.string.video_edit_bottomsheet_effect_type_mosaic
-                        RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> R.string.video_edit_bottomsheet_effect_type_monochrome
-                        RenderData.CanvasItem.Effect.EffectType.THRESHOLD -> R.string.video_edit_bottomsheet_effect_type_threshold
-                        RenderData.CanvasItem.Effect.EffectType.BLUR -> R.string.video_edit_bottomsheet_effect_type_blur
+                        RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out
+                        RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.FADE_IN_OUT_WHITE -> R.string.video_edit_bottomsheet_switch_animation_type_fade_in_out_white
+                        RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.SLIDE -> R.string.video_edit_bottomsheet_switch_animation_type_slide
+                        RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.BLUR -> R.string.video_edit_bottomsheet_switch_animation_type_blur
                     }
                 )
             },
-            onSelect = { index -> update { it.copy(effectType = RenderData.CanvasItem.Effect.EffectType.entries[index]) } }
+            onSelect = { index -> update { it.copy(animationType = RenderData.CanvasItem.SwitchAnimation.SwitchAnimationType.entries[index]) } }
         )
 
         RenderItemPositionEditComponent(
-            position = effectItem.value.position,
+            position = shaderItem.value.position,
             onUpdate = { position -> update { it.copy(position = position) } }
         )
 
         RenderItemDisplayTimeEditComponent(
-            displayTime = effectItem.value.displayTime,
+            displayTime = shaderItem.value.displayTime,
             onUpdate = { displayTime -> update { it.copy(displayTime = displayTime) } }
         )
 
         RenderItemSizeEditComponent(
-            size = effectItem.value.size,
+            size = shaderItem.value.size,
             onUpdate = { size -> update { it.copy(size = size) } }
         )
     }
+
 }

@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet.projectlist
+package io.github.takusan23.akaridroid.ui.sheet.projectlist
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.bottomsheet.bottomSheetPadding
+import io.github.takusan23.akaridroid.ui.sheet.bottomSheetPadding
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 
 /**

@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet
+package io.github.takusan23.akaridroid.ui.sheet
 
 import android.content.Intent
 import android.os.Build

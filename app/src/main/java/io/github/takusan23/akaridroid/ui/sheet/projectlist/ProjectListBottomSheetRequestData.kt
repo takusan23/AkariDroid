@@ -1,4 +1,4 @@
-package io.github.takusan23.akaridroid.ui.bottomsheet.projectlist
+package io.github.takusan23.akaridroid.ui.sheet.projectlist
 
 /** プロジェクト一覧画面のボトムシートの種類 */
 sealed interface ProjectListBottomSheetRequestData {

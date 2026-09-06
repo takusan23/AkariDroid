@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * [io.github.takusan23.akaridroid.ui.bottomsheet.MenuBottomSheet]の各メニュー
+ * [io.github.takusan23.akaridroid.ui.sheet.MenuBottomSheet]の各メニュー
  *
  * @param modifier [Modifier]
  * @param title 名前
