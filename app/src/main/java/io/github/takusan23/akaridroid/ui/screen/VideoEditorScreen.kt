@@ -3,6 +3,7 @@ package io.github.takusan23.akaridroid.ui.screen
 import android.content.ClipData
 import android.content.res.Configuration
 import android.view.SurfaceHolder
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +59,7 @@ import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropRecei
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineItem
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitledItem
+import io.github.takusan23.akaridroid.ui.component.timeline.LargeScreenDefaultTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
@@ -120,7 +124,6 @@ fun VideoEditorScreen(
             playerStatus = previewPlayerStatus.value,
             bottomSheetRouteData = bottomSheetRouteData.value,
             timeLineMode = timeLineMode.value,
-            recommendFloatingBarMenuList = recommendFloatingBarMenuList.value,
             timeLineState = timeLineState,
             previewPlayerStatus = previewPlayerStatus.value,
             timeLineMsWidthPx = timeLineMsWidthPx.intValue,
@@ -177,8 +180,6 @@ fun VideoEditorScreen(
             onCopy = { copyItem -> viewModel.copyFromId(listOf(copyItem.id)) },
             onDurationChange = { request -> viewModel.resolveTimeLineDurationChangeRequest(request) },
             onSnackbarDismiss = { viewModel.closeSnackbar() },
-            onRequestAddItemBottomSheet = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenAddRenderItem) },
-            onRecommendResult = { viewModel.resolveRenderItemCreate(it) },
             onMultipleCopy = { viewModel.copyFromId(idList = it) },
             onMultipleDelete = { viewModel.deleteTimeLineItemFromId(idList = it) }
         )
@@ -331,7 +332,6 @@ private fun LargeScreenLayout(
     touchEditorData: TouchEditorData,
     playerStatus: VideoEditorPreviewPlayer.PlayerStatus,
     timeLineMode: TimeLineMode,
-    recommendFloatingBarMenuList: List<AddRenderItemMenu>,
     timeLineState: TimeLineState,
     previewPlayerStatus: VideoEditorPreviewPlayer.PlayerStatus,
     timeLineMsWidthPx: Int,
@@ -375,8 +375,6 @@ private fun LargeScreenLayout(
     onCopy: (TimeLineData.Item) -> Unit,
     onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
     onSnackbarDismiss: () -> Unit,
-    onRequestAddItemBottomSheet: () -> Unit,
-    onRecommendResult: (AddRenderItemMenuResult) -> Unit,
     onMultipleDelete: (List<Long>) -> Unit,
     onMultipleCopy: (List<Long>) -> Unit
 ) {
@@ -432,12 +430,11 @@ private fun LargeScreenLayout(
 
                 // タイムライン
                 when (timeLineMode) {
-                    TimeLineMode.Default -> VideoEditorDefaultTimeLine(
+                    TimeLineMode.Default -> LargeScreenVideoEditorDefaultTimeLine(
                         modifier = Modifier
                             .weight(1f)
                             .systemGestureExclusion(),
                         bottomPadding = paddingValues.calculateBottomPadding(),
-                        recommendFloatingBarMenuList = recommendFloatingBarMenuList,
                         timeLineState = timeLineState,
                         renderData = renderData,
                         previewPlayerStatus = previewPlayerStatus,
@@ -457,12 +454,10 @@ private fun LargeScreenLayout(
                         onDuplicate = onDuplicate,
                         onCopy = onCopy,
                         onDurationChange = onDurationChange,
-                        onSnackbarDismiss = onSnackbarDismiss,
-                        onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
-                        onRecommendResult = onRecommendResult
+                        onSnackbarDismiss = onSnackbarDismiss
                     )
 
-                    TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
+                    TimeLineMode.MultiSelect -> LargeScreenVideoEditorMultiSelectTimeLine(
                         modifier = Modifier
                             .weight(1f)
                             .systemGestureExclusion(),
@@ -894,6 +889,7 @@ private fun VideoEditorDefaultTimeLine(
             // 戻る進むとかのヘッダー
             DefaultTimeLineHeader(
                 msWidthPx = timeLineMsWidthPx,
+                fillMaxWidth = true,
                 onModeChangeClick = onModeChangeClick,
                 onZoomIn = { onChangeTimeLineMsWidthPx(timeLineMsWidthPx + 1) },
                 onZoomOut = { onChangeTimeLineMsWidthPx(maxOf(timeLineMsWidthPx - 1, 1)) },
@@ -974,6 +970,11 @@ private fun VideoEditorDefaultTimeLine(
     }
 }
 
+/** 複数選択モード時の elevation、TopBar() もこれくらいやろ */
+private val MultiSelectHeaderBackgroundColor
+    @Composable
+    get() = MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp)
+
 /** 複数選択モード時のタイムライン部分の UI */
 @Composable
 private fun VideoEditorMultiSelectTimeLine(
@@ -1001,6 +1002,8 @@ private fun VideoEditorMultiSelectTimeLine(
         Column {
             // 戻る進むとかのヘッダー
             MultiSelectTimeLineHeader(
+                modifier = Modifier.background(MultiSelectHeaderBackgroundColor),
+                fillMaxWidth = true,
                 onExitMultiSelect = onExitMultiSelectTimeLine,
                 msWidthPx = timeLineMsWidthPx,
                 onZoomIn = { onChangeTimeLineMsWidthPx(timeLineMsWidthPx + 1) },
@@ -1040,6 +1043,182 @@ private fun VideoEditorMultiSelectTimeLine(
                     onDragAndDropRequest = onDragAndDropRequest
                 )
             }
+        }
+
+        // フローティングしているバー
+        // ナビゲーションバーの分も padding 入れておく
+        FloatingTimeLineBar(
+            modifier = Modifier
+                .padding(vertical = 10.dp, horizontal = 20.dp)
+                .padding(bottom = bottomPadding)
+                .align(Alignment.BottomCenter)
+        ) {
+            FloatingTimeLineTitledItem(
+                title = stringResource(R.string.video_edit_floating_multi_select_copy),
+                iconResId = R.drawable.content_paste_24px,
+                onClick = { onMultipleCopy(multiSelectItemIdList.value) }
+            )
+            FloatingTimeLineTitledItem(
+                title = stringResource(R.string.video_edit_floating_multi_delete),
+                iconResId = R.drawable.ic_outline_delete_24px,
+                onClick = {
+                    onMultipleDelete(multiSelectItemIdList.value)
+                    multiSelectItemIdList.value = emptyList()
+                }
+            )
+        }
+    }
+}
+
+/** 大画面用 動画編集画面のタイムライン部分の UI */
+@Composable
+private fun LargeScreenVideoEditorDefaultTimeLine(
+    modifier: Modifier = Modifier,
+    bottomPadding: Dp,
+    timeLineState: TimeLineState,
+    renderData: RenderData,
+    previewPlayerStatus: VideoEditorPreviewPlayer.PlayerStatus,
+    timeLineMsWidthPx: Int,
+    historyState: HistoryManager.HistoryState,
+    snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
+    onChangeTimeLineMsWidthPx: (Int) -> Unit,
+    onModeChangeClick: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onFileReceive: (ClipData, DragAndDropPermissionsCompat) -> Unit,
+    onDragAndDropRequest: (request: TimeLineData.DragAndDropRequest) -> Unit,
+    onSeek: (positionMs: Long) -> Unit,
+    onEdit: (TimeLineData.Item) -> Unit,
+    onCut: (TimeLineData.Item) -> Unit,
+    onDelete: (TimeLineData.Item) -> Unit,
+    onDuplicate: (TimeLineData.Item) -> Unit,
+    onCopy: (TimeLineData.Item) -> Unit,
+    onDurationChange: (TimeLineData.DurationChangeRequest) -> Unit,
+    onSnackbarDismiss: () -> Unit
+) {
+    Box(modifier = modifier) {
+
+        // タイムラインの共有部分
+        TimeLineContainer(
+            modifier = Modifier,
+            timeLineState = timeLineState,
+            durationMs = { renderData.durationMs },
+            currentPositionMs = { previewPlayerStatus.currentPositionMs }
+        ) {
+            // ドラッグアンドドロップが受け入れできるように
+            FileDragAndDropReceiveContainer(onReceive = onFileReceive) {
+                DefaultTimeLine(
+                    modifier = Modifier,
+                    timeLineState = timeLineState,
+                    currentPositionMs = { previewPlayerStatus.currentPositionMs },
+                    onDragAndDropRequest = onDragAndDropRequest,
+                    onSeek = onSeek,
+                    onEdit = onEdit,
+                    onCut = onCut,
+                    onDelete = onDelete,
+                    onDuplicate = onDuplicate,
+                    onCopy = onCopy,
+                    onDurationChange = onDurationChange
+                )
+            }
+        }
+
+        // 戻る進むとかはドラッグで移動できる
+        LargeScreenDefaultTimeLineHeader(modifier = Modifier.align(Alignment.TopEnd)) {
+            DefaultTimeLineHeader(
+                msWidthPx = timeLineMsWidthPx,
+                fillMaxWidth = false,
+                onModeChangeClick = onModeChangeClick,
+                onZoomIn = { onChangeTimeLineMsWidthPx(timeLineMsWidthPx + 1) },
+                onZoomOut = { onChangeTimeLineMsWidthPx(maxOf(timeLineMsWidthPx - 1, 1)) },
+                hasUndo = historyState.hasUndo,
+                hasRedo = historyState.hasRedo,
+                onUndo = onUndo,
+                onRedo = onRedo
+            )
+        }
+
+        // Snackbar
+        if (snackbarRouterRequestData != null) {
+            VideoEditorSnackbarRouter(
+                modifier = Modifier
+                    .padding(vertical = 10.dp, horizontal = 20.dp)
+                    .padding(bottom = bottomPadding)
+                    .align(Alignment.BottomCenter),
+                routerRequestData = snackbarRouterRequestData,
+                onSnackbarDismiss = onSnackbarDismiss
+            )
+        }
+    }
+}
+
+/** 複数選択モード時のタイムライン部分の UI */
+@Composable
+private fun LargeScreenVideoEditorMultiSelectTimeLine(
+    modifier: Modifier = Modifier,
+    bottomPadding: Dp,
+    timeLineState: TimeLineState,
+    renderData: RenderData,
+    previewPlayerStatus: VideoEditorPreviewPlayer.PlayerStatus,
+    timeLineMsWidthPx: Int,
+    historyState: HistoryManager.HistoryState,
+    onChangeTimeLineMsWidthPx: (Int) -> Unit,
+    onExitMultiSelectTimeLine: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onDragAndDropRequest: (request: List<TimeLineData.DragAndDropRequest>) -> Unit,
+    onSeek: (positionMs: Long) -> Unit,
+    onMultipleDelete: (List<Long>) -> Unit,
+    onMultipleCopy: (List<Long>) -> Unit
+) {
+    // 複数選択中のアイテム
+    val multiSelectItemIdList = remember { mutableStateOf(emptyList<Long>()) }
+
+    Box(modifier = modifier) {
+
+        // タイムラインの共有部分
+        TimeLineContainer(
+            modifier = Modifier,
+            timeLineState = timeLineState,
+            durationMs = { renderData.durationMs },
+            currentPositionMs = { previewPlayerStatus.currentPositionMs }
+        ) {
+            // 複数選択
+            MultiSelectTimeLine(
+                modifier = Modifier,
+                timeLineState = timeLineState,
+                selectedItemIdList = multiSelectItemIdList.value,
+                currentPositionMs = { previewPlayerStatus.currentPositionMs },
+                onItemSelect = { selectItem ->
+                    // 無ければ追加、あれば消す
+                    val id = selectItem.id
+                    if (id in multiSelectItemIdList.value) {
+                        multiSelectItemIdList.value -= id
+                    } else {
+                        multiSelectItemIdList.value += id
+                    }
+                },
+                onSeek = onSeek,
+                onDragAndDropRequest = onDragAndDropRequest
+            )
+        }
+
+        // 戻る進むとかはドラッグで移動できる
+        LargeScreenDefaultTimeLineHeader(
+            modifier = Modifier.align(Alignment.TopEnd),
+            color = MultiSelectHeaderBackgroundColor
+        ) {
+            MultiSelectTimeLineHeader(
+                onExitMultiSelect = onExitMultiSelectTimeLine,
+                fillMaxWidth = false,
+                msWidthPx = timeLineMsWidthPx,
+                onZoomIn = { onChangeTimeLineMsWidthPx(timeLineMsWidthPx + 1) },
+                onZoomOut = { onChangeTimeLineMsWidthPx(maxOf(timeLineMsWidthPx - 1, 1)) },
+                hasUndo = historyState.hasUndo,
+                hasRedo = historyState.hasRedo,
+                onUndo = onUndo,
+                onRedo = onRedo
+            )
         }
 
         // フローティングしているバー
