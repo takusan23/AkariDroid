@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -381,7 +383,7 @@ private fun LargeScreenLayout(
     onMultipleDelete: (List<Long>) -> Unit,
     onMultipleCopy: (List<Long>) -> Unit
 ) {
-    Scaffold { paddingValues ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         Box {
             Column {
                 Row(
@@ -434,9 +436,12 @@ private fun LargeScreenLayout(
                             onMenuSelect = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.Menu },
                             onAddRenderItem = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.AddRenderItem }
                         )
+                        val sheetModifier = Modifier
+                            .padding(horizontal = 10.dp)
+                            .verticalScroll(rememberScrollState())
                         when (selectMenu.value) {
                             LargeScreenMenuSwitchSegmentMode.Menu -> MenuSheet(
-                                modifier = Modifier.padding(horizontal = 10.dp),
+                                modifier = sheetModifier,
                                 onVideoInfoClick = onVideoInfoClick,
                                 onEncodeClick = onEncodeClick,
                                 onSaveVideoFrameClick = onSaveVideoFrameClick,
@@ -445,7 +450,7 @@ private fun LargeScreenLayout(
                             )
 
                             LargeScreenMenuSwitchSegmentMode.AddRenderItem -> AddRenderItemSheet(
-                                modifier = Modifier.padding(horizontal = 10.dp),
+                                modifier = sheetModifier,
                                 onAddRenderItemResult = onAddRenderItemResult
                             )
                         }
@@ -608,7 +613,7 @@ private fun CompactLandscapeLayout(
         )
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         Row(
             modifier = Modifier
                 // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
@@ -784,7 +789,7 @@ private fun CompactPortraitLayout(
         )
     }
 
-    Scaffold { paddingValues ->
+    Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         Column(
             modifier = Modifier
                 // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外

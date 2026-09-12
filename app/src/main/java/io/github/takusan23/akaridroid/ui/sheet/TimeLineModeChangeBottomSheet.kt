@@ -9,6 +9,8 @@ import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 import io.github.takusan23.akaridroid.ui.component.SheetHeader
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListEndShape
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListTopShape
 
 /**
  * タイムラインのモード切り替えボトムシート
@@ -25,7 +27,7 @@ fun TimeLineModeChangeBottomSheet(
 ) {
     Column(
         modifier = Modifier.bottomSheetPadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
         SheetHeader(
@@ -37,12 +39,14 @@ fun TimeLineModeChangeBottomSheet(
             title = stringResource(id = R.string.video_edit_bottomsheet_timeline_mode_change_default_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_timeline_mode_change_default_description),
             iconResId = R.drawable.ic_align_horizontal_left_24px,
+            shape = RoundedListTopShape,
             onClick = onDefaultClick
         )
         BottomSheetMenuItem(
             title = stringResource(id = R.string.video_edit_bottomsheet_timeline_mode_change_multi_select_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_timeline_mode_change_multi_select_description),
             iconResId = R.drawable.check_box_24px,
+            shape = RoundedListEndShape,
             onClick = onMultiSelectClick
         )
     }

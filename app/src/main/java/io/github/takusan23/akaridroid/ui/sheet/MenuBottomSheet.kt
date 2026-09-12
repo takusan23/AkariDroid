@@ -18,6 +18,9 @@ import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 import io.github.takusan23.akaridroid.ui.component.MessageCard
 import io.github.takusan23.akaridroid.ui.component.SheetHeader
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListEndShape
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListInnerShape
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListTopShape
 
 /**
  * メニューボトムシート
@@ -82,24 +85,27 @@ fun MenuSheet(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         BottomSheetMenuItem(
             title = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_description),
             iconResId = R.drawable.ic_outline_video_file_24,
+            shape = RoundedListTopShape,
             onClick = onVideoInfoClick
         )
         BottomSheetMenuItem(
             title = stringResource(id = R.string.video_edit_bottomsheet_menu_encode_video_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_encode_video_description),
             iconResId = R.drawable.ic_outline_save_24,
+            shape = RoundedListInnerShape,
             onClick = onEncodeClick
         )
         BottomSheetMenuItem(
             title = stringResource(id = R.string.video_edit_bottomsheet_menu_read_video_frame_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_read_video_frame_description),
             iconResId = R.drawable.ic_photo_camera_24px,
+            shape = RoundedListInnerShape,
             onClick = onSaveVideoFrameClick
         )
         TimeLineResetMenuItem(
@@ -109,6 +115,7 @@ fun MenuSheet(
             title = stringResource(id = R.string.video_edit_bottomsheet_menu_open_setting_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_open_setting_description),
             iconResId = R.drawable.ic_outline_settings_24px,
+            shape = RoundedListEndShape,
             onClick = onSettingClick
         )
     }
@@ -151,6 +158,7 @@ private fun TimeLineResetMenuItem(onResetTimeLine: () -> Unit) {
         title = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_title),
         description = stringResource(id = R.string.video_edit_bottomsheet_menu_reset_timeline_description),
         iconResId = R.drawable.ic_outline_reset_wrench_24px,
+        shape = RoundedListInnerShape,
         onClick = { isVisibleDialog.value = true }
     )
 }

@@ -10,6 +10,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -116,7 +117,8 @@ private fun OverlaySheet(
             modifier = Modifier
                 .padding(10.dp)
                 .fillMaxWidth(fraction = 0.5f),
-            elevation = CardDefaults.outlinedCardElevation(defaultElevation = 10.dp)
+            elevation = CardDefaults.outlinedCardElevation(defaultElevation = 10.dp),
+            colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
         ) {
             content()
         }

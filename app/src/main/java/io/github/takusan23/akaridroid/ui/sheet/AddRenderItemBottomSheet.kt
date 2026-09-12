@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
@@ -11,6 +12,7 @@ import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
 import io.github.takusan23.akaridroid.ui.component.SheetHeader
+import io.github.takusan23.akaridroid.ui.component.data.getRoundedShape
 import io.github.takusan23.akaridroid.ui.component.rememberRenderItemCreator
 
 /**
@@ -53,11 +55,12 @@ fun AddRenderItemSheet(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        AddRenderItemMenu.entries.forEach { menu ->
+        AddRenderItemMenu.entries.forEachIndexed { index, menu ->
             BottomSheetMenuItem(
                 menu = menu,
+                shape = getRoundedShape(size = AddRenderItemMenu.entries.size, index = index),
                 onClick = { creator.create(menu) }
             )
         }
@@ -75,6 +78,7 @@ fun AddRenderItemSheet(
 private fun BottomSheetMenuItem(
     modifier: Modifier = Modifier,
     menu: AddRenderItemMenu,
+    shape: Shape,
     onClick: () -> Unit
 ) {
     BottomSheetMenuItem(
@@ -82,6 +86,7 @@ private fun BottomSheetMenuItem(
         title = stringResource(id = menu.labelResId),
         description = stringResource(id = menu.descriptionResId),
         iconResId = menu.iconResId,
+        shape = shape,
         onClick = onClick
     )
 }

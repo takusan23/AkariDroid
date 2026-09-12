@@ -12,8 +12,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.takusan23.akaridroid.R
-import io.github.takusan23.akaridroid.ui.sheet.bottomSheetPadding
 import io.github.takusan23.akaridroid.ui.component.BottomSheetMenuItem
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListEndShape
+import io.github.takusan23.akaridroid.ui.component.data.RoundedListTopShape
+import io.github.takusan23.akaridroid.ui.sheet.bottomSheetPadding
 
 /**
  * プロジェクト一覧画面のメニュー用ボトムシート
@@ -39,7 +41,7 @@ fun ProjectMenuBottomSheet(
 
     Column(
         modifier = Modifier.bottomSheetPadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
         Column {
@@ -54,6 +56,7 @@ fun ProjectMenuBottomSheet(
             title = stringResource(id = R.string.project_list_bottomsheet_menu_delete_title),
             description = stringResource(id = R.string.project_list_bottomsheet_menu_delete_description),
             iconResId = R.drawable.ic_outline_delete_24px,
+            shape = RoundedListTopShape,
             onClick = { onDeleteMenuClick(name) }
         )
 
@@ -61,6 +64,7 @@ fun ProjectMenuBottomSheet(
             title = stringResource(id = R.string.project_list_bottomsheet_menu_export_title),
             description = stringResource(id = R.string.project_list_bottomsheet_menu_export_description),
             iconResId = R.drawable.ic_outline_business_center_24,
+            shape = RoundedListEndShape,
             onClick = {
                 // 保存先を選んでもらう
                 createZipFile.launch(portableProjectName)
