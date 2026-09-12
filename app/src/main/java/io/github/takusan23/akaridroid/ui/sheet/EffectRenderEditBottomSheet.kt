@@ -3,8 +3,6 @@ package io.github.takusan23.akaridroid.ui.sheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,11 +12,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.takusan23.akaridroid.R
 import io.github.takusan23.akaridroid.RenderData
-import io.github.takusan23.akaridroid.ui.component.SheetHeader
 import io.github.takusan23.akaridroid.ui.component.OutlinedDropDownMenu
 import io.github.takusan23.akaridroid.ui.component.RenderItemDisplayTimeEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemPositionEditComponent
 import io.github.takusan23.akaridroid.ui.component.RenderItemSizeEditComponent
+import io.github.takusan23.akaridroid.ui.component.SheetHeader
 
 /**
  * [RenderData.CanvasItem.Effect]の編集ボトムシート
@@ -43,9 +41,7 @@ fun EffectRenderEditBottomSheet(
     }
 
     Column(
-        modifier = Modifier
-            .bottomSheetPadding()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.bottomSheetPadding(),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
@@ -61,8 +57,8 @@ fun EffectRenderEditBottomSheet(
             label = stringResource(id = R.string.video_edit_bottomsheet_effect_type),
             currentSelectIndex = RenderData.CanvasItem.Effect.EffectType.entries.indexOf(effectItem.value.effectType),
             menuList = RenderData.CanvasItem.Effect.EffectType.entries.map {
-                context.getString(
-                    when (it) {
+                stringResource(
+                    id = when (it) {
                         RenderData.CanvasItem.Effect.EffectType.MOSAIC -> R.string.video_edit_bottomsheet_effect_type_mosaic
                         RenderData.CanvasItem.Effect.EffectType.MONOCHROME -> R.string.video_edit_bottomsheet_effect_type_monochrome
                         RenderData.CanvasItem.Effect.EffectType.THRESHOLD -> R.string.video_edit_bottomsheet_effect_type_threshold

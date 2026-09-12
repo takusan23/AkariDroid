@@ -29,6 +29,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
  *
  * @param modifier [Modifier]
  * @param touchEditorData 現在表示されているキャンバス要素を[TouchEditorData]で
+ * @param showMenu メニューボタンを出すか。大画面の時は別のところに出す！
  * @param onDragAndDropEnd タッチ操作で移動が終わったら呼ばれる。[TouchEditorData.PositionUpdateRequest]
  * @param onSizeChangeRequest ピンチイン、ピンチアウトでサイズ変更されたら呼ばれる。[TouchEditorData.SizeChangeRequest]
  * @param playerStatus 再生状態。再生位置とか再生中かとか
@@ -40,6 +41,7 @@ import io.github.takusan23.akaridroid.ui.component.data.TouchEditorData
 fun PreviewContainer(
     modifier: Modifier = Modifier,
     touchEditorData: TouchEditorData,
+    showMenu: Boolean,
     onDragAndDropEnd: (TouchEditorData.PositionUpdateRequest) -> Unit,
     onSizeChangeRequest: (TouchEditorData.SizeChangeRequest) -> Unit,
     playerStatus: VideoEditorPreviewPlayer.PlayerStatus,
@@ -77,20 +79,21 @@ fun PreviewContainer(
                 .align(Alignment.TopCenter)
         ) {
 
-            // 左上にメニューを移動
-            Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer)
-                ),
-                onClick = onMenuClick
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_outline_menu_24),
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-                Text(text = stringResource(R.string.video_edit_preview_menu))
+            if (showMenu) {
+                Button(
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = contentColorFor(MaterialTheme.colorScheme.primaryContainer)
+                    ),
+                    onClick = onMenuClick
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_outline_menu_24),
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+                    Text(text = stringResource(R.string.video_edit_preview_menu))
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

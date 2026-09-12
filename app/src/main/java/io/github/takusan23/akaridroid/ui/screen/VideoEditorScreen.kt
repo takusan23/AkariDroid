@@ -46,6 +46,8 @@ import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
+import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchSegmentButton
+import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchSegmentMode
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineMode
@@ -63,7 +65,8 @@ import io.github.takusan23.akaridroid.ui.component.timeline.LargeScreenDefaultTi
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
-import io.github.takusan23.akaridroid.ui.sheet.AddRenderItemBottomSheet
+import io.github.takusan23.akaridroid.ui.sheet.AddRenderItemSheet
+import io.github.takusan23.akaridroid.ui.sheet.MenuSheet
 import io.github.takusan23.akaridroid.ui.sheet.VideoEditorBottomSheetRouteRequestData
 import io.github.takusan23.akaridroid.ui.sheet.VideoEditorBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.sheet.VideoEditorOverlaySheetRouter
@@ -407,6 +410,7 @@ private fun LargeScreenLayout(
                         PreviewContainer(
                             modifier = Modifier.matchParentSize(),
                             touchEditorData = touchEditorData,
+                            showMenu = false,
                             onDragAndDropEnd = onDragAndDropEnd,
                             onSizeChangeRequest = onSizeChangeRequest,
                             playerStatus = playerStatus,
@@ -416,15 +420,35 @@ private fun LargeScreenLayout(
                         )
                     }
 
-                    Box(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                     ) {
-                        AddRenderItemBottomSheet(
-                            onAddRenderItemResult = {},
-                            onCloseClick = {}
+                        val selectMenu = remember { mutableStateOf(LargeScreenMenuSwitchSegmentMode.Menu) }
+                        LargeScreenMenuSwitchSegmentButton(
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .fillMaxWidth(0.5f),
+                            current = selectMenu.value,
+                            onMenuSelect = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.Menu },
+                            onAddRenderItem = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.AddRenderItem }
                         )
+                        when (selectMenu.value) {
+                            LargeScreenMenuSwitchSegmentMode.Menu -> MenuSheet(
+                                modifier = Modifier.padding(horizontal = 10.dp),
+                                onVideoInfoClick = onVideoInfoClick,
+                                onEncodeClick = onEncodeClick,
+                                onSaveVideoFrameClick = onSaveVideoFrameClick,
+                                onTimeLineReset = onTimeLineReset,
+                                onSettingClick = onSettingClick
+                            )
+
+                            LargeScreenMenuSwitchSegmentMode.AddRenderItem -> AddRenderItemSheet(
+                                modifier = Modifier.padding(horizontal = 10.dp),
+                                onAddRenderItemResult = onAddRenderItemResult
+                            )
+                        }
                     }
                 }
 
@@ -614,6 +638,7 @@ private fun CompactLandscapeLayout(
                 PreviewContainer(
                     modifier = Modifier.matchParentSize(),
                     touchEditorData = touchEditorData,
+                    showMenu = true,
                     onDragAndDropEnd = onDragAndDropEnd,
                     onSizeChangeRequest = onSizeChangeRequest,
                     playerStatus = playerStatus,
@@ -789,6 +814,7 @@ private fun CompactPortraitLayout(
                 PreviewContainer(
                     modifier = Modifier.matchParentSize(),
                     touchEditorData = touchEditorData,
+                    showMenu = true,
                     onDragAndDropEnd = onDragAndDropEnd,
                     onSizeChangeRequest = onSizeChangeRequest,
                     playerStatus = playerStatus,

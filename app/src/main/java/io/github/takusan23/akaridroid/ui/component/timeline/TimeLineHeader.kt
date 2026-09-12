@@ -2,13 +2,11 @@ package io.github.takusan23.akaridroid.ui.component.timeline
 
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
@@ -178,18 +176,16 @@ fun LargeScreenDefaultTimeLineHeader(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            offsetX.floatValue += dragAmount.x
-                            offsetY.floatValue += dragAmount.y
-                        }
-                    },
-                contentAlignment = Alignment.Center
+            IconButton(
+                modifier = Modifier.pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        offsetX.floatValue += dragAmount.x
+                        offsetY.floatValue += dragAmount.y
+                    }
+                },
+                onClick = { /* do nothing ripple のために... */ }
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_outline_menu_24),

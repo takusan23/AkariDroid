@@ -2,8 +2,6 @@ package io.github.takusan23.akaridroid.ui.sheet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -26,12 +24,9 @@ fun AddRenderItemBottomSheet(
     onAddRenderItemResult: (AddRenderItemMenuResult) -> Unit,
     onCloseClick: () -> Unit
 ) {
-    val creator = rememberRenderItemCreator(onResult = onAddRenderItemResult)
 
     Column(
-        modifier = Modifier
-            .bottomSheetPadding()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.bottomSheetPadding(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
 
@@ -40,6 +35,26 @@ fun AddRenderItemBottomSheet(
             onClose = onCloseClick
         )
 
+        AddRenderItemSheet(onAddRenderItemResult = onAddRenderItemResult)
+    }
+}
+
+/**
+ * タイムラインに素材を追加するシート
+ *
+ * @param onAddRenderItemResult 何を追加したか
+ */
+@Composable
+fun AddRenderItemSheet(
+    modifier: Modifier = Modifier,
+    onAddRenderItemResult: (AddRenderItemMenuResult) -> Unit
+) {
+    val creator = rememberRenderItemCreator(onResult = onAddRenderItemResult)
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         AddRenderItemMenu.entries.forEach { menu ->
             BottomSheetMenuItem(
                 menu = menu,
@@ -48,7 +63,6 @@ fun AddRenderItemBottomSheet(
         }
     }
 }
-
 
 /**
  * [BottomSheetMenuItem]の各メニュー

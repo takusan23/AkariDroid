@@ -22,6 +22,7 @@ import io.github.takusan23.akaridroid.ui.component.SheetHeader
 /**
  * メニューボトムシート
  *
+ * @param onCloseClick ヘッダーの閉じるを押したとき
  * @param onEncodeClick 動画を保存する画面（エンコード画面）を開く
  * @param onSaveVideoFrameClick 画像として保存するを押した
  * @param onVideoInfoClick 動画情報の編集画面を開く
@@ -51,6 +52,38 @@ fun MenuBottomSheet(
             message = stringResource(id = R.string.video_edit_bottomsheet_menu_hint)
         )
 
+        MenuSheet(
+            onVideoInfoClick = onVideoInfoClick,
+            onEncodeClick = onEncodeClick,
+            onSaveVideoFrameClick = onSaveVideoFrameClick,
+            onTimeLineReset = onTimeLineReset,
+            onSettingClick = onSettingClick
+        )
+    }
+}
+
+/**
+ * メニューだけ版
+ *
+ * @param onEncodeClick 動画を保存する画面（エンコード画面）を開く
+ * @param onSaveVideoFrameClick 画像として保存するを押した
+ * @param onVideoInfoClick 動画情報の編集画面を開く
+ * @param onSettingClick 設定画面を開く
+ * @param onTimeLineReset タイムラインのリセット
+ */
+@Composable
+fun MenuSheet(
+    modifier: Modifier = Modifier,
+    onVideoInfoClick: () -> Unit,
+    onEncodeClick: () -> Unit,
+    onSaveVideoFrameClick: () -> Unit,
+    onTimeLineReset: () -> Unit,
+    onSettingClick: () -> Unit
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         BottomSheetMenuItem(
             title = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_title),
             description = stringResource(id = R.string.video_edit_bottomsheet_menu_edit_video_info_description),

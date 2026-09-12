@@ -43,9 +43,7 @@ fun SwitchAnimationRenderEditBottomSheet(
     }
 
     Column(
-        modifier = Modifier
-            .bottomSheetPadding()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.bottomSheetPadding(),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
 
