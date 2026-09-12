@@ -1,6 +1,7 @@
 package io.github.takusan23.akaridroid.ui.component.data
 
 import androidx.compose.foundation.gestures.rememberScrollable2DState
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.scrollable2D
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -13,6 +14,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Constraints
@@ -111,12 +114,9 @@ class DefaultTimeLineState(scope: CoroutineScope) : TimeLineState {
 
     override val timeLineContainerModifier: Modifier
         @Composable
-        get() = Modifier
-            .onSizeChanged {
-                timeLineParentSize = it
-            }
-            .clipToBounds() // はみ出さない
-            .scrollable2D(state = rememberScrollable2DState { delta ->
+        get() {
+            val scope = rememberCoroutineScope()
+            val state = rememberScrollable2DState { delta ->
                 // これをしないと見えないスクロール（スクロールしても UI がなかなか反映されない）が起きる
                 val newX = (scrollOffset.x + delta.x).toInt().coerceIn(-size.width..0)
                 val newY = (scrollOffset.y + delta.y).toInt().coerceIn(-size.height..0)
@@ -124,30 +124,63 @@ class DefaultTimeLineState(scope: CoroutineScope) : TimeLineState {
                 // TODO 今回は面倒なのでネストスクロールを考慮していません。
                 // TODO 本来は利用した分だけ return するべきです
                 delta
-            })
-            .layout { measurable, constraints ->
-                // ここを infinity にすると左端に寄ってくれる
-                val childConstraints = constraints.copy(
-                    maxHeight = Constraints.Infinity,
-                    maxWidth = Constraints.Infinity,
-                )
-                // この辺は全部 Scroll.kt のパクリ
-                val placeable = measurable.measure(childConstraints)
-                val width = placeable.width.coerceAtMost(constraints.maxWidth)
-                val height = placeable.height.coerceAtMost(constraints.maxHeight)
-                val scrollHeight = placeable.height - height
-                val scrollWidth = placeable.width - width
-                size = IntSize(scrollWidth, scrollHeight)
-                layout(width, height) {
-                    val scrollX = scrollOffset.x.toInt().coerceIn(-scrollWidth..0)
-                    val scrollY = scrollOffset.y.toInt().coerceIn(-scrollHeight..0)
-                    val xOffset = scrollX
-                    val yOffset = scrollY
-                    withMotionFrameOfReferencePlacement {
-                        placeable.placeRelativeWithLayer(xOffset, yOffset)
+            }
+            return Modifier
+                .onSizeChanged {
+                    timeLineParentSize = it
+                }
+                // トラックパッド、マウスで操作できるように
+                .pointerInput(key1 = Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            // スクロールイベントはトラックパッドとかマウスとからしい
+                            if (event.type == PointerEventType.Scroll) {
+                                val change = event.changes.first()
+                                val scrollDelta = change.scrollDelta
+
+                                // にぶちんすぎるので五倍くらいにしておく
+                                scope.launch {
+                                    state.scrollBy(
+                                        value = scrollDelta.copy(
+                                            x = -(scrollDelta.x * 5),
+                                            y = -(scrollDelta.y * 5)
+                                        )
+                                    )
+                                }
+
+                                // イベントを消費する
+                                change.consume()
+                            }
+                        }
                     }
                 }
-            }
+                .clipToBounds() // はみ出さない
+                .scrollable2D(state = state)
+                .layout { measurable, constraints ->
+                    // ここを infinity にすると左端に寄ってくれる
+                    val childConstraints = constraints.copy(
+                        maxHeight = Constraints.Infinity,
+                        maxWidth = Constraints.Infinity,
+                    )
+                    // この辺は全部 Scroll.kt のパクリ
+                    val placeable = measurable.measure(childConstraints)
+                    val width = placeable.width.coerceAtMost(constraints.maxWidth)
+                    val height = placeable.height.coerceAtMost(constraints.maxHeight)
+                    val scrollHeight = placeable.height - height
+                    val scrollWidth = placeable.width - width
+                    size = IntSize(scrollWidth, scrollHeight)
+                    layout(width, height) {
+                        val scrollX = scrollOffset.x.toInt().coerceIn(-scrollWidth..0)
+                        val scrollY = scrollOffset.y.toInt().coerceIn(-scrollHeight..0)
+                        val xOffset = scrollX
+                        val yOffset = scrollY
+                        withMotionFrameOfReferencePlacement {
+                            placeable.placeRelativeWithLayer(xOffset, yOffset)
+                        }
+                    }
+                }
+        }
 
     init {
         // Flow にする
