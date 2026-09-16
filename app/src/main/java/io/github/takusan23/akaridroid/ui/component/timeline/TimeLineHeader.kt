@@ -148,7 +148,7 @@ fun MultiSelectTimeLineHeader(
  * @param content [MultiSelectTimeLineHeader]か[DefaultTimeLineHeader]
  */
 @Composable
-fun LargeScreenDefaultTimeLineHeader(
+fun DraggableTimeLineHeader(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.secondaryContainer,
     content: @Composable () -> Unit
@@ -188,7 +188,7 @@ fun LargeScreenDefaultTimeLineHeader(
                 onClick = { /* do nothing ripple のために... */ }
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_outline_menu_24),
+                    painter = painterResource(R.drawable.drag_pan_24px),
                     contentDescription = null
                 )
             }

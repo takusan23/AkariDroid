@@ -49,7 +49,7 @@ import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
 import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchButtonGroup
-import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchSegmentMode
+import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchMode
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineMode
@@ -63,7 +63,7 @@ import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropRecei
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineItem
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitledItem
-import io.github.takusan23.akaridroid.ui.component.timeline.LargeScreenDefaultTimeLineHeader
+import io.github.takusan23.akaridroid.ui.component.timeline.DraggableTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
@@ -427,18 +427,18 @@ private fun LargeScreenLayout(
                             .weight(1f)
                             .fillMaxHeight()
                     ) {
-                        val selectMenu = remember { mutableStateOf(LargeScreenMenuSwitchSegmentMode.Menu) }
+                        val selectMenu = remember { mutableStateOf(LargeScreenMenuSwitchMode.Menu) }
                         LargeScreenMenuSwitchButtonGroup(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                             current = selectMenu.value,
-                            onMenuSelect = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.Menu },
-                            onAddRenderItem = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.AddRenderItem }
+                            onMenuSelect = { selectMenu.value = LargeScreenMenuSwitchMode.Menu },
+                            onAddRenderItem = { selectMenu.value = LargeScreenMenuSwitchMode.AddRenderItem }
                         )
                         val sheetModifier = Modifier
                             .padding(horizontal = 10.dp)
                             .verticalScroll(rememberScrollState())
                         when (selectMenu.value) {
-                            LargeScreenMenuSwitchSegmentMode.Menu -> MenuSheet(
+                            LargeScreenMenuSwitchMode.Menu -> MenuSheet(
                                 modifier = sheetModifier,
                                 onVideoInfoClick = onVideoInfoClick,
                                 onEncodeClick = onEncodeClick,
@@ -447,7 +447,7 @@ private fun LargeScreenLayout(
                                 onSettingClick = onSettingClick
                             )
 
-                            LargeScreenMenuSwitchSegmentMode.AddRenderItem -> AddRenderItemSheet(
+                            LargeScreenMenuSwitchMode.AddRenderItem -> AddRenderItemSheet(
                                 modifier = sheetModifier,
                                 onAddRenderItemResult = onAddRenderItemResult
                             )
@@ -1153,7 +1153,7 @@ private fun LargeScreenVideoEditorDefaultTimeLine(
         }
 
         // 戻る進むとかはドラッグで移動できる
-        LargeScreenDefaultTimeLineHeader(modifier = Modifier.align(Alignment.TopEnd)) {
+        DraggableTimeLineHeader(modifier = Modifier.align(Alignment.TopEnd)) {
             DefaultTimeLineHeader(
                 msWidthPx = timeLineMsWidthPx,
                 fillMaxWidth = false,
@@ -1233,7 +1233,7 @@ private fun LargeScreenVideoEditorMultiSelectTimeLine(
         }
 
         // 戻る進むとかはドラッグで移動できる
-        LargeScreenDefaultTimeLineHeader(
+        DraggableTimeLineHeader(
             modifier = Modifier.align(Alignment.TopEnd),
             color = MultiSelectHeaderBackgroundColor
         ) {

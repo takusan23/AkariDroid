@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import io.github.takusan23.akaridroid.R
 
 /** メニュー選択結果 */
-enum class LargeScreenMenuSwitchSegmentMode {
+enum class LargeScreenMenuSwitchMode {
     /** メニュー。エンコードとかの */
     Menu,
 
@@ -31,31 +31,31 @@ enum class LargeScreenMenuSwitchSegmentMode {
 @Composable
 fun LargeScreenMenuSwitchButtonGroup(
     modifier: Modifier = Modifier,
-    current: LargeScreenMenuSwitchSegmentMode,
+    current: LargeScreenMenuSwitchMode,
     onMenuSelect: () -> Unit,
     onAddRenderItem: () -> Unit
 ) {
     ExpressiveButtonParent(modifier = modifier) {
-        LargeScreenMenuSwitchSegmentMode.entries.forEachIndexed { index, mode ->
+        LargeScreenMenuSwitchMode.entries.forEachIndexed { index, mode ->
             ExpressiveButton(
                 selected = mode == current,
                 shape = expressiveButtonShape(
                     index = index,
-                    size = LargeScreenMenuSwitchSegmentMode.entries.size,
+                    size = LargeScreenMenuSwitchMode.entries.size,
                     selected = mode == current
                 ),
                 onClick = {
                     when (mode) {
-                        LargeScreenMenuSwitchSegmentMode.Menu -> onMenuSelect()
-                        LargeScreenMenuSwitchSegmentMode.AddRenderItem -> onAddRenderItem()
+                        LargeScreenMenuSwitchMode.Menu -> onMenuSelect()
+                        LargeScreenMenuSwitchMode.AddRenderItem -> onAddRenderItem()
                     }
                 }
             ) {
                 Icon(
                     painter = painterResource(
                         id = when (mode) {
-                            LargeScreenMenuSwitchSegmentMode.Menu -> R.drawable.ic_outline_menu_24
-                            LargeScreenMenuSwitchSegmentMode.AddRenderItem -> R.drawable.ic_outlined_add_24px
+                            LargeScreenMenuSwitchMode.Menu -> R.drawable.ic_outline_menu_24
+                            LargeScreenMenuSwitchMode.AddRenderItem -> R.drawable.ic_outlined_add_24px
                         }
                     ),
                     contentDescription = null
@@ -63,8 +63,8 @@ fun LargeScreenMenuSwitchButtonGroup(
                 Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
                 Text(
                     text = when (mode) {
-                        LargeScreenMenuSwitchSegmentMode.Menu -> stringResource(id = R.string.video_edit_bottomsheet_menu_title)
-                        LargeScreenMenuSwitchSegmentMode.AddRenderItem -> stringResource(id = R.string.video_edit_bottomsheet_timeline_add_title)
+                        LargeScreenMenuSwitchMode.Menu -> stringResource(id = R.string.video_edit_bottomsheet_menu_title)
+                        LargeScreenMenuSwitchMode.AddRenderItem -> stringResource(id = R.string.video_edit_bottomsheet_timeline_add_title)
                     }
                 )
             }
