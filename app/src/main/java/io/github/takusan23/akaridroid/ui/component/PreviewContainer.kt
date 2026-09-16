@@ -104,7 +104,7 @@ fun PreviewContainer(
             }
 
             // タッチ移動・プレビュー再生の切り替えモードスイッチ
-            PreviewOrTouchEditSegmentButton(
+            PreviewOrTouchEditButtonGroup(
                 currentMode = currentMode.value,
                 onPreviewClick = { currentMode.value = PreviewOrTouchEditMode.Preview },
                 onTouchEditClick = {

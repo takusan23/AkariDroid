@@ -48,7 +48,7 @@ import io.github.takusan23.akaridroid.tool.AkaLinkTool
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenu
 import io.github.takusan23.akaridroid.ui.component.AddRenderItemMenuResult
 import io.github.takusan23.akaridroid.ui.component.ComposeSurfaceView
-import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchSegmentButton
+import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchButtonGroup
 import io.github.takusan23.akaridroid.ui.component.LargeScreenMenuSwitchSegmentMode
 import io.github.takusan23.akaridroid.ui.component.PreviewContainer
 import io.github.takusan23.akaridroid.ui.component.data.TimeLineData
@@ -428,10 +428,8 @@ private fun LargeScreenLayout(
                             .fillMaxHeight()
                     ) {
                         val selectMenu = remember { mutableStateOf(LargeScreenMenuSwitchSegmentMode.Menu) }
-                        LargeScreenMenuSwitchSegmentButton(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .fillMaxWidth(0.5f),
+                        LargeScreenMenuSwitchButtonGroup(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
                             current = selectMenu.value,
                             onMenuSelect = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.Menu },
                             onAddRenderItem = { selectMenu.value = LargeScreenMenuSwitchSegmentMode.AddRenderItem }

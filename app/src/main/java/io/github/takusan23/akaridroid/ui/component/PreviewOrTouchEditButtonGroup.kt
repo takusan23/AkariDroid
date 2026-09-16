@@ -2,9 +2,6 @@ package io.github.takusan23.akaridroid.ui.component
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -22,7 +19,7 @@ enum class PreviewOrTouchEditMode {
 }
 
 /**
- * タッチ編集とプレビュー再生の切り替えセグメントボタン
+ * タッチ編集とプレビュー再生の切り替えボタン
  *
  * @param modifier [Modifier]
  * @param currentMode どちらを選択しているか [PreviewOrTouchEditMode]
@@ -31,18 +28,22 @@ enum class PreviewOrTouchEditMode {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PreviewOrTouchEditSegmentButton(
+fun PreviewOrTouchEditButtonGroup(
     modifier: Modifier = Modifier,
     currentMode: PreviewOrTouchEditMode,
     onPreviewClick: () -> Unit,
     onTouchEditClick: () -> Unit
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier) {
+    ExpressiveButtonParent(modifier = modifier) {
         PreviewOrTouchEditMode.entries.forEachIndexed { index, mode ->
             val isSelected = currentMode == mode
 
-            SegmentedButton(
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = PreviewOrTouchEditMode.entries.size),
+            ExpressiveButton(
+                shape = expressiveButtonShape(
+                    index = index,
+                    size = PreviewOrTouchEditMode.entries.size,
+                    selected = isSelected
+                ),
                 onClick = when (mode) {
                     Preview -> onPreviewClick
                     TouchEdit -> onTouchEditClick
