@@ -456,11 +456,16 @@ private fun LargeScreenLayout(
                 }
 
                 // タイムライン
+                val windowInsetsModifier = Modifier.padding(
+                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
+                )
                 when (timeLineMode) {
                     TimeLineMode.Default -> LargeScreenVideoEditorDefaultTimeLine(
                         modifier = Modifier
                             .weight(1f)
-                            .systemGestureExclusion(),
+                            .systemGestureExclusion()
+                            .then(windowInsetsModifier),
                         bottomPadding = paddingValues.calculateBottomPadding(),
                         timeLineState = timeLineState,
                         renderData = renderData,
@@ -487,7 +492,8 @@ private fun LargeScreenLayout(
                     TimeLineMode.MultiSelect -> LargeScreenVideoEditorMultiSelectTimeLine(
                         modifier = Modifier
                             .weight(1f)
-                            .systemGestureExclusion(),
+                            .systemGestureExclusion()
+                            .then(windowInsetsModifier),
                         bottomPadding = paddingValues.calculateBottomPadding(),
                         timeLineState = timeLineState,
                         renderData = renderData,
@@ -649,7 +655,7 @@ private fun CompactLandscapeLayout(
             // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
             val windowInsetsModifier = Modifier.padding(
                 top = paddingValues.calculateTopPadding(),
-                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
             )
             when (timeLineMode) {
                 TimeLineMode.Default -> VideoEditorDefaultTimeLine(
