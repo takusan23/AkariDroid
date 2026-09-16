@@ -59,11 +59,11 @@ import io.github.takusan23.akaridroid.ui.component.data.rememberTimeLineState
 import io.github.takusan23.akaridroid.ui.component.rememberRenderItemCreator
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.DefaultTimeLineHeader
+import io.github.takusan23.akaridroid.ui.component.timeline.DraggableTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.FileDragAndDropReceiveContainer
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineBar
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineItem
 import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitledItem
-import io.github.takusan23.akaridroid.ui.component.timeline.DraggableTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
@@ -612,22 +612,16 @@ private fun CompactLandscapeLayout(
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
-        Row(
-            modifier = Modifier
-                // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
-                .padding(
-                    top = paddingValues.calculateTopPadding(),
-                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-                )
-                .fillMaxSize()
-        ) {
+        Row(modifier = Modifier.fillMaxSize()) {
             // タッチ編集・プレビュー
             Box(
                 modifier = Modifier
-                    .aspectRatio(1f)
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.5f),
+                    .padding(
+                        top = paddingValues.calculateTopPadding(),
+                        start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                    )
+                    .weight(1f)
+                    .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
 
@@ -652,11 +646,17 @@ private fun CompactLandscapeLayout(
             }
 
             // タイムライン
+            // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
+            val windowInsetsModifier = Modifier.padding(
+                top = paddingValues.calculateTopPadding(),
+                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+            )
             when (timeLineMode) {
                 TimeLineMode.Default -> VideoEditorDefaultTimeLine(
                     modifier = Modifier
                         .weight(1f)
-                        .systemGestureExclusion(),
+                        .systemGestureExclusion()
+                        .then(windowInsetsModifier),
                     bottomPadding = paddingValues.calculateBottomPadding(),
                     recommendFloatingBarMenuList = recommendFloatingBarMenuList,
                     timeLineState = timeLineState,
@@ -686,7 +686,8 @@ private fun CompactLandscapeLayout(
                 TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
                     modifier = Modifier
                         .weight(1f)
-                        .systemGestureExclusion(),
+                        .systemGestureExclusion()
+                        .then(windowInsetsModifier),
                     bottomPadding = paddingValues.calculateBottomPadding(),
                     timeLineState = timeLineState,
                     renderData = renderData,
@@ -801,9 +802,8 @@ private fun CompactPortraitLayout(
             // タッチ編集・プレビュー
             Box(
                 modifier = Modifier
-                    .aspectRatio(1f)
                     .fillMaxWidth()
-                    .fillMaxHeight(0.5f),
+                    .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
 

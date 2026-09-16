@@ -73,7 +73,7 @@ class VideoEditorViewModel(
     private val _timeLineData = MutableStateFlow(
         TimeLineData(
             durationMs = _renderData.value.durationMs,
-            laneCount = 20, // TODO FloatingMenuBar のせいで見えないから...なんとかしたい
+            laneCount = 20, // TODO FloatingMenuBar のせいで見えないから...なんとかしたい TODO MediaCodec が多分 32 個まで作れるので 32 にしてもいいかも、
             itemList = emptyList()
         )
     )
