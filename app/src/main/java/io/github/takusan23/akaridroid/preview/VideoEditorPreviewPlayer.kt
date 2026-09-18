@@ -10,6 +10,7 @@ import io.github.takusan23.akaridroid.tool.FileTool
 import io.github.takusan23.akaridroid.tool.FontManager
 import io.github.takusan23.akaridroid.tool.MediaStoreTool
 import io.github.takusan23.akaridroid.tool.ProjectFolderManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -75,7 +76,8 @@ class VideoEditorPreviewPlayer(
             currentPositionMs = 0,
             durationMs = 0,
             isPrepareCompleteAudio = true,
-            isPrepareCompleteCanvas = true
+            isPrepareCompleteVideo = true,
+            isErrorLatestVideoFrame = false
         )
     )
 
@@ -92,7 +94,7 @@ class VideoEditorPreviewPlayer(
             // 再生位置か動画の長さが変化したら
             // collectLatest で新しい値が来たら既存のブロックをキャンセルするよう
             playerStatus
-                .filter { it.isPrepareCompleteCanvas }
+                .filter { it.isPrepareCompleteVideo }
                 .filter { !it.isPlaying }
                 .map { status -> status.currentPositionMs to status.durationMs }
                 .distinctUntilChanged()
@@ -242,7 +244,7 @@ class VideoEditorPreviewPlayer(
     }
 
     /**
-     * [PlayerStatus.isPrepareCompleteAudio]や[PlayerStatus.isPrepareCompleteCanvas]のフラグを書き換える
+     * [PlayerStatus.isPrepareCompleteAudio]や[PlayerStatus.isPrepareCompleteVideo]のフラグを書き換える
      * [task]ブロックを抜けたら自動で false になります。
      */
     private inline fun setProgress(type: ProgressType, task: () -> Unit) {
@@ -250,7 +252,7 @@ class VideoEditorPreviewPlayer(
             _playerStatus.update {
                 when (type) {
                     ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = false)
-                    ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = false)
+                    ProgressType.CANVAS -> it.copy(isPrepareCompleteVideo = false)
                 }
             }
             task()
@@ -258,7 +260,7 @@ class VideoEditorPreviewPlayer(
             _playerStatus.update {
                 when (type) {
                     ProgressType.AUDIO -> it.copy(isPrepareCompleteAudio = true)
-                    ProgressType.CANVAS -> it.copy(isPrepareCompleteCanvas = true)
+                    ProgressType.CANVAS -> it.copy(isPrepareCompleteVideo = true)
                 }
             }
         }
@@ -266,9 +268,9 @@ class VideoEditorPreviewPlayer(
 
     /**
      * 再生準備ができたときのみ、このあとの Flow を流す
-     * [PlayerStatus.isPrepareCompleteAudio]と[PlayerStatus.isPrepareCompleteCanvas]
+     * [PlayerStatus.isPrepareCompleteAudio]と[PlayerStatus.isPrepareCompleteVideo]
      */
-    private fun Flow<PlayerStatus>.filterPrepareCompleted() = this.filter { it.isPrepareCompleteAudio && it.isPrepareCompleteCanvas }
+    private fun Flow<PlayerStatus>.filterPrepareCompleted() = this.filter { it.isPrepareCompleteAudio && it.isPrepareCompleteVideo }
 
     /**
      * 指定した時間の動画フレームを Canvas で描画する
@@ -280,8 +282,16 @@ class VideoEditorPreviewPlayer(
         durationMs: Long = playerStatus.value.durationMs,
         currentPositionMs: Long = playerStatus.value.currentPositionMs
     ) {
-        canvasRenderMutex.withLock {
-            videoRenderer.draw(durationMs, currentPositionMs)
+        try {
+            _playerStatus.update { it.copy(isErrorLatestVideoFrame = false) }
+            canvasRenderMutex.withLock {
+                videoRenderer.draw(durationMs, currentPositionMs)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // 一時的かも、もう一度呼び出せば直るかも！
+            _playerStatus.update { it.copy(isErrorLatestVideoFrame = true) }
         }
     }
 
@@ -292,14 +302,16 @@ class VideoEditorPreviewPlayer(
      * @param currentPositionMs 再生位置
      * @param durationMs 動画の時間
      * @param isPrepareCompleteAudio 音声プレビューが利用できる場合は true。準備中の場合は false
-     * @param isPrepareCompleteCanvas 映像（キャンバス）プレビューが利用できる場合は true。準備中の場合は false
+     * @param isPrepareCompleteVideo 映像プレビューが利用できる場合は true。準備中の場合は false
+     * @param isErrorLatestVideoFrame エラーが発生した場合は true。ただし一時的の可能性があるため Status の中にいる
      */
     data class PlayerStatus(
         val isPlaying: Boolean,
         val currentPositionMs: Long,
         val durationMs: Long,
         val isPrepareCompleteAudio: Boolean,
-        val isPrepareCompleteCanvas: Boolean
+        val isPrepareCompleteVideo: Boolean,
+        val isErrorLatestVideoFrame: Boolean
     )
 
     /** [setProgress]に渡す引数 */
@@ -307,7 +319,7 @@ class VideoEditorPreviewPlayer(
         /** [PlayerStatus.isPrepareCompleteAudio] */
         AUDIO,
 
-        /** [PlayerStatus.isPrepareCompleteCanvas] */
+        /** [PlayerStatus.isPrepareCompleteVideo] */
         CANVAS
     }
 

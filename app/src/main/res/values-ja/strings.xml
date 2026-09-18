@@ -278,4 +278,5 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_menu_read_video_frame_description">今のプレビューを写真にして保存します。サムネイル画像を作るときなんかにどうぞ。\nSDR 動画はもちろん、HDR 動画の場合は眩しさを記録するため UltraHDR 画像として保存されます。</string>
     <string name="video_edit_snackbar_save_frame_successful_title">画像として保存しました</string>
     <string name="video_edit_snackbar_save_frame_successful_button">開く</string>
+    <string name="video_edit_preview_videotrack_error">プレビューの描画に失敗しました。シークバーを動かして違う時間を描画してみるか、アプリを開きなおしてください。または HDR 動画に対応していない場合があります。ごめんね。</string>
 </resources>

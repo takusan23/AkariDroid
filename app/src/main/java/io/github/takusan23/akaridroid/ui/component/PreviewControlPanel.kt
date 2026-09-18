@@ -84,7 +84,7 @@ fun PreviewControlPanel(
                 // 再生ボタン
                 IconButton(
                     onClick = onPlayOrPause,
-                    enabled = playerStatus.isPrepareCompleteAudio && playerStatus.isPrepareCompleteCanvas
+                    enabled = playerStatus.isPrepareCompleteAudio && playerStatus.isPrepareCompleteVideo
                 ) {
                     Icon(
                         modifier = Modifier.size(80.dp),
@@ -92,7 +92,7 @@ fun PreviewControlPanel(
                             id = when {
                                 // プレビュー用意中はアイコンを砂時計にする。
                                 // Windows XP のときは砂時計でしたね、なつかしい。応答なしに陥った時にウィンドウを動かすと残像が出たけど今は出ないんだって。
-                                !playerStatus.isPrepareCompleteAudio || !playerStatus.isPrepareCompleteCanvas -> R.drawable.ic_outline_hourglass_top_24
+                                !playerStatus.isPrepareCompleteAudio || !playerStatus.isPrepareCompleteVideo -> R.drawable.ic_outline_hourglass_top_24
                                 playerStatus.isPlaying -> R.drawable.ic_outline_pause_24
                                 else -> R.drawable.ic_outline_play_arrow_24
                             }
