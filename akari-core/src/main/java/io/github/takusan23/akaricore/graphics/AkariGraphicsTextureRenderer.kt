@@ -12,6 +12,7 @@ import androidx.core.graphics.createBitmap
 import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * [AkariGraphicsProcessor]で描画を担当。フラグメントシェーダーとかを使ってる。
@@ -26,19 +27,16 @@ class AkariGraphicsTextureRenderer internal constructor(
     private val mTriangleVertices = ByteBuffer.allocateDirect(mTriangleVerticesData.size * FLOAT_SIZE_BYTES).order(ByteOrder.nativeOrder()).asFloatBuffer()
     private val mMVPMatrix = FloatArray(16)
     private val mSTMatrix = FloatArray(16)
-    private var mProgram = 0
-    private var muMVPMatrixHandle = 0
-    private var muSTMatrixHandle = 0
-    private var maPositionHandle = 0
-    private var maTextureHandle = 0
 
-    // Uniform 変数のハンドル
-    private var sSurfaceTextureHandle = 0
-    private var sCanvasTextureHandle = 0
-    private var sFboTextureHandle = 0
-    private var iDrawModeHandle = 0
-    private var fChromakeyThreshold = 0
-    private var vChromakeyColor = 0
+    // OpenGL ES のプログラムを描画別で作った
+    // 一つのフラグメントシェーダーを使い描画内容を分岐する方法を使っていたが、一部の GPU（Pixel 11 ANGLE）では __samplerExternal2DY2YEXT を使う使わない関係なくシェーダーで定義した以上渡さないとエラーになってしまった
+    // glDrawArrays: glError 1282
+    // Canvas の内容を描画するときは __samplerExternal2DY2YEXT は渡されない状態なので動かなかった。
+    // ので、それぞれでフラグメントシェーダーを分けることにした
+    private var hdrGlProgram: OpenGlProgram? = null
+    private var sdrGlProgram: OpenGlProgram? = null
+    private var canvasGlProgram: OpenGlProgram? = null
+    private var fboGlProgram: OpenGlProgram? = null
 
     // テクスチャ ID
     private var surfaceTextureTextureId = 0
@@ -65,44 +63,45 @@ class AkariGraphicsTextureRenderer internal constructor(
         // 書く
         draw(canvas)
 
-        // 多分いる
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, canvasTextureTextureId)
+        canvasGlProgram?.use()
+        canvasGlProgram?.setActiveTexture(
+            name = "sCanvasTexture",
+            texId = canvasTextureTextureId,
+            target = GLES20.GL_TEXTURE_2D,
+            texUnit = GLES20.GL_TEXTURE1,
+            texUnitIndex = 1
+        )
 
         // テクスチャを転送
         // texImage2D、引数違いがいるので注意
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, canvasBitmap, 0)
         checkGlError("GLUtils.texImage2D")
 
-        // 描画する
-        // glError 1282 の原因とかになる
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
-
-        // テクスチャの ID をわたす
-        GLES20.glUniform1i(sSurfaceTextureHandle, 0) // GLES20.GL_TEXTURE0
-        GLES20.glUniform1i(sCanvasTextureHandle, 1) // GLES20.GL_TEXTURE1
-        GLES20.glUniform1i(sFboTextureHandle, 2) // GLES20.GL_TEXTURE2
-        // モード切替
-        GLES20.glUniform1i(iDrawModeHandle, FRAGMENT_SHADER_DRAW_MODE_CANVAS_BITMAP)
-        checkGlError("glUniform1i sSurfaceTextureHandle sCanvasTextureHandle iDrawModeHandle")
-
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
-        GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maPosition")
-        GLES20.glEnableVertexAttribArray(maPositionHandle)
-        checkGlError("glEnableVertexAttribArray maPositionHandle")
+        canvasGlProgram?.setVertexAttribute(
+            name = "aPosition",
+            size = 3,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET)
-        GLES20.glVertexAttribPointer(maTextureHandle, 2, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maTextureHandle")
-        GLES20.glEnableVertexAttribArray(maTextureHandle)
-        checkGlError("glEnableVertexAttribArray maTextureHandle")
+        canvasGlProgram?.setVertexAttribute(
+            name = "aTextureCoord",
+            size = 2,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
 
+        // 行列をリセット
         Matrix.setIdentityM(mSTMatrix, 0)
         Matrix.setIdentityM(mMVPMatrix, 0)
 
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
+        canvasGlProgram?.setMat4Uniform("uMVPMatrix", mMVPMatrix)
+        canvasGlProgram?.setMat4Uniform("uSTMatrix", mSTMatrix)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
@@ -140,20 +139,28 @@ class AkariGraphicsTextureRenderer internal constructor(
         chromakeyThreshold: Float? = null,
         chromaKeyColor: Int? = null
     ) {
-        // attachGlContext の前に呼ぶ必要あり。多分
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, surfaceTextureTextureId)
+        // 一度も来ていない場合は、映像が到着するまで待つ
+        akariSurfaceTexture.awaitAlreadyFrameAvailableCallback()
+        val isHdr = akariSurfaceTexture.isHdr()
 
-        // 映像を OpenGL ES で使う準備
+        // OpenGlProgram を選ぶ
+        val videoFrameGlProgram = if (isHdr) hdrGlProgram else sdrGlProgram
+        videoFrameGlProgram?.use()
+        videoFrameGlProgram?.setActiveTexture(
+            name = "sSurfaceTexture",
+            texId = surfaceTextureTextureId,
+            target = GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            texUnit = GLES20.GL_TEXTURE0,
+            texUnitIndex = 0
+        )
+
+        // SurfaceTexture は後からテクスチャ ID を変えられる、適当な GL コンテキストで作ってもよい
         akariSurfaceTexture.detachGl()
         akariSurfaceTexture.attachGl(surfaceTextureTextureId)
 
-        // 映像が到着するまで待つ
-        akariSurfaceTexture.awaitAlreadyFrameAvailableCallback()
-
         // タイムアウトが設定されている場合は、その時間だけ awaitUpdateTexImage() を試す
         if (nullOrTextureUpdateTimeoutMs != null) {
-            withTimeoutOrNull(nullOrTextureUpdateTimeoutMs) {
+            withTimeoutOrNull(nullOrTextureUpdateTimeoutMs.milliseconds) {
                 akariSurfaceTexture.awaitUpdateTexImage()
             }
         } else {
@@ -161,34 +168,39 @@ class AkariGraphicsTextureRenderer internal constructor(
         }
         akariSurfaceTexture.getTransformMatrix(mSTMatrix)
 
-        // 描画する
-        // glError 1282 の原因とかになる
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
-
-        // テクスチャの ID をわたす
-        GLES20.glUniform1i(sSurfaceTextureHandle, 0) // GLES20.GL_TEXTURE0
-        GLES20.glUniform1i(sCanvasTextureHandle, 1) // GLES20.GL_TEXTURE1
-        GLES20.glUniform1i(sFboTextureHandle, 2) // GLES20.GL_TEXTURE2
-        // モード切替
-        GLES20.glUniform1i(iDrawModeHandle, FRAGMENT_SHADER_DRAW_MODE_SURFACE_TEXTURE)
-        checkGlError("glUniform1i sSurfaceTextureHandle sCanvasTextureHandle iDrawModeHandle")
-
         // クロマキーする場合
         // null の場合は 0 にして動かないように
-        GLES20.glUniform1f(fChromakeyThreshold, chromakeyThreshold ?: 0f)
-        GLES20.glUniform4fv(vChromakeyColor, 1, chromaKeyColor?.toColorVec4() ?: floatArrayOf(0f, 0f, 0f, 0f), 0)
+        val chromakeyColor = chromaKeyColor?.toColorVec4() ?: floatArrayOf(0f, 0f, 0f, 0f)
+        videoFrameGlProgram?.setFloatUniform(
+            name = "chromakeyThreshold",
+            value = chromakeyThreshold ?: 0f
+        )
+        videoFrameGlProgram?.setVec4Uniform(
+            name = "chromakeyColor",
+            float1 = chromakeyColor[0],
+            float2 = chromakeyColor[1],
+            float3 = chromakeyColor[2],
+            float4 = chromakeyColor[3]
+        )
 
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
-        GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maPosition")
-        GLES20.glEnableVertexAttribArray(maPositionHandle)
-        checkGlError("glEnableVertexAttribArray maPositionHandle")
+        videoFrameGlProgram?.setVertexAttribute(
+            name = "aPosition",
+            size = 3,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET)
-        GLES20.glVertexAttribPointer(maTextureHandle, 2, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maTextureHandle")
-        GLES20.glEnableVertexAttribArray(maTextureHandle)
-        checkGlError("glEnableVertexAttribArray maTextureHandle")
+        videoFrameGlProgram?.setVertexAttribute(
+            name = "aTextureCoord",
+            size = 2,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
 
         // 行列を適用したい場合
         Matrix.setIdentityM(mMVPMatrix, 0)
@@ -196,8 +208,8 @@ class AkariGraphicsTextureRenderer internal constructor(
             onTransform(mMVPMatrix)
         }
 
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
+        videoFrameGlProgram?.setMat4Uniform("uMVPMatrix", mMVPMatrix)
+        videoFrameGlProgram?.setMat4Uniform("uSTMatrix", mSTMatrix)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
@@ -212,10 +224,6 @@ class AkariGraphicsTextureRenderer internal constructor(
 
         // FBO のテクスチャユニットを渡して描画
         effectShader.applyEffect(width, height, 2) // GLES20.GL_TEXTURE2
-
-        // プログラム（シェーダー）を戻す
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
     }
 
     /**
@@ -223,86 +231,100 @@ class AkariGraphicsTextureRenderer internal constructor(
      * GL スレッドから呼び出すこと。
      */
     internal fun prepareShader() {
-        mProgram = createProgram(
-            vertexSource = VERTEX_SHADER,
-            // TODO HLG だろうと samplerExternalOES から HDR のフレームが取れてそう
-            fragmentSource = if (isEnableTenBitHdr) FRAGMENT_SHADER_10BIT_HDR else FRAGMENT_SHADER
-        )
-        if (mProgram == 0) {
-            throw RuntimeException("failed creating program")
+
+        // HDR 有効時のみコンパイル、通らんかもなので
+        if (isEnableTenBitHdr) {
+            hdrGlProgram = OpenGlProgram(
+                vertexShaderCode = VERTEX_SHADER,
+                fragmentShaderCode = FRAGMENT_SHADER_10BIT_HDR_YUV
+            ).also { program ->
+                // コンパイルと location を探しておく
+                program.prepare()
+                program.registerAttributeLocation("aPosition")
+                program.registerAttributeLocation("aTextureCoord")
+                program.registerMat4UniformLocation("uMVPMatrix")
+                program.registerMat4UniformLocation("uSTMatrix")
+                program.registerTextureUniformLocation("sSurfaceTexture")
+                program.registerFloatUniformLocation("chromakeyThreshold")
+                program.registerVec4UniformLocation("chromakeyColor")
+            }
+            checkGlError("glCreateProgram hdrGlProgram")
         }
-        maPositionHandle = GLES20.glGetAttribLocation(mProgram, "aPosition")
-        checkGlError("glGetAttribLocation aPosition")
-        if (maPositionHandle == -1) {
-            throw RuntimeException("Could not get attrib location for aPosition")
+
+        sdrGlProgram = OpenGlProgram(
+            vertexShaderCode = VERTEX_SHADER,
+            fragmentShaderCode = FRAGMENT_SHADER_SDR
+        ).also { program ->
+            program.prepare()
+            program.registerAttributeLocation("aPosition")
+            program.registerAttributeLocation("aTextureCoord")
+            program.registerMat4UniformLocation("uMVPMatrix")
+            program.registerMat4UniformLocation("uSTMatrix")
+            program.registerTextureUniformLocation("sSurfaceTexture")
+            program.registerFloatUniformLocation("chromakeyThreshold")
+            program.registerVec4UniformLocation("chromakeyColor")
         }
-        maTextureHandle = GLES20.glGetAttribLocation(mProgram, "aTextureCoord")
-        checkGlError("glGetAttribLocation aTextureCoord")
-        if (maTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for aTextureCoord")
+        checkGlError("glCreateProgram sdrGlProgram")
+
+        canvasGlProgram = OpenGlProgram(
+            vertexShaderCode = VERTEX_SHADER,
+            fragmentShaderCode = FRAGMENT_SHADER_CANVAS_BITMAP
+        ).also { program ->
+            program.prepare()
+            program.registerAttributeLocation("aPosition")
+            program.registerAttributeLocation("aTextureCoord")
+            program.registerMat4UniformLocation("uMVPMatrix")
+            program.registerMat4UniformLocation("uSTMatrix")
+            program.registerTextureUniformLocation("sCanvasTexture")
         }
-        muMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix")
-        checkGlError("glGetUniformLocation uMVPMatrix")
-        if (muMVPMatrixHandle == -1) {
-            throw RuntimeException("Could not get attrib location for uMVPMatrix")
+        checkGlError("glCreateProgram canvasGlProgram")
+
+        fboGlProgram = OpenGlProgram(
+            vertexShaderCode = VERTEX_SHADER,
+            fragmentShaderCode = FRAGMENT_SHADER_FBO
+        ).also { program ->
+            program.prepare()
+            program.registerAttributeLocation("aPosition")
+            program.registerAttributeLocation("aTextureCoord")
+            program.registerMat4UniformLocation("uMVPMatrix")
+            program.registerMat4UniformLocation("uSTMatrix")
+            program.registerTextureUniformLocation("sFboTexture")
         }
-        muSTMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uSTMatrix")
-        checkGlError("glGetUniformLocation uSTMatrix")
-        if (muSTMatrixHandle == -1) {
-            throw RuntimeException("Could not get attrib location for uSTMatrix")
-        }
-        sSurfaceTextureHandle = GLES20.glGetUniformLocation(mProgram, "sSurfaceTexture")
-        checkGlError("glGetUniformLocation sSurfaceTexture")
-        if (sSurfaceTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for sSurfaceTexture")
-        }
-        sCanvasTextureHandle = GLES20.glGetUniformLocation(mProgram, "sCanvasTexture")
-        checkGlError("glGetUniformLocation sCanvasTexture")
-        if (sCanvasTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for sCanvasTexture")
-        }
-        sFboTextureHandle = GLES20.glGetUniformLocation(mProgram, "sFboTexture")
-        checkGlError("glGetUniformLocation sFboTexture")
-        if (sFboTextureHandle == -1) {
-            throw RuntimeException("Could not get attrib location for sFboTexture")
-        }
-        iDrawModeHandle = GLES20.glGetUniformLocation(mProgram, "iDrawMode")
-        checkGlError("glGetUniformLocation iDrawMode")
-        if (iDrawModeHandle == -1) {
-            throw RuntimeException("Could not get attrib location for iDrawMode")
-        }
-        fChromakeyThreshold = GLES20.glGetUniformLocation(mProgram, "chromakeyThreshold")
-        if (fChromakeyThreshold == -1) {
-            throw RuntimeException("Could not get attrib location for chromakeyThreshold")
-        }
-        vChromakeyColor = GLES20.glGetUniformLocation(mProgram, "chromakeyColor")
-        if (vChromakeyColor == -1) {
-            throw RuntimeException("Could not get attrib location for chromakeyColor")
-        }
+        checkGlError("glCreateProgram fboGlProgram")
 
         // テクスチャ ID を払い出してもらう
         // SurfaceTexture / Canvas Bitmap 用
         val textures = IntArray(2)
         GLES20.glGenTextures(2, textures, 0)
 
+        // テクスチャユニットを登録、HDR はしてないがここは GL コンテキストに登録できていれば Program は関係ないはずなので、常にある SDR の方にした
         surfaceTextureTextureId = textures[0]
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, surfaceTextureTextureId)
-        checkGlError("glBindTexture cameraTextureId")
+        sdrGlProgram?.setActiveTexture(
+            name = "sSurfaceTexture",
+            texId = surfaceTextureTextureId,
+            target = GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+            texUnit = GLES20.GL_TEXTURE0,
+            texUnitIndex = 0
+        )
         GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST.toFloat())
         GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-        checkGlError("glTexParameter")
+        checkGlError("glTexParameterf glTexParameteri")
 
         canvasTextureTextureId = textures[1]
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE1)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, canvasTextureTextureId)
+        canvasGlProgram?.setActiveTexture(
+            name = "sCanvasTexture",
+            texId = canvasTextureTextureId,
+            target = GLES20.GL_TEXTURE_2D,
+            texUnit = GLES20.GL_TEXTURE1,
+            texUnitIndex = 1
+        )
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST.toFloat())
         GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR.toFloat())
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-        checkGlError("glTexParameter")
+        checkGlError("glTexParameterf glTexParameteri")
 
         // アルファブレンディング
         // Canvas で書いた際に、透明な部分は透明になるように
@@ -326,12 +348,8 @@ class AkariGraphicsTextureRenderer internal constructor(
     internal fun prepareDraw() {
         pingPongFrameBufferObject()
 
-        // FBO のクリア？
-        // 多分必要
+        // FBO のクリア？多分必要
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT or GLES20.GL_COLOR_BUFFER_BIT)
-        // drawCanvas / drawSurfaceTexture どっちも呼び出さない場合 glUseProgram 誰もしないので
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
     }
 
     /**
@@ -358,40 +376,41 @@ class AkariGraphicsTextureRenderer internal constructor(
      * フレームバッファオブジェクトのテクスチャを描画します。これでオフスクリーンで描画されてた内容が画面に表示されるはず。
      */
     internal fun drawEnd() {
+        // TEXTURE2 へ前回の中身を移す
         pingPongFrameBufferObject()
 
-        // 多分 applyEffect すると glUseProgram
-        GLES20.glUseProgram(mProgram)
-        checkGlError("glUseProgram")
+        // フラグメントシェーダーを切り替える
+        fboGlProgram?.use()
 
         // pingPongFrameBufferObject() したけど、最後なので描画先をデフォルトの FBO にして、Surface に描画されるように
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
         checkGlError("glBindFramebuffer")
 
-        // テクスチャの ID をわたす
-        GLES20.glUniform1i(sSurfaceTextureHandle, 0) // GLES20.GL_TEXTURE0
-        GLES20.glUniform1i(sCanvasTextureHandle, 1) // GLES20.GL_TEXTURE1
-        GLES20.glUniform1i(sFboTextureHandle, 2) // GLES20.GL_TEXTURE2
-        // モード切替
-        GLES20.glUniform1i(iDrawModeHandle, FRAGMENT_SHADER_DRAW_MODE_FBO)
-        checkGlError("glUniform1i sSurfaceTextureHandle sCanvasTextureHandle iDrawModeHandle")
-
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET)
-        GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maPosition")
-        GLES20.glEnableVertexAttribArray(maPositionHandle)
-        checkGlError("glEnableVertexAttribArray maPositionHandle")
+        fboGlProgram?.setVertexAttribute(
+            name = "aPosition",
+            size = 3,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_UV_OFFSET)
-        GLES20.glVertexAttribPointer(maTextureHandle, 2, GLES20.GL_FLOAT, false, TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices)
-        checkGlError("glVertexAttribPointer maTextureHandle")
-        GLES20.glEnableVertexAttribArray(maTextureHandle)
-        checkGlError("glEnableVertexAttribArray maTextureHandle")
+        fboGlProgram?.setVertexAttribute(
+            name = "aTextureCoord",
+            size = 2,
+            type = GLES20.GL_FLOAT,
+            normalized = false,
+            stride = TRIANGLE_VERTICES_DATA_STRIDE_BYTES,
+            pointer = mTriangleVertices
+        )
 
+        // 行列をリセット
         Matrix.setIdentityM(mSTMatrix, 0)
         Matrix.setIdentityM(mMVPMatrix, 0)
 
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0)
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0)
+        fboGlProgram?.setMat4Uniform("uSTMatrix", mSTMatrix)
+        fboGlProgram?.setMat4Uniform("uMVPMatrix", mMVPMatrix)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
         checkGlError("glDrawArrays")
         GLES20.glFinish()
@@ -404,7 +423,7 @@ class AkariGraphicsTextureRenderer internal constructor(
      * [drawEnd]の後、[AkariGraphicsInputSurface.swapBuffers]の前に呼び出す必要がありそう？
      * （swapBuffers の後だと真っ暗だった）
      *
-     * @return [android.opengl.GLES30.glReadPixels] の結果
+     * @return [GLES30.glReadPixels] の結果
      */
     internal fun glReadPixels(): ByteArray {
         // RGBA で 4バイト使う
@@ -429,7 +448,11 @@ class AkariGraphicsTextureRenderer internal constructor(
         fboPingPongManager?.getFrameBufferObjectList()?.forEach { frameBuffer ->
             GLES20.glDeleteFramebuffers(1, intArrayOf(frameBuffer), 0)
         }
-        checkGlError("destroy getTextureIdList / getFrameBufferObjectList")
+        hdrGlProgram?.destroy()
+        sdrGlProgram?.destroy()
+        canvasGlProgram?.destroy()
+        fboGlProgram?.destroy()
+        checkGlError("glDeleteTextures / glDeleteFramebuffers / glDeleteProgram")
     }
 
     private fun checkGlError(op: String) {
@@ -448,6 +471,8 @@ class AkariGraphicsTextureRenderer internal constructor(
      *
      * [prepareDraw]は一応リセットを兼ねて（[GLES20.glClear]）、
      * [drawEnd]はフレームバッファーオブジェクトに書き込んだ内容を最後入れ替えて、画面に表示するため。
+     *
+     * また glUseProgram を中で呼び出しているため、関数の最初に呼び出すこと
      */
     private fun pingPongFrameBufferObject() {
         // フレームバッファーオブジェクトを入れ替え
@@ -459,9 +484,13 @@ class AkariGraphicsTextureRenderer internal constructor(
 
         // フレームバッファーオブジェクトのテクスチャ指定
         // FBO 用に GLES20.GL_TEXTURE2
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE2)
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, nextFbo.readTextureId)
-        checkGlError("glBindFramebuffer")
+        fboGlProgram?.setActiveTexture(
+            name = "sFboTexture",
+            texId = nextFbo.readTextureId,
+            target = GLES20.GL_TEXTURE_2D,
+            texUnit = GLES20.GL_TEXTURE2,
+            texUnitIndex = 2
+        )
     }
 
     /**
@@ -531,66 +560,6 @@ class AkariGraphicsTextureRenderer internal constructor(
         return FrameBufferObject(textureId = fboTextureId, frameBuffer = framebuffer)
     }
 
-    /**
-     * GLSL（フラグメントシェーダー・バーテックスシェーダー）をコンパイルして、OpenGL ES とリンクする
-     *
-     * @throws GlslSyntaxErrorException 構文エラーの場合に投げる
-     * @throws RuntimeException それ以外
-     * @return 0 以外で成功
-     */
-    private fun createProgram(vertexSource: String, fragmentSource: String): Int {
-        val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexSource)
-        if (vertexShader == 0) {
-            return 0
-        }
-        val pixelShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentSource)
-        if (pixelShader == 0) {
-            return 0
-        }
-        var program = GLES20.glCreateProgram()
-        checkGlError("glCreateProgram")
-        if (program == 0) {
-            return 0
-        }
-        GLES20.glAttachShader(program, vertexShader)
-        checkGlError("glAttachShader")
-        GLES20.glAttachShader(program, pixelShader)
-        checkGlError("glAttachShader")
-        GLES20.glLinkProgram(program)
-        val linkStatus = IntArray(1)
-        GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0)
-        if (linkStatus[0] != GLES20.GL_TRUE) {
-            GLES20.glDeleteProgram(program)
-            program = 0
-        }
-        return program
-    }
-
-    /**
-     * GLSL（フラグメントシェーダー・バーテックスシェーダー）のコンパイルをする
-     *
-     * @throws GlslSyntaxErrorException 構文エラーの場合に投げる
-     * @throws RuntimeException それ以外
-     * @return 0 以外で成功
-     */
-    private fun loadShader(shaderType: Int, source: String): Int {
-        var shader = GLES20.glCreateShader(shaderType)
-        checkGlError("glCreateShader type=$shaderType")
-        GLES20.glShaderSource(shader, source)
-        GLES20.glCompileShader(shader)
-        val compiled = IntArray(1)
-        GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0)
-        if (compiled[0] == 0) {
-            // 失敗したら例外を投げる。その際に構文エラーのメッセージを取得する
-            val syntaxErrorMessage = GLES20.glGetShaderInfoLog(shader)
-            GLES20.glDeleteShader(shader)
-            throw GlslSyntaxErrorException(syntaxErrorMessage)
-            // ここで return 0 しても例外を投げるので意味がない
-            // shader = 0
-        }
-        return shader
-    }
-
     /** 16進数を RGBA の配列にする。それぞれ 0から1 */
     private fun Int.toColorVec4(): FloatArray {
         val r = (this shr 16 and 0xff) / 255.0f
@@ -607,7 +576,7 @@ class AkariGraphicsTextureRenderer internal constructor(
      * @param fbo1 ひとつめ
      * @param fbo2 ふたつめ
      */
-    class FboPingPongManager(
+    private class FboPingPongManager(
         private val fbo1: FrameBufferObject,
         private val fbo2: FrameBufferObject
     ) {
@@ -647,7 +616,7 @@ class AkariGraphicsTextureRenderer internal constructor(
      * @param readTextureId [GLES20.glBindTexture]して、フラグメントシェーダーから FBO を読み出す
      * @param writeFrameBuffer [GLES20.glBindFramebuffer]して、描画内容を FBO に書き込む
      */
-    data class NextFbo(
+    private data class NextFbo(
         val readTextureId: Int,
         val writeFrameBuffer: Int
     )
@@ -658,7 +627,7 @@ class AkariGraphicsTextureRenderer internal constructor(
      * @param textureId 紐付けしたテクスチャ ID
      * @param frameBuffer 紐付けしたフレームバッファーオブジェクト
      */
-    data class FrameBufferObject(
+    private data class FrameBufferObject(
         val textureId: Int,
         val frameBuffer: Int
     )
@@ -680,6 +649,7 @@ class AkariGraphicsTextureRenderer internal constructor(
             1.0f, 1.0f, 0f, 1f, 1f
         )
 
+        /** バーテックスシェーダー。vTextureCoord でフラグメントシェーダーへテクスチャ座標を渡します */
         private const val VERTEX_SHADER = """#version 300 es
 in vec4 aPosition;
 in vec4 aTextureCoord;
@@ -695,34 +665,25 @@ void main() {
 }
 """
 
-        // iDrawMode に渡す定数
-        private const val FRAGMENT_SHADER_DRAW_MODE_SURFACE_TEXTURE = 1
-        private const val FRAGMENT_SHADER_DRAW_MODE_CANVAS_BITMAP = 2
-        private const val FRAGMENT_SHADER_DRAW_MODE_FBO = 3
-
-        // TODO クロマキーのためのコードが入るくらいなら SurfaceTexture / Canvas / FBO 描画のシェーダーを分けたほうがいい気がしてきた。
-
-        private const val FRAGMENT_SHADER_10BIT_HDR = """#version 300 es
+        /**
+         * 10Bit HDR 動画のフレームを描画するときに使うフラグメントシェーダー
+         *
+         * CameraX いわく
+         * HDR 動画の場合は GL_EXT_YUV_target を使うべきらしい。
+         * SDR のときの samplerExternalOES でも動くには動くらしいが、YUV の方が良いらしい
+         * https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:camera/camera-core/src/main/java/androidx/camera/core/processing/util/GLUtils.java;l=92
+         */
+        private val FRAGMENT_SHADER_10BIT_HDR_YUV = """#version 300 es
 #extension GL_EXT_YUV_target : require
 precision mediump float;
 
 in vec2 vTextureCoord;
-uniform sampler2D sCanvasTexture;
-uniform sampler2D sFboTexture;
 uniform __samplerExternal2DY2YEXT sSurfaceTexture;
 
-// 何を描画するか
-// 1 SurfaceTexture（カメラや動画のデコード映像）
-// 2 Bitmap（テキストや画像を描画した Canvas）
-// 3 FBO
-uniform int iDrawMode;
-
-// SurfaceTexture 時のみ。クロマキー
 uniform float chromakeyThreshold; // クロマキーのしきい値。0 でクロマキー無効
 uniform vec4 chromakeyColor; // クロマキーにする色
 
-// 出力色
-out vec4 FragColor;
+out vec4 FragColor; // 出力色
 
 // https://github.com/android/camera-samples/blob/a07d5f1667b1c022dac2538d1f553df20016d89c/Camera2Video/app/src/main/java/com/example/android/camera2/video/HardwarePipeline.kt#L107
 vec3 yuvToRgb(vec3 yuv) {
@@ -735,69 +696,72 @@ vec3 yuvToRgb(vec3 yuv) {
   return clamp(yuvToRgbColorTransform * (yuv - yuvOffset), 0.0, 1.0);
 }
 
-void main() {   
-  vec4 outColor = vec4(0.0, 0.0, 0.0, 1.0);
-
-  if (iDrawMode == 1) {
-    outColor.rgb = yuvToRgb(texture(sSurfaceTexture, vTextureCoord).rgb);
+void main() {
+    vec3 yuv = texture(sSurfaceTexture, vTextureCoord).xyz;
+    vec3 rgb = yuvToRgb(yuv);
     
     // クロマキーで透過判定になったら discard
-    if (chromakeyThreshold != .0 && length(outColor.rgb - chromakeyColor.rgb) < chromakeyThreshold) {
+    if (chromakeyThreshold != .0 && length(rgb.rgb - chromakeyColor.rgb) < chromakeyThreshold) {
         discard;
     }
-  } else if (iDrawMode == 2) {
-    // テクスチャ座標なので Y を反転
-    outColor = texture(sCanvasTexture, vec2(vTextureCoord.x, 1.0 - vTextureCoord.y));
-  } else if (iDrawMode == 3) {
-    outColor = texture(sFboTexture, vTextureCoord);
-  }
-
-  FragColor = outColor;
+    
+    FragColor = vec4(rgb, 1.0);
 }
-"""
+""".trimIndent()
 
-        private const val FRAGMENT_SHADER = """#version 300 es
+        /** SDR 動画の時に使うフラグメントシェーダー */
+        private val FRAGMENT_SHADER_SDR = """#version 300 es
 #extension GL_OES_EGL_image_external_essl3 : require
 precision mediump float;
 
 in vec2 vTextureCoord;
-uniform sampler2D sCanvasTexture;
-uniform sampler2D sFboTexture;
 uniform samplerExternalOES sSurfaceTexture;
 
-// 何を描画するか
-// 1 SurfaceTexture（カメラや動画のデコード映像）
-// 2 Bitmap（テキストや画像を描画した Canvas）
-// 3 FBO
-uniform int iDrawMode;
-
-// SurfaceTexture 時のみ。クロマキー
 uniform float chromakeyThreshold; // クロマキーのしきい値。0 でクロマキー無効
 uniform vec4 chromakeyColor; // クロマキーにする色
 
-// 出力色
-out vec4 FragColor;
+out vec4 FragColor; // 出力色
 
-void main() {   
-  vec4 outColor = vec4(0.0, 0.0, 0.0, 1.0);
-
-  if (iDrawMode == 1) {
-    outColor = texture(sSurfaceTexture, vTextureCoord);
+void main() {
+    vec4 color = texture(sSurfaceTexture, vTextureCoord);
     
     // クロマキーで透過判定になったら discard
-    if (chromakeyThreshold != .0 && length(outColor - chromakeyColor) < chromakeyThreshold) {
+    if (chromakeyThreshold != .0 && length(color.rgb - chromakeyColor.rgb) < chromakeyThreshold) {
         discard;
     }
-  } else if (iDrawMode == 2) {
-    // テクスチャ座標なので Y を反転
-    outColor = texture(sCanvasTexture, vec2(vTextureCoord.x, 1.0 - vTextureCoord.y));
-  } else if (iDrawMode == 3) {
-    outColor = texture(sFboTexture, vTextureCoord);
-  }
-
-  FragColor = outColor;
+    
+    FragColor = color;
 }
-"""
+""".trimIndent()
+
+        /** Bitmap に書いた Canvas を描画するときに使うフラグメントシェーダー */
+        private val FRAGMENT_SHADER_CANVAS_BITMAP = """#version 300 es
+precision mediump float;
+
+in vec2 vTextureCoord;
+uniform sampler2D sCanvasTexture;
+
+out vec4 FragColor; // 出力色
+
+void main() {
+    // テクスチャ座標なので Y を反転
+    FragColor = texture(sCanvasTexture, vec2(vTextureCoord.x, 1.0 - vTextureCoord.y));
+}
+""".trimIndent()
+
+        /** FBO に描画された内容を描画するときに使うフラグメントシェーダー */
+        private val FRAGMENT_SHADER_FBO = """#version 300 es
+precision mediump float;
+in vec2 vTextureCoord;
+uniform sampler2D sFboTexture;
+
+out vec4 FragColor; // 出力色
+
+void main() {
+    FragColor = texture(sFboTexture, vTextureCoord);
+}
+""".trimIndent()
+
     }
 
 }

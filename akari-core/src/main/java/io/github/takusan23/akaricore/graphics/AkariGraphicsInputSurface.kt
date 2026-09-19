@@ -76,12 +76,12 @@ internal class AkariGraphicsInputSurface(
 
         // EGL_GL_COLORSPACE_BT2020_HLG_EXT や PQ_EXT で 10-bit HDR を OpenGL ES で描画できる
         // TODO 10-bit HDR（BT2020 / HLG）に対応していない端末で有効にした場合にエラーになる。とりあえず対応していない場合は SDR にフォールバックする
-        val appendSurfaceAttribs = when {
-            colorSpaceType == AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_HLG) -> intArrayOf(
+        val appendSurfaceAttribs = when (colorSpaceType) {
+            AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_HLG if isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_HLG) -> intArrayOf(
                 EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_HLG_EXT
             )
 
-            colorSpaceType == AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_PQ && isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_PQ) -> intArrayOf(
+            AkariGraphicsProcessorColorSpaceType.TEN_BIT_HDR_BT2020_PQ if isAvailableExtension(EGL_EXT_GL_COLORSPACE_BT2020_PQ) -> intArrayOf(
                 EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_BT2020_PQ_EXT
             )
 
@@ -108,7 +108,6 @@ internal class AkariGraphicsInputSurface(
                 EGL14.eglCreateWindowSurface(mEGLDisplay, configs[0], renderingMode.surface, surfaceAttribs, 0)
             }
         }
-        checkEglError("eglCreateWindowSurface")
         checkEglError("eglCreateWindowSurface")
     }
 

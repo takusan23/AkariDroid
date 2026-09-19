@@ -1,7 +1,9 @@
 package io.github.takusan23.akaricore.graphics
 
 import android.graphics.SurfaceTexture
+import android.hardware.DataSpace
 import android.opengl.GLES20
+import android.os.Build
 import android.view.Surface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,6 +106,17 @@ class AkariGraphicsSurfaceTexture(private val initTexName: Int) {
     /** [SurfaceTexture.getTransformMatrix]を呼ぶ */
     fun getTransformMatrix(mtx: FloatArray) {
         surfaceTexture.getTransformMatrix(mtx)
+    }
+
+    /** HDR かどうかを返す。Android 12 以前は常に false です。 */
+    fun isHdr() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        when (surfaceTexture.dataSpace) {
+            // BT2020 単品が必要なのかは分からん...
+            DataSpace.DATASPACE_BT2020_HLG, DataSpace.DATASPACE_BT2020_PQ, DataSpace.DATASPACE_BT2020 -> true
+            else -> false
+        }
+    } else {
+        false
     }
 
     /**
