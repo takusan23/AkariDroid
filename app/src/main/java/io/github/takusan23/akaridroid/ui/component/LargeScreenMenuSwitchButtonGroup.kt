@@ -65,7 +65,8 @@ fun LargeScreenMenuSwitchButtonGroup(
                     text = when (mode) {
                         LargeScreenMenuSwitchMode.Menu -> stringResource(id = R.string.video_edit_bottomsheet_menu_title)
                         LargeScreenMenuSwitchMode.AddRenderItem -> stringResource(id = R.string.video_edit_bottomsheet_timeline_add_title)
-                    }
+                    },
+                    maxLines = 1
                 )
             }
         }

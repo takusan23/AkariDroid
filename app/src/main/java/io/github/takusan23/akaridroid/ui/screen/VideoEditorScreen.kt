@@ -6,13 +6,10 @@ import android.view.SurfaceHolder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
@@ -67,6 +64,9 @@ import io.github.takusan23.akaridroid.ui.component.timeline.FloatingTimeLineTitl
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLine
 import io.github.takusan23.akaridroid.ui.component.timeline.MultiSelectTimeLineHeader
 import io.github.takusan23.akaridroid.ui.component.timeline.TimeLineContainer
+import io.github.takusan23.akaridroid.ui.component.timeline.VideoEditorCompactLandscapeLayout
+import io.github.takusan23.akaridroid.ui.component.timeline.VideoEditorCompactPortraitLayout
+import io.github.takusan23.akaridroid.ui.component.timeline.VideoEditorLargeScreenLayout
 import io.github.takusan23.akaridroid.ui.sheet.AddRenderItemSheet
 import io.github.takusan23.akaridroid.ui.sheet.MenuSheet
 import io.github.takusan23.akaridroid.ui.sheet.VideoEditorBottomSheetRouteRequestData
@@ -385,22 +385,17 @@ private fun LargeScreenLayout(
 ) {
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         Box {
-            Column {
-                Row(
-                    modifier = Modifier
-                        .padding(
-                            top = paddingValues.calculateTopPadding(),
-                            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-                        )
-                        .weight(1f)
-                ) {
-
-                    // タッチ編集・プレビュー
+            VideoEditorLargeScreenLayout(
+                modifier = Modifier.fillMaxSize(),
+                draggable = true,
+                preview = {
                     Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
+                            .padding(
+                                top = paddingValues.calculateTopPadding(),
+                                start = paddingValues.calculateStartPadding(LocalLayoutDirection.current)
+                            )
+                            .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         ComposeSurfaceView(
@@ -421,11 +416,15 @@ private fun LargeScreenLayout(
                             onMenuClick = onMenuClick
                         )
                     }
-
+                },
+                menu = {
                     Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
+                            .padding(
+                                top = paddingValues.calculateTopPadding(),
+                                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
+                            )
+                            .fillMaxSize()
                     ) {
                         val selectMenu = remember { mutableStateOf(LargeScreenMenuSwitchMode.Menu) }
                         LargeScreenMenuSwitchButtonGroup(
@@ -453,64 +452,61 @@ private fun LargeScreenLayout(
                             )
                         }
                     }
-                }
+                },
+                timeline = {
+                    // タイムライン
+                    val windowInsetsModifier = Modifier
+                        .padding(
+                            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
+                        )
+                        .systemGestureExclusion()
+                    when (timeLineMode) {
+                        TimeLineMode.Default -> LargeScreenVideoEditorDefaultTimeLine(
+                            modifier = windowInsetsModifier,
+                            bottomPadding = paddingValues.calculateBottomPadding(),
+                            timeLineState = timeLineState,
+                            renderData = renderData,
+                            previewPlayerStatus = previewPlayerStatus,
+                            timeLineMsWidthPx = timeLineMsWidthPx,
+                            historyState = historyState,
+                            snackbarRouterRequestData = snackbarRouterRequestData,
+                            onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                            onModeChangeClick = onModeChangeClick,
+                            onUndo = onUndo,
+                            onRedo = onRedo,
+                            onFileReceive = onFileReceive,
+                            onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
+                            onSeek = onSeek,
+                            onEdit = onEdit,
+                            onCut = onCut,
+                            onDelete = onDelete,
+                            onDuplicate = onDuplicate,
+                            onCopy = onCopy,
+                            onDurationChange = onDurationChange,
+                            onSnackbarDismiss = onSnackbarDismiss
+                        )
 
-                // タイムライン
-                val windowInsetsModifier = Modifier.padding(
-                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-                )
-                when (timeLineMode) {
-                    TimeLineMode.Default -> LargeScreenVideoEditorDefaultTimeLine(
-                        modifier = Modifier
-                            .weight(1f)
-                            .systemGestureExclusion()
-                            .then(windowInsetsModifier),
-                        bottomPadding = paddingValues.calculateBottomPadding(),
-                        timeLineState = timeLineState,
-                        renderData = renderData,
-                        previewPlayerStatus = previewPlayerStatus,
-                        timeLineMsWidthPx = timeLineMsWidthPx,
-                        historyState = historyState,
-                        snackbarRouterRequestData = snackbarRouterRequestData,
-                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                        onModeChangeClick = onModeChangeClick,
-                        onUndo = onUndo,
-                        onRedo = onRedo,
-                        onFileReceive = onFileReceive,
-                        onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
-                        onSeek = onSeek,
-                        onEdit = onEdit,
-                        onCut = onCut,
-                        onDelete = onDelete,
-                        onDuplicate = onDuplicate,
-                        onCopy = onCopy,
-                        onDurationChange = onDurationChange,
-                        onSnackbarDismiss = onSnackbarDismiss
-                    )
-
-                    TimeLineMode.MultiSelect -> LargeScreenVideoEditorMultiSelectTimeLine(
-                        modifier = Modifier
-                            .weight(1f)
-                            .systemGestureExclusion()
-                            .then(windowInsetsModifier),
-                        bottomPadding = paddingValues.calculateBottomPadding(),
-                        timeLineState = timeLineState,
-                        renderData = renderData,
-                        previewPlayerStatus = previewPlayerStatus,
-                        timeLineMsWidthPx = timeLineMsWidthPx,
-                        historyState = historyState,
-                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                        onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
-                        onUndo = onUndo,
-                        onRedo = onRedo,
-                        onDragAndDropRequest = onDragAndDropRequest,
-                        onSeek = onSeek,
-                        onMultipleDelete = onMultipleDelete,
-                        onMultipleCopy = onMultipleCopy
-                    )
+                        TimeLineMode.MultiSelect -> LargeScreenVideoEditorMultiSelectTimeLine(
+                            modifier = windowInsetsModifier,
+                            bottomPadding = paddingValues.calculateBottomPadding(),
+                            timeLineState = timeLineState,
+                            renderData = renderData,
+                            previewPlayerStatus = previewPlayerStatus,
+                            timeLineMsWidthPx = timeLineMsWidthPx,
+                            historyState = historyState,
+                            onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                            onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
+                            onUndo = onUndo,
+                            onRedo = onRedo,
+                            onDragAndDropRequest = onDragAndDropRequest,
+                            onSeek = onSeek,
+                            onMultipleDelete = onMultipleDelete,
+                            onMultipleCopy = onMultipleCopy
+                        )
+                    }
                 }
-            }
+            )
 
             VideoEditorOverlaySheetRouter(
                 modifier = Modifier
@@ -618,99 +614,96 @@ private fun CompactLandscapeLayout(
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
-        Row(modifier = Modifier.fillMaxSize()) {
-            // タッチ編集・プレビュー
-            Box(
-                modifier = Modifier
+        VideoEditorCompactLandscapeLayout(
+            modifier = Modifier.fillMaxSize(),
+            draggable = true,
+            preview = {
+                Box(
+                    modifier = Modifier
+                        .padding(
+                            top = paddingValues.calculateTopPadding(),
+                            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                        )
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ComposeSurfaceView(
+                        modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
+                        onCreateSurface = onCreateSurface,
+                        onSizeChanged = onSizeChanged,
+                        onDestroySurface = onDestroySurface
+                    )
+                    PreviewContainer(
+                        modifier = Modifier.matchParentSize(),
+                        touchEditorData = touchEditorData,
+                        showMenu = true,
+                        onDragAndDropEnd = onDragAndDropEnd,
+                        onSizeChangeRequest = onSizeChangeRequest,
+                        playerStatus = playerStatus,
+                        onPlayOrPause = onPlayOrPause,
+                        onSeek = onSeek,
+                        onMenuClick = onMenuClick
+                    )
+                }
+            },
+            timeline = {
+                // タイムライン
+                // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
+                val windowInsetsModifier = Modifier
+                    .systemGestureExclusion()
                     .padding(
                         top = paddingValues.calculateTopPadding(),
-                        start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                        end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
                     )
-                    .weight(1f)
-                    .fillMaxHeight(),
-                contentAlignment = Alignment.Center
-            ) {
+                when (timeLineMode) {
+                    TimeLineMode.Default -> VideoEditorDefaultTimeLine(
+                        modifier = windowInsetsModifier,
+                        bottomPadding = paddingValues.calculateBottomPadding(),
+                        recommendFloatingBarMenuList = recommendFloatingBarMenuList,
+                        timeLineState = timeLineState,
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        snackbarRouterRequestData = snackbarRouterRequestData,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onModeChangeClick = onModeChangeClick,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onFileReceive = onFileReceive,
+                        onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
+                        onSeek = onSeek,
+                        onEdit = onEdit,
+                        onCut = onCut,
+                        onDelete = onDelete,
+                        onDuplicate = onDuplicate,
+                        onCopy = onCopy,
+                        onDurationChange = onDurationChange,
+                        onSnackbarDismiss = onSnackbarDismiss,
+                        onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
+                        onRecommendResult = onRecommendResult
+                    )
 
-                ComposeSurfaceView(
-                    modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
-                    onCreateSurface = onCreateSurface,
-                    onSizeChanged = onSizeChanged,
-                    onDestroySurface = onDestroySurface
-                )
-
-                PreviewContainer(
-                    modifier = Modifier.matchParentSize(),
-                    touchEditorData = touchEditorData,
-                    showMenu = true,
-                    onDragAndDropEnd = onDragAndDropEnd,
-                    onSizeChangeRequest = onSizeChangeRequest,
-                    playerStatus = playerStatus,
-                    onPlayOrPause = onPlayOrPause,
-                    onSeek = onSeek,
-                    onMenuClick = onMenuClick
-                )
+                    TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
+                        modifier = windowInsetsModifier,
+                        bottomPadding = paddingValues.calculateBottomPadding(),
+                        timeLineState = timeLineState,
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onDragAndDropRequest = onDragAndDropRequest,
+                        onSeek = onSeek,
+                        onMultipleDelete = onMultipleDelete,
+                        onMultipleCopy = onMultipleCopy
+                    )
+                }
             }
-
-            // タイムライン
-            // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
-            val windowInsetsModifier = Modifier.padding(
-                top = paddingValues.calculateTopPadding(),
-                end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-            )
-            when (timeLineMode) {
-                TimeLineMode.Default -> VideoEditorDefaultTimeLine(
-                    modifier = Modifier
-                        .weight(1f)
-                        .systemGestureExclusion()
-                        .then(windowInsetsModifier),
-                    bottomPadding = paddingValues.calculateBottomPadding(),
-                    recommendFloatingBarMenuList = recommendFloatingBarMenuList,
-                    timeLineState = timeLineState,
-                    renderData = renderData,
-                    previewPlayerStatus = previewPlayerStatus,
-                    timeLineMsWidthPx = timeLineMsWidthPx,
-                    historyState = historyState,
-                    snackbarRouterRequestData = snackbarRouterRequestData,
-                    onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                    onModeChangeClick = onModeChangeClick,
-                    onUndo = onUndo,
-                    onRedo = onRedo,
-                    onFileReceive = onFileReceive,
-                    onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
-                    onSeek = onSeek,
-                    onEdit = onEdit,
-                    onCut = onCut,
-                    onDelete = onDelete,
-                    onDuplicate = onDuplicate,
-                    onCopy = onCopy,
-                    onDurationChange = onDurationChange,
-                    onSnackbarDismiss = onSnackbarDismiss,
-                    onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
-                    onRecommendResult = onRecommendResult
-                )
-
-                TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
-                    modifier = Modifier
-                        .weight(1f)
-                        .systemGestureExclusion()
-                        .then(windowInsetsModifier),
-                    bottomPadding = paddingValues.calculateBottomPadding(),
-                    timeLineState = timeLineState,
-                    renderData = renderData,
-                    previewPlayerStatus = previewPlayerStatus,
-                    timeLineMsWidthPx = timeLineMsWidthPx,
-                    historyState = historyState,
-                    onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                    onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
-                    onUndo = onUndo,
-                    onRedo = onRedo,
-                    onDragAndDropRequest = onDragAndDropRequest,
-                    onSeek = onSeek,
-                    onMultipleDelete = onMultipleDelete,
-                    onMultipleCopy = onMultipleCopy
-                )
-            }
-        }
+        )
     }
 }
 
@@ -795,7 +788,7 @@ private fun CompactPortraitLayout(
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
-        Column(
+        VideoEditorCompactPortraitLayout(
             modifier = Modifier
                 // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
                 .padding(
@@ -803,23 +796,15 @@ private fun CompactPortraitLayout(
                     start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
                 )
-                .fillMaxSize()
-        ) {
-            // タッチ編集・プレビュー
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-
+                .fillMaxSize(),
+            draggable = true,
+            preview = {
                 ComposeSurfaceView(
                     modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
                     onCreateSurface = onCreateSurface,
                     onSizeChanged = onSizeChanged,
                     onDestroySurface = onDestroySurface
                 )
-
                 PreviewContainer(
                     modifier = Modifier.matchParentSize(),
                     touchEditorData = touchEditorData,
@@ -831,61 +816,57 @@ private fun CompactPortraitLayout(
                     onSeek = onSeek,
                     onMenuClick = onMenuClick
                 )
-            }
+            },
+            timeline = {
+                when (timeLineMode) {
+                    TimeLineMode.Default -> VideoEditorDefaultTimeLine(
+                        modifier = Modifier.systemGestureExclusion(),
+                        bottomPadding = paddingValues.calculateBottomPadding(),
+                        recommendFloatingBarMenuList = recommendFloatingBarMenuList,
+                        timeLineState = timeLineState,
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        snackbarRouterRequestData = snackbarRouterRequestData,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onModeChangeClick = onModeChangeClick,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onFileReceive = onFileReceive,
+                        onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
+                        onSeek = onSeek,
+                        onEdit = onEdit,
+                        onCut = onCut,
+                        onDelete = onDelete,
+                        onDuplicate = onDuplicate,
+                        onCopy = onCopy,
+                        onDurationChange = onDurationChange,
+                        onSnackbarDismiss = onSnackbarDismiss,
+                        onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
+                        onRecommendResult = onRecommendResult
+                    )
 
-            // タイムライン
-            when (timeLineMode) {
-                TimeLineMode.Default -> VideoEditorDefaultTimeLine(
-                    modifier = Modifier
-                        .weight(1f)
-                        .systemGestureExclusion(),
-                    bottomPadding = paddingValues.calculateBottomPadding(),
-                    recommendFloatingBarMenuList = recommendFloatingBarMenuList,
-                    timeLineState = timeLineState,
-                    renderData = renderData,
-                    previewPlayerStatus = previewPlayerStatus,
-                    timeLineMsWidthPx = timeLineMsWidthPx,
-                    historyState = historyState,
-                    snackbarRouterRequestData = snackbarRouterRequestData,
-                    onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                    onModeChangeClick = onModeChangeClick,
-                    onUndo = onUndo,
-                    onRedo = onRedo,
-                    onFileReceive = onFileReceive,
-                    onDragAndDropRequest = { onDragAndDropRequest(listOf(it)) },
-                    onSeek = onSeek,
-                    onEdit = onEdit,
-                    onCut = onCut,
-                    onDelete = onDelete,
-                    onDuplicate = onDuplicate,
-                    onCopy = onCopy,
-                    onDurationChange = onDurationChange,
-                    onSnackbarDismiss = onSnackbarDismiss,
-                    onRequestAddItemBottomSheet = onRequestAddItemBottomSheet,
-                    onRecommendResult = onRecommendResult
-                )
-
-                TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
-                    modifier = Modifier
-                        .weight(1f)
-                        .systemGestureExclusion(),
-                    bottomPadding = paddingValues.calculateBottomPadding(),
-                    timeLineState = timeLineState,
-                    renderData = renderData,
-                    previewPlayerStatus = previewPlayerStatus,
-                    timeLineMsWidthPx = timeLineMsWidthPx,
-                    historyState = historyState,
-                    onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
-                    onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
-                    onUndo = onUndo,
-                    onRedo = onRedo,
-                    onDragAndDropRequest = onDragAndDropRequest,
-                    onSeek = onSeek,
-                    onMultipleDelete = onMultipleDelete,
-                    onMultipleCopy = onMultipleCopy
-                )
+                    TimeLineMode.MultiSelect -> VideoEditorMultiSelectTimeLine(
+                        modifier = Modifier.systemGestureExclusion(),
+                        bottomPadding = paddingValues.calculateBottomPadding(),
+                        timeLineState = timeLineState,
+                        renderData = renderData,
+                        previewPlayerStatus = previewPlayerStatus,
+                        timeLineMsWidthPx = timeLineMsWidthPx,
+                        historyState = historyState,
+                        onChangeTimeLineMsWidthPx = onChangeTimeLineMsWidthPx,
+                        onExitMultiSelectTimeLine = onExitMultiSelectTimeLine,
+                        onUndo = onUndo,
+                        onRedo = onRedo,
+                        onDragAndDropRequest = onDragAndDropRequest,
+                        onSeek = onSeek,
+                        onMultipleDelete = onMultipleDelete,
+                        onMultipleCopy = onMultipleCopy
+                    )
+                }
             }
-        }
+        )
     }
 }
 

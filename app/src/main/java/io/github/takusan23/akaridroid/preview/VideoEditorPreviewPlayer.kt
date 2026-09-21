@@ -289,7 +289,8 @@ class VideoEditorPreviewPlayer(
             }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
             // 一時的かも、もう一度呼び出せば直るかも！
             _playerStatus.update { it.copy(isErrorLatestVideoFrame = true) }
         }

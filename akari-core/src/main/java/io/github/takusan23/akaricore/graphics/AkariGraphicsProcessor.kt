@@ -46,6 +46,11 @@ class AkariGraphicsProcessor(
             inputSurface.makeCurrent()
             textureRenderer.prepareShader()
             GLES20.glViewport(0, 0, renderingPrepareData.width, renderingPrepareData.height)
+
+            val vendor = GLES20.glGetString(GLES20.GL_VENDOR)
+            val renderer = GLES20.glGetString(GLES20.GL_RENDERER)
+            val version = GLES20.glGetString(GLES20.GL_VERSION)
+            println("AkariGraphicsProcessor OpenGL Info: vendor=$vendor, renderer=$renderer, version=$version")
         }
     }
 

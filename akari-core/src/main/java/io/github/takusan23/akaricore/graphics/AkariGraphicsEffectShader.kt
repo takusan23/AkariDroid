@@ -6,6 +6,7 @@ import io.github.takusan23.akaricore.graphics.AkariGraphicsEffectShader.Companio
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+// TODO OpenGlProcessor とやってることが同じなので同じクラスを使うようにする
 /**
  * フラグメントシェーダーでフレームにエフェクトを適用する。
  * [AkariGraphicsProcessor]は最後以外は描画先がフレームバッファオブジェクトになるので、そのテクスチャにエフェクトを適用する。
