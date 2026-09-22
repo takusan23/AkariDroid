@@ -34,7 +34,8 @@ fun VideoEditorBottomSheetRouter(
     onStartAkaLink: () -> Unit,
     onClose: () -> Unit,
     onDefaultClick: () -> Unit,
-    onMultiSelectClick: () -> Unit
+    onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onClose) {
         VideoEditorSheetCommonRouter(
@@ -54,7 +55,8 @@ fun VideoEditorBottomSheetRouter(
             onStartAkaLink = onStartAkaLink,
             onSheetClose = onClose,
             onDefaultClick = onDefaultClick,
-            onMultiSelectClick = onMultiSelectClick
+            onMultiSelectClick = onMultiSelectClick,
+            onResizeChangeClick = onResizeChangeClick
         )
     }
 }

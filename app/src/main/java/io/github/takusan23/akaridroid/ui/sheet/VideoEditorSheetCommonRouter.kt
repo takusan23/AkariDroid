@@ -30,7 +30,8 @@ fun VideoEditorSheetCommonRouter(
     onStartAkaLink: () -> Unit,
     onSheetClose: () -> Unit,
     onDefaultClick: () -> Unit,
-    onMultiSelectClick: () -> Unit
+    onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit
 ) {
     when (videoEditorBottomSheetRouteRequestData) {
 
@@ -193,8 +194,9 @@ fun VideoEditorSheetCommonRouter(
             onCloseClick = onSheetClose
         )
 
-        // タイムラインのモード変更
-        VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange -> TimeLineModeChangeBottomSheet(
+        // タイムラインのメニュー
+        is VideoEditorBottomSheetRouteRequestData.OpenTimeLineMenu -> TimeLineMenuBottomSheet(
+            enableResize = videoEditorBottomSheetRouteRequestData.enableResize,
             onDefaultClick = {
                 onDefaultClick()
                 onSheetClose()
@@ -203,6 +205,7 @@ fun VideoEditorSheetCommonRouter(
                 onMultiSelectClick()
                 onSheetClose()
             },
+            onResizeChangeClick = onResizeChangeClick,
             onCloseClick = onSheetClose
         )
     }

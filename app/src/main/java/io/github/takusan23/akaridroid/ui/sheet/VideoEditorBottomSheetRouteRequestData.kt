@@ -74,6 +74,12 @@ sealed interface VideoEditorBottomSheetRouteRequestData {
     /** 追加メニューを開く */
     data object OpenAddRenderItem : VideoEditorBottomSheetRouteRequestData
 
-    /** タイムラインのモード変更を開く */
-    data object OpenTimeLineModeChange : VideoEditorBottomSheetRouteRequestData
+    /**
+     * タイムラインのモード変更を開く
+     *
+     * @param enableResize サイズ変更機能を有効にするか
+     */
+    data class OpenTimeLineMenu(
+        val enableResize: Boolean
+    ) : VideoEditorBottomSheetRouteRequestData
 }

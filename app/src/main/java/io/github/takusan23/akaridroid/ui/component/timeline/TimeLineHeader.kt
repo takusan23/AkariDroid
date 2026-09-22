@@ -62,7 +62,10 @@ fun DefaultTimeLineHeader(
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
-            Text(text = stringResource(id = R.string.timeline_header_default_mode_switch))
+            Text(
+                text = stringResource(id = R.string.timeline_header_default_button_text),
+                maxLines = 1
+            )
         }
 
         if (fillMaxWidth) {

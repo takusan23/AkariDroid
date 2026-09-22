@@ -52,7 +52,8 @@ fun VideoEditorOverlaySheetRouter(
     onStartAkaLink: () -> Unit,
     onClose: () -> Unit,
     onDefaultClick: () -> Unit,
-    onMultiSelectClick: () -> Unit
+    onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit
 ) {
     if (videoEditorBottomSheetRouteRequestData != null) {
         val visible = remember { mutableStateOf(true) }
@@ -79,7 +80,8 @@ fun VideoEditorOverlaySheetRouter(
                 onStartAkaLink = onStartAkaLink,
                 onSheetClose = { visible.value = false }, // false にしたあと、アニメーションを終えると onAnimationEnd が呼ばれる
                 onDefaultClick = onDefaultClick,
-                onMultiSelectClick = onMultiSelectClick
+                onMultiSelectClick = onMultiSelectClick,
+                onResizeChangeClick = onResizeChangeClick
             )
         }
     }

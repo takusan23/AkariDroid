@@ -255,14 +255,14 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="project_list_dialog_import_title">プロジェクトをインポートしています</string>
     <string name="project_list_dialog_import_description">Zip ファイルにある素材を解凍して取り出しています。しばらく時間がかかります。</string>
     <string name="video_edit_bottomsheet_switch_animation_type_fade_in_out_white">フェードアウト、フェードイン（白）</string>
-    <string name="timeline_header_default_mode_switch">モード切り替え</string>
+    <string name="timeline_header_default_button_text">タイムラインメニュー</string>
     <string name="timeline_header_multi_select_multi_select_title">複数選択モード</string>
     <string name="timeline_header_multi_select_multi_select_description">まとめて移動やコピーができます。</string>
-    <string name="video_edit_bottomsheet_timeline_mode_change_title">タイムラインのモード切り替え</string>
-    <string name="video_edit_bottomsheet_timeline_mode_change_default_title">標準モード</string>
-    <string name="video_edit_bottomsheet_timeline_mode_change_default_description">タイムラインのアイテムを一つ一つ操作するモードです。</string>
-    <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_title">複数選択モード</string>
-    <string name="video_edit_bottomsheet_timeline_mode_change_multi_select_description">複数のアイテムを選択して、まとめて移動やコピーが出来るモードです。</string>
+    <string name="video_edit_bottomsheet_timeline_menu_title">タイムラインメニュー</string>
+    <string name="video_edit_bottomsheet_timeline_menu_mode_default_title">標準モード</string>
+    <string name="video_edit_bottomsheet_timeline_menu_mode_default_description">タイムラインのアイテムを一つ一つ操作するモードです。</string>
+    <string name="video_edit_bottomsheet_timeline_menu_mode_multi_select_title">複数選択モード</string>
+    <string name="video_edit_bottomsheet_timeline_menu_mode_multi_select_description">複数のアイテムを選択して、まとめて移動やコピーが出来るモードです。</string>
     <string name="video_edit_floating_multi_select_copy">コピー</string>
     <string name="video_edit_floating_multi_delete">削除</string>
     <string name="video_edit_renderitem_paste_title">貼り付け</string>
@@ -279,4 +279,8 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_snackbar_save_frame_successful_title">画像として保存しました</string>
     <string name="video_edit_snackbar_save_frame_successful_button">開く</string>
     <string name="video_edit_preview_videotrack_error">プレビューの描画に失敗しました。シークバーを動かして違う時間を描画してみるか、アプリを開きなおしてください。または HDR 動画に対応していない場合があります。ごめんね。</string>
+    <string name="video_edit_bottomsheet_timeline_menu_mode_title">タイムラインのモード切り替え</string>
+    <string name="video_edit_bottomsheet_timeline_menu_setting_title">タイムラインの設定</string>
+    <string name="video_edit_bottomsheet_timeline_menu_setting_resize_title">タイムラインやプレビューのサイズ変更機能を有効にする</string>
+    <string name="video_edit_bottomsheet_timeline_menu_setting_resize_description">サイズ変更のためのバーを表示します。ドラッグ操作でサイズ変更ができます。</string>
 </resources>

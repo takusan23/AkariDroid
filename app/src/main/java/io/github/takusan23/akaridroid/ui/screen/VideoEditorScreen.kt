@@ -95,6 +95,8 @@ fun VideoEditorScreen(
     val timeLineMsWidthPx = remember { mutableIntStateOf(20) }
     // タイムラインのモード
     val timeLineMode = remember { mutableStateOf(TimeLineMode.Default) }
+    // タイムライン・プレビューのサイズを変更するバーを表示するか
+    val showResizeChangeBar = remember { mutableStateOf(false) }
 
     // バックグラウンドでエンコードできるようにエンコーダーサービス
     val encoderService = remember { EncoderService.bindEncoderService(context, lifecycle) }.collectAsStateWithLifecycle(initialValue = null)
@@ -134,6 +136,7 @@ fun VideoEditorScreen(
             timeLineMsWidthPx = timeLineMsWidthPx.intValue,
             historyState = historyState.value,
             snackbarRouterRequestData = snackbarRouteData.value,
+            enableResize = showResizeChangeBar.value,
             onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
@@ -159,6 +162,7 @@ fun VideoEditorScreen(
             onCloseSheet = { viewModel.closeBottomSheet() },
             onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
             onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+            onResizeChangeClick = { enable -> showResizeChangeBar.value = enable },
             onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
             onSizeChanged = { _, _ -> /* do nothing */ },
             onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) },
@@ -169,7 +173,7 @@ fun VideoEditorScreen(
             onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) },
             onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it },
             onExitMultiSelectTimeLine = { timeLineMode.value = TimeLineMode.Default },
-            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
+            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineMenu(enableResize = showResizeChangeBar.value)) },
             onUndo = { viewModel.renderDataUndo() },
             onRedo = { viewModel.renderDataRedo() },
             onFileReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) },
@@ -202,6 +206,7 @@ fun VideoEditorScreen(
             timeLineMsWidthPx = timeLineMsWidthPx.intValue,
             historyState = historyState.value,
             snackbarRouterRequestData = snackbarRouteData.value,
+            enableResize = showResizeChangeBar.value,
             onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
@@ -227,6 +232,7 @@ fun VideoEditorScreen(
             onClose = { viewModel.closeBottomSheet() },
             onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
             onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+            onResizeChangeClick = { enable -> showResizeChangeBar.value = enable },
             onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
             onSizeChanged = { _, _ -> /* do nothing */ },
             onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) },
@@ -237,7 +243,7 @@ fun VideoEditorScreen(
             onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) },
             onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it },
             onExitMultiSelectTimeLine = { timeLineMode.value = TimeLineMode.Default },
-            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
+            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineMenu(enableResize = showResizeChangeBar.value)) },
             onUndo = { viewModel.renderDataUndo() },
             onRedo = { viewModel.renderDataRedo() },
             onFileReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) },
@@ -271,6 +277,7 @@ fun VideoEditorScreen(
             timeLineMsWidthPx = timeLineMsWidthPx.intValue,
             historyState = historyState.value,
             snackbarRouterRequestData = snackbarRouteData.value,
+            enableResize = showResizeChangeBar.value,
             onAudioUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onCanvasUpdate = { viewModel.addOrUpdateRenderItem(listOf(it)) },
             onDeleteItem = { viewModel.deleteTimeLineItemFromId(listOf(it.id)) },
@@ -296,6 +303,7 @@ fun VideoEditorScreen(
             onClose = { viewModel.closeBottomSheet() },
             onDefaultClick = { timeLineMode.value = TimeLineMode.Default },
             onMultiSelectClick = { timeLineMode.value = TimeLineMode.MultiSelect },
+            onResizeChangeClick = { enable -> showResizeChangeBar.value = enable },
             onCreateSurface = { surfaceHolder -> viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(surfaceHolder) },
             onSizeChanged = { _, _ -> /* do nothing */ },
             onDestroySurface = { viewModel.videoEditorPreviewPlayer.setPreviewSurfaceHolder(null) },
@@ -306,7 +314,7 @@ fun VideoEditorScreen(
             onMenuClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenMenu) },
             onChangeTimeLineMsWidthPx = { timeLineMsWidthPx.intValue = it },
             onExitMultiSelectTimeLine = { timeLineMode.value = TimeLineMode.Default },
-            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineModeChange) },
+            onModeChangeClick = { viewModel.openBottomSheet(VideoEditorBottomSheetRouteRequestData.OpenTimeLineMenu(enableResize = showResizeChangeBar.value)) },
             onUndo = { viewModel.renderDataUndo() },
             onRedo = { viewModel.renderDataRedo() },
             onFileReceive = { clipData, dropPermission -> viewModel.resolveDragAndDrop(clipData, dropPermission) },
@@ -342,6 +350,7 @@ private fun LargeScreenLayout(
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
     snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
+    enableResize: Boolean,
     onAudioUpdate: (RenderData.AudioItem) -> Unit,
     onCanvasUpdate: (RenderData.CanvasItem) -> Unit,
     onDeleteItem: (RenderData.RenderItem) -> Unit,
@@ -358,6 +367,7 @@ private fun LargeScreenLayout(
     onCloseSheet: () -> Unit,
     onDefaultClick: () -> Unit,
     onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit,
     onCreateSurface: (SurfaceHolder) -> Unit,
     onSizeChanged: (width: Int, height: Int) -> Unit,
     onDestroySurface: () -> Unit,
@@ -387,7 +397,7 @@ private fun LargeScreenLayout(
         Box {
             VideoEditorLargeScreenLayout(
                 modifier = Modifier.fillMaxSize(),
-                draggable = true,
+                draggable = enableResize,
                 preview = {
                     Box(
                         modifier = Modifier
@@ -528,7 +538,8 @@ private fun LargeScreenLayout(
                 onStartAkaLink = onStartAkaLink,
                 onClose = onCloseSheet,
                 onDefaultClick = onDefaultClick,
-                onMultiSelectClick = onMultiSelectClick
+                onMultiSelectClick = onMultiSelectClick,
+                onResizeChangeClick = onResizeChangeClick
             )
         }
     }
@@ -547,6 +558,7 @@ private fun CompactLandscapeLayout(
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
     snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
+    enableResize: Boolean,
     onAudioUpdate: (RenderData.AudioItem) -> Unit,
     onCanvasUpdate: (RenderData.CanvasItem) -> Unit,
     onDeleteItem: (RenderData.RenderItem) -> Unit,
@@ -563,6 +575,7 @@ private fun CompactLandscapeLayout(
     onClose: () -> Unit,
     onDefaultClick: () -> Unit,
     onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit,
     onCreateSurface: (SurfaceHolder) -> Unit,
     onSizeChanged: (width: Int, height: Int) -> Unit,
     onDestroySurface: () -> Unit,
@@ -609,14 +622,15 @@ private fun CompactLandscapeLayout(
             onStartAkaLink = onStartAkaLink,
             onClose = onClose,
             onDefaultClick = onDefaultClick,
-            onMultiSelectClick = onMultiSelectClick
+            onMultiSelectClick = onMultiSelectClick,
+            onResizeChangeClick = onResizeChangeClick
         )
     }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         VideoEditorCompactLandscapeLayout(
             modifier = Modifier.fillMaxSize(),
-            draggable = true,
+            draggable = enableResize,
             preview = {
                 Box(
                     modifier = Modifier
@@ -721,6 +735,7 @@ private fun CompactPortraitLayout(
     timeLineMsWidthPx: Int,
     historyState: HistoryManager.HistoryState,
     snackbarRouterRequestData: VideoEditorSnackbarRouterRequestData?,
+    enableResize: Boolean,
     onAudioUpdate: (RenderData.AudioItem) -> Unit,
     onCanvasUpdate: (RenderData.CanvasItem) -> Unit,
     onDeleteItem: (RenderData.RenderItem) -> Unit,
@@ -737,6 +752,7 @@ private fun CompactPortraitLayout(
     onClose: () -> Unit,
     onDefaultClick: () -> Unit,
     onMultiSelectClick: () -> Unit,
+    onResizeChangeClick: (Boolean) -> Unit,
     onCreateSurface: (SurfaceHolder) -> Unit,
     onSizeChanged: (width: Int, height: Int) -> Unit,
     onDestroySurface: () -> Unit,
@@ -783,7 +799,8 @@ private fun CompactPortraitLayout(
             onStartAkaLink = onStartAkaLink,
             onClose = onClose,
             onDefaultClick = onDefaultClick,
-            onMultiSelectClick = onMultiSelectClick
+            onMultiSelectClick = onMultiSelectClick,
+            onResizeChangeClick = onResizeChangeClick
         )
     }
 
@@ -797,7 +814,7 @@ private fun CompactPortraitLayout(
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
                 )
                 .fillMaxSize(),
-            draggable = true,
+            draggable = enableResize,
             preview = {
                 ComposeSurfaceView(
                     modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
