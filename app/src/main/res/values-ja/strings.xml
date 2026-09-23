@@ -283,4 +283,5 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_timeline_menu_setting_title">タイムラインの設定</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_title">タイムラインやプレビューのサイズ変更機能を有効にする</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_description">サイズ変更のためのバーを表示します。ドラッグ操作でサイズ変更ができます。</string>
+    <string name="project_list_tutorial">チュートリアルを見る</string>
 </resources>

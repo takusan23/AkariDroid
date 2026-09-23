@@ -282,4 +282,5 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_bottomsheet_timeline_menu_setting_title">Timeline settings</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_title">Enable resize feature for timeline and preview</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_description">Show bar. it is draggable for resize.</string>
+    <string name="project_list_tutorial">View tutorial</string>
 </resources>

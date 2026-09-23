@@ -27,12 +27,14 @@ import io.github.takusan23.akaridroid.R
  * @param modifier [Modifier]
  * @param onCreate 作成ボタン押した時
  * @param onImport 取り込みボタン押した時
+ * @param onTutorial チュートリアルボタン押した時
  */
 @Composable
 fun ProjectListMenu(
     modifier: Modifier = Modifier,
     onCreate: () -> Unit,
-    onImport: (Uri) -> Unit
+    onImport: (Uri) -> Unit,
+    onTutorial: () -> Unit
 ) {
 
     val zipFilePicker = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri ->
@@ -55,6 +57,12 @@ fun ProjectListMenu(
             Icon(painter = painterResource(id = R.drawable.ic_outline_business_center_24), contentDescription = null)
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
             Text(text = stringResource(id = R.string.project_list_import_project))
+        }
+
+        OutlinedButton(onClick = onTutorial) {
+            Icon(painter = painterResource(id = R.drawable.akari_droid_tutorial), contentDescription = null)
+            Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))
+            Text(text = stringResource(id = R.string.project_list_tutorial))
         }
     }
 }

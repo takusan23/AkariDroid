@@ -58,7 +58,7 @@ fun DefaultTimeLineHeader(
     ) {
         TextButton(onClick = onModeChangeClick) {
             Icon(
-                painter = painterResource(id = R.drawable.ic_sync_24dp),
+                painter = painterResource(id = R.drawable.akari_droid_timeline_menu),
                 contentDescription = null
             )
             Spacer(modifier = Modifier.width(ButtonDefaults.IconSpacing))

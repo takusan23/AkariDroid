@@ -18,14 +18,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.takusan23.akaridroid.encoder.EncoderService
-import io.github.takusan23.akaridroid.ui.sheet.projectlist.ProjectListBottomSheetRequestData
-import io.github.takusan23.akaridroid.ui.sheet.projectlist.ProjectListBottomSheetRouter
 import io.github.takusan23.akaridroid.ui.component.projectlist.EncodingListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListDialogRouter
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListItem
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListMenu
 import io.github.takusan23.akaridroid.ui.component.projectlist.ProjectListTopAppBar
 import io.github.takusan23.akaridroid.ui.component.projectlist.data.ProjectListDialogRequestData
+import io.github.takusan23.akaridroid.ui.sheet.projectlist.ProjectListBottomSheetRequestData
+import io.github.takusan23.akaridroid.ui.sheet.projectlist.ProjectListBottomSheetRouter
 import io.github.takusan23.akaridroid.viewmodel.ProjectListViewModel
 import kotlinx.coroutines.launch
 
@@ -96,7 +96,8 @@ fun ProjectListScreen(
                 ProjectListMenu(
                     modifier = Modifier.padding(10.dp),
                     onCreate = { viewModel.showBottomSheet(ProjectListBottomSheetRequestData.CreateNewProject) },
-                    onImport = { uri -> viewModel.importPortableProject(uri) }
+                    onImport = { uri -> viewModel.importPortableProject(uri) },
+                    onTutorial = { }
                 )
             }
 
