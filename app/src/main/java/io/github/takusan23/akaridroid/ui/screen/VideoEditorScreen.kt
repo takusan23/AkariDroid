@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.systemGestureExclusion
@@ -466,6 +467,7 @@ private fun LargeScreenLayout(
                 timeline = {
                     // タイムライン
                     val windowInsetsModifier = Modifier
+                        .fillMaxWidth()
                         .padding(
                             start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                             end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
@@ -806,33 +808,38 @@ private fun CompactPortraitLayout(
 
     Scaffold(containerColor = MaterialTheme.colorScheme.surfaceContainer) { paddingValues ->
         VideoEditorCompactPortraitLayout(
-            modifier = Modifier
-                // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
-                .padding(
-                    top = paddingValues.calculateTopPadding(),
-                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
-                )
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             draggable = enableResize,
             preview = {
-                ComposeSurfaceView(
-                    modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
-                    onCreateSurface = onCreateSurface,
-                    onSizeChanged = onSizeChanged,
-                    onDestroySurface = onDestroySurface
-                )
-                PreviewContainer(
-                    modifier = Modifier.matchParentSize(),
-                    touchEditorData = touchEditorData,
-                    showMenu = true,
-                    onDragAndDropEnd = onDragAndDropEnd,
-                    onSizeChangeRequest = onSizeChangeRequest,
-                    playerStatus = playerStatus,
-                    onPlayOrPause = onPlayOrPause,
-                    onSeek = onSeek,
-                    onMenuClick = onMenuClick
-                )
+                Box(
+                    modifier = Modifier
+                        // タイムラインはナビゲーションバーの領域まで描画してほしいので bottom 以外
+                        .padding(
+                            top = paddingValues.calculateTopPadding(),
+                            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current)
+                        )
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ComposeSurfaceView(
+                        modifier = Modifier.aspectRatio(renderData.videoSize.width / renderData.videoSize.height.toFloat()),
+                        onCreateSurface = onCreateSurface,
+                        onSizeChanged = onSizeChanged,
+                        onDestroySurface = onDestroySurface
+                    )
+                    PreviewContainer(
+                        modifier = Modifier.matchParentSize(),
+                        touchEditorData = touchEditorData,
+                        showMenu = true,
+                        onDragAndDropEnd = onDragAndDropEnd,
+                        onSizeChangeRequest = onSizeChangeRequest,
+                        playerStatus = playerStatus,
+                        onPlayOrPause = onPlayOrPause,
+                        onSeek = onSeek,
+                        onMenuClick = onMenuClick
+                    )
+                }
             },
             timeline = {
                 when (timeLineMode) {
