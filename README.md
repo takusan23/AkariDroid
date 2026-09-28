@@ -2,11 +2,20 @@
 動画編集アプリ。大した機能はない。  
 `MediaCodec`や`OpenGL ES`などを利用した動画編集アプリです
 
+https://oekakityou.negitoro.dev/resize/041c125e-e6dc-46b4-8f84-7ce3fabf04eb.png
+
 <p align="center">
-<img width="200" src="https://imgur.com/HbHsgpE.jpg">
-<img width="200" src="https://imgur.com/1LTvNu2.jpg">
-<img width="200" src="https://imgur.com/tGLrTW9.jpg">
-<img width="200" src="https://imgur.com/5xnemwZ.jpg">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/041c125e-e6dc-46b4-8f84-7ce3fabf04eb.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/08e9390c-2579-4db4-9e5b-ef38def1b1ae.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/231e817c-9544-4fcb-8a98-b32594249e85.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/175d5460-34be-4840-8308-1c11feada6e9.png">
+</p>
+
+<p align="center">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/0a5f7321-deaf-4504-b738-899e11d473e0.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/079f4b42-3222-475f-b991-2d976143405b.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/08e9d549-1dcd-4617-b9c8-018e582f4561.png">
+<img width="200" src="https://oekakityou.negitoro.dev/resize/2049c799-be47-4460-a90d-9bb7e6357f1e.png">
 </p>
 
 # ダウンロード
@@ -26,6 +35,7 @@ https://play.google.com/store/apps/details?id=io.github.takusan23.akaridroid
 - 上級者向けのエンコード設定
   - `コーデック`、`コンテナ`、`フレームレート`などが好きに決められます
 - プロジェクトのエクスポート、インポート機能（他の端末に持ち出す機能）
+- タブレット等の大画面用レイアウト
 
 # 動画編集 チュートリアル
 

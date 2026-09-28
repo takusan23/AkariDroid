@@ -18,7 +18,7 @@ koin-bom = "4.2.2" # nav3 のため
 
 androidMaterial = "1.7.0"
 glide = "5.0.9"
-libaicaroid = "1.0.0"
+libaicaroid = "1.1.0"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
