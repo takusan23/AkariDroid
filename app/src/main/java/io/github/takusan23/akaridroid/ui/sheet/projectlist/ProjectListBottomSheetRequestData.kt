@@ -8,4 +8,7 @@ sealed interface ProjectListBottomSheetRequestData {
 
     /** メニューを開く */
     data class ProjectMenu(val name: String) : ProjectListBottomSheetRequestData
+
+    /** チュートリアル用リンク集 */
+    data object TutorialLink : ProjectListBottomSheetRequestData
 }

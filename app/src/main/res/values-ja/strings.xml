@@ -284,4 +284,11 @@ SDR に変換すると、より多くの端末で再生できますが、無理�
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_title">タイムラインやプレビューのサイズ変更機能を有効にする</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_description">サイズ変更のためのバーを表示します。ドラッグ操作でサイズ変更ができます。</string>
     <string name="project_list_tutorial">チュートリアルを見る</string>
+    <string name="project_list_bottomsheet_tutorial_title">チュートリアル リンク集</string>
+    <string name="project_list_bottomsheet_tutorial_landscape_to_portrait_blur_title">横の動画を縦にして両端をぼかす動画を作る</string>
+    <string name="project_list_bottomsheet_tutorial_landscape_to_portrait_blur_description">横の動画を盾にして、余った上下は動画を拡大してぼかしたものを表示します。</string>
+    <string name="project_list_bottomsheet_tutorial_chromakey_title">クロマキー合成を使う</string>
+    <string name="project_list_bottomsheet_tutorial_chromakey_description">特定の色を透過して、タイムラインで重なる動画を透過します。</string>
+    <string name="project_list_bottomsheet_tutorial_short_like_video_title">よくあるショート動画みたいなのを作る</string>
+    <string name="project_list_bottomsheet_tutorial_short_like_video_description">よく見るショート動画のようなものを作ります。動画と文字とナレーションと BGM がある簡単なものを作ります。</string>
 </resources>

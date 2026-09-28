@@ -1,5 +1,6 @@
 package io.github.takusan23.akaridroid.ui.screen
 
+import android.content.Intent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.takusan23.akaridroid.encoder.EncoderService
@@ -67,7 +69,8 @@ fun ProjectListScreen(
                 }
             },
             onDeleteMenuClick = { name -> viewModel.showDialog(ProjectListDialogRequestData.ProjectDeleteDialog(name)) },
-            onExportMenuClick = { name, uri -> viewModel.exportPortableProject(name, uri) }
+            onExportMenuClick = { name, uri -> viewModel.exportPortableProject(name, uri) },
+            onOpenUrl = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
         )
     }
 
@@ -97,7 +100,7 @@ fun ProjectListScreen(
                     modifier = Modifier.padding(10.dp),
                     onCreate = { viewModel.showBottomSheet(ProjectListBottomSheetRequestData.CreateNewProject) },
                     onImport = { uri -> viewModel.importPortableProject(uri) },
-                    onTutorial = { }
+                    onTutorial = { viewModel.showBottomSheet(ProjectListBottomSheetRequestData.TutorialLink) }
                 )
             }
 

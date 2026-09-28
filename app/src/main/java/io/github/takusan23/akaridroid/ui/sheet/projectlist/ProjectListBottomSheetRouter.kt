@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
  * @param onCreate プロジェクト作成時
  * @param onDeleteMenuClick プロジェクト削除メニューを押したとき
  * @param onExportMenuClick エクスポートメニューを押したとき。名前とエクスポート先 Uri
+ * @param onOpenUrl URL を開きたいとき
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,7 +22,8 @@ fun ProjectListBottomSheetRouter(
     onDismiss: () -> Unit,
     onCreate: (name: String) -> Unit,
     onDeleteMenuClick: (name: String) -> Unit,
-    onExportMenuClick: (name: String, Uri) -> Unit
+    onExportMenuClick: (name: String, Uri) -> Unit,
+    onOpenUrl: (String) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
 
@@ -41,6 +43,13 @@ fun ProjectListBottomSheetRouter(
                 },
                 onExportMenuClick = { name, uri ->
                     onExportMenuClick(name, uri)
+                    onDismiss()
+                }
+            )
+
+            ProjectListBottomSheetRequestData.TutorialLink -> TutorialLinkBottomSheet(
+                onOpenUrl = {
+                    onOpenUrl(it)
                     onDismiss()
                 }
             )

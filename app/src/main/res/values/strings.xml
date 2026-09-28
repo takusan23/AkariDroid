@@ -283,4 +283,11 @@ Converting to SDR will allow it to be played on more devices, but the colors wil
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_title">Enable resize feature for timeline and preview</string>
     <string name="video_edit_bottomsheet_timeline_menu_setting_resize_description">Show bar. it is draggable for resize.</string>
     <string name="project_list_tutorial">View tutorial</string>
+    <string name="project_list_bottomsheet_tutorial_title">Tutorial links (sorry, japanese only)</string>
+    <string name="project_list_bottomsheet_tutorial_landscape_to_portrait_blur_title">Create landscape video to portrait and background blur</string>
+    <string name="project_list_bottomsheet_tutorial_landscape_to_portrait_blur_description">Create portrait video from landscape video.\nIt is background from scale up landscape video.</string>
+    <string name="project_list_bottomsheet_tutorial_chromakey_title">Chromakey composite</string>
+    <string name="project_list_bottomsheet_tutorial_chromakey_description">Transparent target color and composite videos.</string>
+    <string name="project_list_bottomsheet_tutorial_short_like_video_title">Create short like video</string>
+    <string name="project_list_bottomsheet_tutorial_short_like_video_description">Create short like video.\nadd video, text, text-to-speech and BGM.</string>
 </resources>
