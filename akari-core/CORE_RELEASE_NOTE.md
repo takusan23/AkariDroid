@@ -4,6 +4,10 @@
 ## 6.0.0 時代
 あかりどろいど 5.x に対応します
 
+### akaricore:6.4.2
+- `Google Pixel 11`だと一部描画に失敗する問題を修正
+  - `OpenGL ES`のドライバーが`ANGLE`だから？
+
 ### akaricore:6.4.1
 - まちがえて minSdkVersion が 26 になっていたので 23 に修正
 
